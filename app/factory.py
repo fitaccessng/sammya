@@ -16,7 +16,10 @@ def create_app(config_name='development'):
     
     # Configuration
     if config_name == 'production':
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///fitaccess.db')
+        database_url = os.environ.get('DATABASE_URL', 'sqlite:///fitaccess.db')
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
     else:
@@ -76,6 +79,9 @@ def create_app(config_name='development'):
     app.register_blueprint(api_bp)
     app.register_blueprint(payroll_bp)  # Payroll management dashboard
     app.register_blueprint(employee_payroll_bp)  # Employee self-service
+
+    # Register all model modules before create_all() so every table is created.
+    import app.payroll_models  # noqa: F401
     
     # Error handlers
     @app.errorhandler(404)
