@@ -1,0 +1,114 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Attendance Report{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.reports') }}">Reports</a></li>
+    <li class="breadcrumb-item active">Attendance Report</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Attendance Report</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                        <i class='bx bxs-printer'></i> Print
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4 pb-3 border-bottom">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Total Staff</label>
+                            <p class="h4">{{ data.total_staff }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Present Today</label>
+                            <p class="h4" style="color: #28a745;">{{ data.present_today }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Absent</label>
+                            <p class="h4" style="color: #dc3545;">{{ data.absent_today }}</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Late</label>
+                            <p class="h4" style="color: #ffc107;">{{ data.late_today }}</p>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Staff Attendance Status</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Staff Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if data.staff %}
+                                    {% for staff in data.staff %}
+                                    <tr>
+                                        <td><strong>{{ staff.name }}</strong></td>
+                                        <td>{{ staff.email }}</td>
+                                        <td>
+                                            {% if staff.status == 'Present' %}
+                                            <span class="badge bg-success">Present</span>
+                                            {% elif staff.status == 'Absent' %}
+                                            <span class="badge bg-danger">Absent</span>
+                                            {% elif staff.status == 'Late' %}
+                                            <span class="badge bg-warning">Late</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">No staff data available</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Report Date:</strong> {{ data.report_date or 'Today' }}</p>
+                    <p class="mb-2"><strong>Attendance Rate:</strong> 
+                        {% if data.total_staff > 0 %}
+                        {{ (data.present_today / data.total_staff * 100)|round(1) }}%
+                        {% else %}
+                        0%
+                        {% endif %}
+                    </p>
+                    <p class="mb-0"><strong>Generated At:</strong> {{ data.generated_at or 'Now' }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('hr.reports') }}" class="btn btn-secondary w-100">
+                        <i class='bx bxs-left-arrow'></i> Back to Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

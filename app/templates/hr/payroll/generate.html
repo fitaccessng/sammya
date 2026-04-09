@@ -1,0 +1,118 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Generate Payroll{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+<li class="breadcrumb-item active">Generate</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12 text-end">
+            <a href="{{ url_for('hr.payroll_export_excel') }}" class="btn btn-success btn-sm">
+                <i class='bx bxs-file-export'></i> Download Excel Report
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Generate Monthly Payroll</h5></div>
+        <div class="card-body">
+            {% if not generated_payroll %}
+            <form method="POST">
+                <div class="mb-4">
+                    <label class="form-label" for="payroll_month"><strong>Select Payroll Month</strong></label>
+                    <input type="month" class="form-control form-control-lg" id="payroll_month" name="payroll_month" value="{{ current_month.strftime('%Y-%m') if current_month else '' }}" required>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Staff Count</small><strong>{{ payroll_summary.staff_count if payroll_summary else 0 }}</strong></div></div>
+                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) if payroll_summary else 0 }}</strong></div></div>
+                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) if payroll_summary else 0 }}</strong></div></div>
+                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) if payroll_summary else 0 }}</strong></div></div>
+                </div>
+
+                <div class="table-responsive mb-4" style="max-height: 380px; overflow-y: auto;">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light" style="position: sticky; top: 0;">
+                            <tr>
+                                <th>SN/O</th>
+                                <th>Names</th>
+                                <th class="text-end">Gross</th>
+                                <th class="text-end">Basic Salary</th>
+                                <th class="text-end">Housing</th>
+                                <th class="text-end">Transport</th>
+                                <th class="text-end">Utility</th>
+                                <th class="text-end">Meal</th>
+                                <th class="text-end">Medical</th>
+                                <th class="text-end">Annual Gross</th>
+                                <th class="text-end">Annual Pension Employer</th>
+                                <th class="text-end">Annual Pension Employee</th>
+                                <th class="text-end">Annual NHIS</th>
+                                <th class="text-end">NHF Annual</th>
+                                <th class="text-end">House Rent</th>
+                                <th class="text-end">Tax Relief</th>
+                                <th class="text-end">Consolidated Relief</th>
+                                <th class="text-end">Taxable Income Annual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in payroll_summary.staff_details %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ staff.name }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.gross_monthly) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.basic_salary) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.housing) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.transport) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.utility) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.meal) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.medical) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.annual_gross) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.annual_pension_employer) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.annual_pension_employee) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.annual_nhis) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.annual_nhf) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.house_rent_annual) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.tax_relief_annual) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.consolidated_relief_annual) }}</td>
+                                <td class="text-end">&#8358;{{ "{:,.2f}".format(staff.taxable_income_annual) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="18" class="text-center text-muted">No staff data available</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg flex-grow-1"><i class='bx bxs-check-circle'></i> Generate Payroll</button>
+                    <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary btn-lg"><i class='bx bxs-left-arrow'></i> Cancel</a>
+                </div>
+            </form>
+            {% else %}
+            <div class="alert alert-success mb-4">
+                <strong>Payroll Generated Successfully:</strong> {{ generated_payroll.batch_name }} ({{ generated_payroll.payroll_period }})
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Staff Count</small><strong>{{ payroll_summary.staff_count }}</strong></div></div>
+                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) }}</strong></div></div>
+                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) }}</strong></div></div>
+                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) }}</strong></div></div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <form method="POST" action="{{ url_for('hr.payroll_send_approval') }}" style="flex-grow: 1;">
+                    <input type="hidden" name="payroll_id" value="{{ generated_payroll.id }}">
+                    <button type="submit" class="btn btn-success btn-lg w-100"><i class='bx bxs-send'></i> Send to Admin for Approval</button>
+                </form>
+                <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary btn-lg"><i class='bx bxs-left-arrow'></i> Back to Payroll</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

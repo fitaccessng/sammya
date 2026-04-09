@@ -1,0 +1,150 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Payroll Details{% endblock %}
+{% block page_title %}Payroll Batch Details{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Back Link -->
+    <div>
+        <a href="{{ url_for('admin.payroll_management') }}" class="text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            <i class="fas fa-arrow-left"></i> Back to Payroll Management
+        </a>
+    </div>
+
+    <!-- Header Card -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">{{ batch.batch_name }}</h1>
+                <p class="text-slate-600 mt-1">Payroll Period: <strong>{{ batch.payroll_period }}</strong></p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-slate-600">Status:</p>
+                <p class="text-2xl font-bold">
+                    {% if batch.status == 'draft' %}
+                        <span class="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded">Draft</span>
+                    {% elif batch.status == 'hr_approved' %}
+                        <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded">HR Approved</span>
+                    {% elif batch.status == 'admin_approved' %}
+                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded">Admin Approved</span>
+                    {% elif batch.status == 'finance_processing' %}
+                        <span class="inline-block px-3 py-1 bg-purple-100 text-purple-800 text-sm font-semibold rounded">Finance Processing</span>
+                    {% elif batch.status == 'paid' %}
+                        <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded">Paid</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Staff Count</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ batch.total_records }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Salary</div>
+            <div class="text-2xl font-bold text-slate-900 mt-2">₦{{ "{:,.2f}".format(batch.total_basic_salary or 0) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Deductions</div>
+            <div class="text-2xl font-bold text-slate-900 mt-2">₦{{ "{:,.2f}".format(batch.total_deductions or 0) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Net Pay</div>
+            <div class="text-2xl font-bold text-green-600 mt-2">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</div>
+        </div>
+    </div>
+
+    <!-- Payroll Records Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-50 px-6 py-4 border-b border-slate-200">
+            <h3 class="text-lg font-semibold text-slate-900">Staff Payroll Details</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-100 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Staff Name</th>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Employee ID</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Gross Salary</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Deductions</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Net Salary</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for record in records %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">
+                            {% if record.user %}
+                                {{ record.user.name }}
+                            {% else %}
+                                <span class="text-slate-400">Unknown Staff</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">
+                            {% if record.user %}
+                                {{ record.user.employee_id or record.user.id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-right font-semibold">₦{{ "{:,.2f}".format(record.gross_salary or 0) }}</td>
+                        <td class="px-6 py-4 text-right text-red-600">₦{{ "{:,.2f}".format(record.total_deductions or 0) }}</td>
+                        <td class="px-6 py-4 text-right font-bold text-green-600">₦{{ "{:,.2f}".format(record.net_salary or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-slate-50 border-t-2 border-slate-300">
+                    <tr class="font-bold">
+                        <td class="px-6 py-4" colspan="2">TOTAL</td>
+                        <td class="px-6 py-4 text-right">₦{{ "{:,.2f}".format(batch.total_basic_salary or 0) }}</td>
+                        <td class="px-6 py-4 text-right text-red-600">₦{{ "{:,.2f}".format(batch.total_deductions or 0) }}</td>
+                        <td class="px-6 py-4 text-right text-green-600">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Metadata -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-slate-900 mb-4">Created Information</h4>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Created By:</span>
+                    <span class="font-medium text-slate-900">
+                        {% if batch.created_by_user %}
+                            {{ batch.created_by_user.name }}
+                        {% else %}
+                            System
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Created At:</span>
+                    <span class="font-medium text-slate-900">{{ batch.created_at.strftime('%b %d, %Y %H:%M') if batch.created_at else 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-6">
+            <h4 class="font-semibold text-slate-900 mb-4">Modified Information</h4>
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Last Modified:</span>
+                    <span class="font-medium text-slate-900">{{ batch.modified_at.strftime('%b %d, %Y %H:%M') if batch.modified_at else 'N/A' }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-600">Batch ID:</span>
+                    <span class="font-medium text-slate-900 text-xs">#{{ batch.id }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

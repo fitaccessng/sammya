@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Record #{{ record.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <h1 class="text-3xl font-bold mb-4">Payment Record #{{ record.id }}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <p class="text-sm text-slate-600">Amount Paid</p>
+                <p class="text-2xl font-bold text-green-600">${{ "%.2f"|format(record.amount_paid) }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Payment Date</p>
+                <p class="font-semibold">{{ record.payment_date.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+        </div>
+        
+        <div class="mt-6 grid grid-cols-2 gap-4 pt-6 border-t">
+            <div>
+                <p class="text-sm text-slate-600">Payment Method</p>
+                <p class="font-semibold">{{ record.payment_method }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Reference Number</p>
+                <p class="font-semibold">{{ record.reference_number }}</p>
+            </div>
+        </div>
+        
+        {% if record.proof_document %}
+        <div class="mt-6 pt-6 border-t">
+            <p class="text-sm text-slate-600 mb-2">Proof Document</p>
+            <a href="{{ record.proof_document }}" target="_blank" class="text-blue-600 hover:underline">View Document</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

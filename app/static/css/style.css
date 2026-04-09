@@ -1,0 +1,98 @@
+/* Custom styles for FitAccess ERP */
+
+:root {
+    --color-primary: #2563eb;
+    --color-success: #16a34a;
+    --color-warning: #ea580c;
+    --color-danger: #dc2626;
+    --color-slate-50: #f8fafc;
+    --color-slate-900: #0f172a;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.approval-badge {
+    @apply px-3 py-1 text-sm rounded-full font-medium;
+}
+
+.approval-badge.pending {
+    @apply bg-amber-100 text-amber-800;
+}
+
+.approval-badge.approved {
+    @apply bg-green-100 text-green-800;
+}
+
+.approval-badge.rejected {
+    @apply bg-red-100 text-red-800;
+}
+
+.approval-badge.escalated {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.approval-card {
+    @apply bg-white rounded-lg shadow-md p-4 border-l-4 hover:shadow-lg transition;
+}
+
+.approval-card.high-value {
+    @apply border-l-red-500;
+}
+
+.approval-card.medium-value {
+    @apply border-l-amber-500;
+}
+
+.approval-card.normal {
+    @apply border-l-blue-500;
+}
+
+.form-input {
+    @apply block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500;
+}
+
+.btn-primary {
+    @apply px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition;
+}
+
+.btn-success {
+    @apply px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition;
+}
+
+.btn-danger {
+    @apply px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition;
+}
+
+.btn-secondary {
+    @apply px-4 py-2 bg-slate-200 text-slate-800 rounded hover:bg-slate-300 transition;
+}
+
+.status-table thead {
+    @apply bg-slate-50 border-b border-slate-200;
+}
+
+.status-table tbody tr {
+    @apply border-b border-slate-100 hover:bg-slate-50;
+}
+
+.status-table th,
+.status-table td {
+    @apply py-3 px-4 text-left;
+}
+
+.status-table th {
+    @apply font-semibold text-slate-700;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .approval-card {
+        @apply flex-col;
+    }
+    
+    .approval-card > * + * {
+        @apply mt-3;
+    }
+}

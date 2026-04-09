@@ -1,0 +1,156 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Reports - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Reports</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <h1 class="text-3xl font-bold text-gray-900">Project Reports</h1>
+
+    <!-- Report Categories -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Project Summary Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Project Summary</h3>
+                    <p class="text-gray-600 text-sm mt-1">Overview of project status and metrics</p>
+                </div>
+                <div class="bg-blue-100 p-3 rounded-lg">
+                    <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Generated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=1) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+
+        <!-- Progress Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Progress Report</h3>
+                    <p class="text-gray-600 text-sm mt-1">Milestone and timeline performance</p>
+                </div>
+                <div class="bg-green-100 p-3 rounded-lg">
+                    <i class="fas fa-chart-line text-green-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Last Updated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=2) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+
+        <!-- Budget Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Budget Report</h3>
+                    <p class="text-gray-600 text-sm mt-1">Cost analysis and expenditure tracking</p>
+                </div>
+                <div class="bg-purple-100 p-3 rounded-lg">
+                    <i class="fas fa-wallet text-purple-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Generated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=3) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+
+        <!-- Resource Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Resource Report</h3>
+                    <p class="text-gray-600 text-sm mt-1">Team, materials, and equipment allocation</p>
+                </div>
+                <div class="bg-orange-100 p-3 rounded-lg">
+                    <i class="fas fa-boxes text-orange-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Generated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=4) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+
+        <!-- Quality Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Quality Report</h3>
+                    <p class="text-gray-600 text-sm mt-1">Quality assurance and compliance metrics</p>
+                </div>
+                <div class="bg-red-100 p-3 rounded-lg">
+                    <i class="fas fa-check-circle text-red-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Generated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=5) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+
+        <!-- Risk Report -->
+        <div class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition cursor-pointer">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">Risk Report</h3>
+                    <p class="text-gray-600 text-sm mt-1">Risks, issues, and mitigation strategies</p>
+                </div>
+                <div class="bg-yellow-100 p-3 rounded-lg">
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-xl"></i>
+                </div>
+            </div>
+            <div class="flex items-center justify-between mt-6">
+                <span class="text-xs text-gray-600">Generated: Today</span>
+                <!-- <a href="{{ url_for('project.report_detail', report_id=6) }}" class="text-blue-600 hover:text-blue-800 font-medium">View →</a> -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900">Recently Generated Reports</h2>
+        </div>
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Report Name</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Type</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Generated</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium text-gray-900">Monthly Progress Report - December 2025</td>
+                    <td class="px-6 py-4 text-gray-600">Progress Report</td>
+                    <td class="px-6 py-4 text-gray-600">Today, 10:30 AM</td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium"><i class="fas fa-eye"></i></a>
+                        <a href="#" class="text-green-600 hover:text-green-800 text-sm font-medium"><i class="fas fa-download"></i></a>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium text-gray-900">Budget Review - Q4 2025</td>
+                    <td class="px-6 py-4 text-gray-600">Budget Report</td>
+                    <td class="px-6 py-4 text-gray-600">Yesterday, 2:15 PM</td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium"><i class="fas fa-eye"></i></a>
+                        <a href="#" class="text-green-600 hover:text-green-800 text-sm font-medium"><i class="fas fa-download"></i></a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Edit Payroll{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+    <li class="breadcrumb-item active">Edit - {{ payroll.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Edit Payroll for {{ payroll.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Staff Name</label>
+                            <input type="text" class="form-control" value="{{ payroll.name }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ payroll.email }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="basic_salary" class="form-label">Basic Salary *</label>
+                            <input type="number" class="form-control" id="basic_salary" name="basic_salary" 
+                                   value="{{ payroll.basic_salary }}" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="deductions" class="form-label">Deductions *</label>
+                            <input type="number" class="form-control" id="deductions" name="deductions" 
+                                   value="{{ payroll.deductions }}" step="0.01" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Net Salary (Auto)</label>
+                            <input type="text" class="form-control" id="net_salary" value="{{ payroll.net_salary }}" disabled>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class='bx bxs-save'></i> Save Changes
+                            </button>
+                            <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
+                                <i class='bx bxs-left-arrow'></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('basic_salary').addEventListener('input', calculateNet);
+    document.getElementById('deductions').addEventListener('input', calculateNet);
+    
+    function calculateNet() {
+        const basic = parseFloat(document.getElementById('basic_salary').value) || 0;
+        const deductions = parseFloat(document.getElementById('deductions').value) || 0;
+        const net = basic - deductions;
+        document.getElementById('net_salary').value = net.toFixed(2);
+    }
+</script>
+{% endblock %}

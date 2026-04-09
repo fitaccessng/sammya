@@ -1,0 +1,62 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Budget Summary{% endblock %}
+{% block page_subtitle %}Monitor budget allocation and spending{% endblock %}
+
+{% block main_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="bg-blue-50 rounded-lg shadow-md p-6 border-l-4 border-blue-600">
+        <p class="text-blue-600 text-sm font-semibold uppercase">Total Allocated</p>
+        <p class="text-3xl font-bold text-blue-800 mt-2">₦{{ "{:,.2f}".format(budget.total_allocated) }}</p>
+    </div>
+    <div class="bg-green-50 rounded-lg shadow-md p-6 border-l-4 border-green-600">
+        <p class="text-green-600 text-sm font-semibold uppercase">Total Spent</p>
+        <p class="text-3xl font-bold text-green-800 mt-2">₦{{ "{:,.2f}".format(budget.total_spent) }}</p>
+    </div>
+    <div class="bg-orange-50 rounded-lg shadow-md p-6 border-l-4 border-orange-600">
+        <p class="text-orange-600 text-sm font-semibold uppercase">Remaining</p>
+        <p class="text-3xl font-bold text-orange-800 mt-2">₦{{ "{:,.2f}".format(budget.total_allocated - budget.total_spent) }}</p>
+    </div>
+</div>
+
+<!-- Budget Details Table -->
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Project</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Category</th>
+                    <th class="px-6 py-3 text-right font-semibold text-gray-700">Allocated</th>
+                    <th class="px-6 py-3 text-right font-semibold text-gray-700">Spent</th>
+                    <th class="px-6 py-3 text-right font-semibold text-gray-700">Remaining</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Utilization</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in budget.items_list %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium text-gray-800">{{ item.project_name }}</td>
+                    <td class="px-6 py-4 text-gray-600">Procurement</td>
+                    <td class="px-6 py-4 text-right font-medium text-gray-800">₦{{ "{:,.2f}".format(item.allocated) }}</td>
+                    <td class="px-6 py-4 text-right font-medium text-gray-800">₦{{ "{:,.2f}".format(item.spent) }}</td>
+                    <td class="px-6 py-4 text-right font-medium">
+                        {% if item.remaining >= 0 %}
+                            <span class="text-green-600">₦{{ "{:,.2f}".format(item.remaining) }}</span>
+                        {% else %}
+                            <span class="text-red-600">₦{{ "{:,.2f}".format(item.remaining) }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ item.utilization }}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">{{ "%.1f"|format(item.utilization) }}%</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

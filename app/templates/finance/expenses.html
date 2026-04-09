@@ -1,0 +1,250 @@
+{% extends "finance/base.html" %}
+
+{% block title %}Expenses - Finance Management{% endblock %}
+
+{% block finance_content %}
+<div class="space-y-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Expense Management</h1>
+        <button onclick="showAddExpenseModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Add Expense</button>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow">
+        <form method="GET" class="flex gap-4 items-end">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                <select name="status" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Statuses</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>Paid</option>
+                    <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                </select>
+            </div>
+
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+                <select name="category" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="all">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Filter</button>
+            <a href="{{ url_for('finance.export_expenses', format='csv') }}" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">Export CSV</a>
+        </form>
+    </div>
+
+    <div class="grid grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div class="text-sm text-gray-600">Total Expenses</div>
+            <div class="text-2xl font-bold text-blue-600">N{{ "{:,.2f}".format(total_expenses) }}</div>
+        </div>
+        <div class="bg-orange-50 border-l-4 border-orange-500 p-4 rounded">
+            <div class="text-sm text-gray-600">Pending Approval</div>
+            <div class="text-2xl font-bold text-orange-600">N{{ "{:,.2f}".format(total_pending) }}</div>
+        </div>
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+            <div class="text-sm text-gray-600">Approved</div>
+            <div class="text-2xl font-bold text-green-600">N{{ "{:,.2f}".format(total_approved) }}</div>
+        </div>
+        <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded">
+            <div class="text-sm text-gray-600">This Month</div>
+            <div class="text-2xl font-bold text-purple-600">N{{ "{:,.2f}".format(month_total) }}</div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <table class="w-full">
+            <thead class="bg-gray-100 border-b">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Date</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Description</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Category</th>
+                    <th class="px-6 py-3 text-right font-semibold text-gray-700">Amount</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th class="px-6 py-3 text-center font-semibold text-gray-700">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses.items %}
+                <tr class="border-b hover:bg-gray-50">
+                    <td class="px-6 py-4 text-gray-700">{{ expense.date.strftime('%m/%d/%Y') }}</td>
+                    <td class="px-6 py-4 text-gray-800 font-semibold">{{ expense.description }}</td>
+                    <td class="px-6 py-4">
+                        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded text-xs">{{ expense.category }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right font-bold text-gray-800">N{{ "{:,.2f}".format(expense.amount) }}</td>
+                    <td class="px-6 py-4">
+                        <span class="inline-block px-3 py-1 rounded text-xs font-semibold
+                            {% if expense.status == 'pending' %}bg-yellow-100 text-yellow-800
+                            {% elif expense.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif expense.status == 'paid' %}bg-blue-100 text-blue-800
+                            {% else %}bg-red-100 text-red-800{% endif %}">
+                            {{ expense.status|capitalize }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <a href="{{ url_for('finance.expense_details', expense_id=expense.id) }}" class="text-blue-600 hover:underline">View</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">No expenses found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if expenses.pages > 1 %}
+    <div class="flex justify-center gap-2 mt-6">
+        {% if expenses.has_prev %}
+        <a href="{{ url_for('finance.expenses', page=expenses.prev_num) }}" class="px-3 py-1 border rounded hover:bg-gray-100">Previous</a>
+        {% endif %}
+
+        {% for page_num in expenses.iter_pages() %}
+            {% if page_num %}
+                {% if page_num == expenses.page %}
+                <span class="px-3 py-1 bg-blue-600 text-white rounded">{{ page_num }}</span>
+                {% else %}
+                <a href="{{ url_for('finance.expenses', page=page_num) }}" class="px-3 py-1 border rounded hover:bg-gray-100">{{ page_num }}</a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if expenses.has_next %}
+        <a href="{{ url_for('finance.expenses', page=expenses.next_num) }}" class="px-3 py-1 border rounded hover:bg-gray-100">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div id="addExpenseModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+        <h2 class="text-2xl font-bold mb-4 text-gray-800">Add New Expense</h2>
+        <form id="addExpenseForm" class="space-y-4" enctype="multipart/form-data">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Bank Account *</label>
+                <select name="account_id" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Account</option>
+                    {% for account in bank_accounts %}
+                    <option value="{{ account.id }}">{{ account.account_name }} - N{{ "{:,.2f}".format(account.balance) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Expense Account *</label>
+                <select name="expense_account_id" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Expense Account</option>
+                    {% for account in expense_accounts %}
+                    <option value="{{ account.id }}">{{ account.account_code }} - {{ account.account_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                <input type="text" name="description" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Amount</label>
+                <input type="number" name="amount" step="0.01" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Category *</label>
+                <div class="flex gap-2">
+                    <select id="categorySelect" name="category" class="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select Existing Category</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="button" onclick="toggleNewCategory()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors" title="Add new category">+</button>
+                </div>
+                <input id="newCategoryInput" type="text" placeholder="or enter new category name" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2 hidden">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Date</label>
+                <input type="date" name="date" required class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">PAYE Reference</label>
+                <input type="text" name="paye_reference" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Optional PAYE code/ref">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">PAYE Amount</label>
+                <input type="number" step="0.01" min="0" name="paye_amount" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="0.00">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Tags</label>
+                <input type="text" name="tags" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. tax,utilities,office">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Invoice / Receipt Upload</label>
+                <input type="file" name="invoice_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div class="flex gap-2 justify-end">
+                <button type="button" onclick="closeAddExpenseModal()" class="px-4 py-2 border rounded hover:bg-gray-100">Cancel</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Add Expense</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showAddExpenseModal() {
+    document.getElementById('addExpenseModal').classList.remove('hidden');
+}
+
+function closeAddExpenseModal() {
+    document.getElementById('addExpenseModal').classList.add('hidden');
+}
+
+function toggleNewCategory() {
+    const input = document.getElementById('newCategoryInput');
+    const select = document.getElementById('categorySelect');
+    input.classList.toggle('hidden');
+    if (!input.classList.contains('hidden')) {
+        input.focus();
+        select.value = '';
+    }
+}
+
+document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const form = document.getElementById('addExpenseForm');
+    const categoryInput = document.getElementById('newCategoryInput');
+    const categorySelect = document.getElementById('categorySelect');
+
+    let category = categoryInput.classList.contains('hidden') ? categorySelect.value : categoryInput.value;
+    if (!category.trim()) {
+        alert('Please select or enter a category');
+        return;
+    }
+
+    const formData = new FormData(form);
+    formData.set('category', category.trim());
+
+    try {
+        const response = await fetch('{{ url_for("finance.add_expense") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        if (data.status === 'success') {
+            alert(data.message);
+            closeAddExpenseModal();
+            location.reload();
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        alert('Error adding expense: ' + error);
+    }
+});
+</script>
+{% endblock %}

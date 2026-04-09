@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Create Delivery (GRN){% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Create Goods Received Note</h1>
+    <p class="text-slate-600 mb-6">Purchase Order #{{ po.id }} from {{ po.vendor.name if po.vendor else 'Vendor TBD' }}</p>
+    
+    <form method="POST" class="bg-white rounded-lg shadow p-6 space-y-6">
+        <div class="border-t pt-6">
+            <h3 class="text-lg font-semibold mb-4">Received Items</h3>
+            <div id="itemsContainer" class="space-y-4">
+                {% for item in po.items %}
+                <div class="grid grid-cols-3 gap-4 p-3 bg-slate-50 rounded">
+                    <div>
+                        <p class="text-sm font-medium">{{ item.description }}</p>
+                        <p class="text-xs text-slate-500">Ordered: {{ item.quantity }} {{ item.unit }}</p>
+                    </div>
+                    <input type="text" placeholder="Item Description" name="item_description" value="{{ item.description }}" class="form-input hidden">
+                    <input type="number" placeholder="Qty Received" name="quantity_received" step="0.01" class="form-input" required>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="flex gap-4 pt-6 border-t">
+            <button type="submit" class="btn-primary">Create GRN</button>
+            <a href="{{ url_for('qc.list_deliveries') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

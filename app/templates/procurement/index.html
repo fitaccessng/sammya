@@ -1,0 +1,139 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Welcome to Procurement Management{% endblock %}
+
+{% block top_actions %}
+<div class="mb-6 flex justify-between items-center">
+    <h2 class="text-xl font-semibold text-gray-700">Overview</h2>
+    <a href="{{ url_for('procurement.create_purchase_order') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+        <i class="fas fa-plus mr-2"></i> New Purchase Order
+    </a>
+</div>
+{% endblock %}
+
+{% block main_content %}
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Assets -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Total Assets</p>
+                <p class="text-3xl font-bold text-gray-800 dashboard-number">{{ summary.total_assets }}</p>
+            </div>
+            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-boxes text-blue-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Assets -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Active Assets</p>
+                <p class="text-3xl font-bold text-gray-800 dashboard-number">{{ summary.active_assets }}</p>
+            </div>
+            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-check-circle text-green-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Purchase Orders -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Total Orders</p>
+                <p class="text-3xl font-bold text-gray-800 dashboard-number">{{ summary.total_orders }}</p>
+                <p class="text-xs text-orange-600 mt-1">{{ summary.pending_orders }} pending</p>
+            </div>
+            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-receipt text-orange-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Status -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Budget Utilization</p>
+                <p class="text-3xl font-bold text-gray-800 dashboard-number">{{ "%.1f"|format(summary.budget_utilization) }}%</p>
+                <p class="text-xs text-gray-600 mt-1">₦{{ "{:,.2f}".format(summary.utilized_budget) }} / ₦{{ "{:,.2f}".format(summary.total_budget) }}</p>
+            </div>
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Vendors -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Active Vendors</p>
+                <p class="text-3xl font-bold text-gray-800 dashboard-number">{{ summary.active_vendors }}</p>
+                <p class="text-xs text-gray-600 mt-1">of {{ summary.total_vendors }} total</p>
+            </div>
+            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-indigo-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remaining Budget -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Remaining Budget</p>
+                <p class="text-2xl font-bold text-gray-800 dashboard-number">₦{{ "{:,.0f}".format(summary.remaining_budget) }}</p>
+            </div>
+            <div class="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-wallet text-teal-600 text-xl"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Recent Orders -->
+    <div class="md:col-span-2 bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Purchase Orders</h3>
+        <div class="space-y-3">
+            <p class="text-gray-600 text-sm">View all recent orders in the <a href="{{ url_for('procurement.purchases') }}" class="text-blue-600 hover:underline">Purchases</a> section.</p>
+            <a href="{{ url_for('procurement.purchases') }}" class="inline-block text-blue-600 hover:text-blue-800">
+                View all orders <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+        <div class="space-y-2">
+            <a href="{{ url_for('procurement.create_purchase_order') }}" class="block px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-sm transition">
+                <i class="fas fa-plus-circle mr-2"></i> New Purchase Order
+            </a>
+            <a href="{{ url_for('procurement.add_asset') }}" class="block px-3 py-2 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg text-sm transition">
+                <i class="fas fa-plus-circle mr-2"></i> Add Asset
+            </a>
+            <a href="{{ url_for('procurement.create_vendor') }}" class="block px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-sm transition">
+                <i class="fas fa-user-plus mr-2"></i> Register Vendor
+            </a>
+            <a href="{{ url_for('procurement.analytics') }}" class="block px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-sm transition">
+                <i class="fas fa-chart-bar mr-2"></i> View Analytics
+            </a>
+            <a href="{{ url_for('hr.leave_management') }}" class="block px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-sm transition">
+                <i class="fas fa-calendar-check mr-2"></i> Leave Request
+            </a>
+            <a href="{{ url_for('main.account_settings') }}" class="block px-3 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-lg text-sm transition">
+                <i class="fas fa-user-cog mr-2"></i> Account Settings
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

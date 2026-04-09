@@ -1,0 +1,199 @@
+{% extends "qs/base.html" %}
+
+{% block title %}Claims - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600 to-red-700 px-6 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i class="fas fa-clipboard-list mr-3"></i>Claims Management
+                </h1>
+                <p class="text-red-100 text-sm mt-1">{{ project.name }}</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="openClaimModal()" class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>New Claim
+                </button>
+                <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="bg-white text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Claims</p>
+            <p class="text-4xl font-bold text-gray-900 mt-2">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Pending Claims</p>
+            <p class="text-4xl font-bold text-orange-600 mt-2">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Approved Claims</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">₦{{ "{:,.0f}".format(0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Rejected Claims</p>
+            <p class="text-4xl font-bold text-red-600 mt-2">0</p>
+        </div>
+    </div>
+
+    <!-- Claims Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Claim No</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Description</th>
+                        <th class="text-right py-3 px-6 font-semibold text-gray-700">Amount (₦)</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Category</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Status</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Date</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" class="text-center text-gray-500 py-8">
+                            <i class="fas fa-inbox text-3xl text-gray-300 block mb-2"></i>
+                            No claims submitted yet
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Claim Modal -->
+<div id="addClaimModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-900">Create New Claim</h2>
+        </div>
+        <div class="p-6">
+            <form id="claimForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-red-600">*</span></label>
+                    <textarea name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent" required></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₦) <span class="text-red-600">*</span></label>
+                    <input type="number" name="amount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select name="category" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                        <option value="">Select a category</option>
+                        <option value="labour">Labour</option>
+                        <option value="materials">Materials</option>
+                        <option value="time">Time Related</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closeClaimModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Close</button>
+            <button onclick="submitClaim()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">Create Claim</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openClaimModal() {
+    document.getElementById('addClaimModal').classList.remove('hidden');
+}
+
+function closeClaimModal() {
+    document.getElementById('addClaimModal').classList.add('hidden');
+}
+
+function submitClaim() {
+    closeClaimModal();
+    alert('Claim submitted successfully');
+}
+
+document.getElementById('addClaimModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeClaimModal();
+    }
+});
+</script>
+{% endblock %}<!-- Add Claim Modal -->
+<div class="modal fade" id="addClaimModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Submit New Claim</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="claimForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Claim Category</label>
+                            <select class="form-control" name="category" required>
+                                <option value="">Select Category</option>
+                                <option value="delay">Delay in Payment</option>
+                                <option value="variation">Variation Work</option>
+                                <option value="extra">Extra Work</option>
+                                <option value="damage">Damage/Defects</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Claim Date</label>
+                            <input type="date" class="form-control" name="claim_date" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="4" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Claim Amount (₦)</label>
+                        <input type="number" class="form-control" name="amount" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supporting Documents</label>
+                        <input type="file" class="form-control" name="documents" multiple>
+                        <small class="text-muted">Upload relevant receipts, invoices, photos, etc.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" onclick="submitClaim()">Submit Claim</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitClaim() {
+    const form = document.getElementById('claimForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("qs_reports.claims", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

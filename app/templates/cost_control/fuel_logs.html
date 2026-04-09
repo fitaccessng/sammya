@@ -1,0 +1,69 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Fuel Logs{% endblock %}
+{% block page_subtitle %}Equipment fuel consumption tracking{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('cost_control.add_fuel_log') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle"></i> Add Fuel Log
+</a>
+{% endblock %}
+
+{% block main_content %}
+<!-- Search -->
+<div class="card border-secondary mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex gap-3">
+            <input type="text" name="search" placeholder="Search by equipment code or operator..." value="{{ search }}" class="form-control">
+            <button type="submit" class="btn btn-primary">Search</button>
+        </form>
+    </div>
+</div>
+
+<!-- Fuel Logs Table -->
+<div class="card border-secondary">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light border-bottom">
+                <tr>
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Equipment</th>
+                    <th class="text-start">Operator</th>
+                    <th class="text-end">Start Meter</th>
+                    <th class="text-end">End Meter</th>
+                    <th class="text-end">Fuel (Liters)</th>
+                    <th class="text-end">Hours</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for log in fuel_logs %}
+                <tr>
+                    <td class="text-start">{{ log.date.strftime('%m/%d/%Y') }}</td>
+                    <td class="text-start fw-medium">{{ log.equipment_code }}</td>
+                    <td class="text-start">{{ log.operator }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(log.start_meter) }}</td>
+                    <td class="text-end">{{ "{:,.0f}".format(log.end_meter) }}</td>
+                    <td class="text-end text-success fw-semibold">{{ "{:.2f}".format(log.fuel_consumed) }}</td>
+                    <td class="text-end">{{ log.total_hours }}</td>
+                    <td class="text-center">
+                        <a href="#" class="link-primary small">Edit</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if not fuel_logs %}
+<div class="card border-0 bg-light mt-4">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox" style="font-size: 3rem; color: #adb5bd;"></i>
+        <h5 class="card-title mt-3">No fuel logs found</h5>
+        <p class="card-text text-muted mb-3">Track equipment fuel consumption</p>
+        <a href="{{ url_for('cost_control.add_fuel_log') }}" class="btn btn-primary btn-sm">Add Fuel Log</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

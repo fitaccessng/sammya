@@ -1,0 +1,217 @@
+{% extends "qs/base.html" %}
+
+{% block title %}Payment Applications - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i class="fas fa-money-bill-wave mr-3"></i>Payment Applications
+                </h1>
+                <p class="text-green-100 text-sm mt-1">{{ project.name }}</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="openPaymentModal()" class="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition flex items-center">
+                    <i class="fas fa-plus mr-2"></i>New Payment App
+                </button>
+                <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="bg-white text-green-600 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Applications</p>
+            <p class="text-4xl font-bold text-gray-900 mt-2">0</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Submitted</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">₦{{ "{:,.0f}".format(0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Certified</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">₦{{ "{:,.0f}".format(0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Paid</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">₦{{ "{:,.0f}".format(0) }}</p>
+        </div>
+    </div>
+
+    <!-- Payment Applications Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Application No</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Period</th>
+                        <th class="text-right py-3 px-6 font-semibold text-gray-700">Submitted (₦)</th>
+                        <th class="text-right py-3 px-6 font-semibold text-gray-700">Certified (₦)</th>
+                        <th class="text-right py-3 px-6 font-semibold text-gray-700">Paid (₦)</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Status</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Date</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="text-center text-gray-500 py-8">
+                            <i class="fas fa-inbox text-3xl text-gray-300 block mb-2"></i>
+                            No payment applications yet
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div id="addPaymentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-900">Create New Payment Application</h2>
+        </div>
+        <div class="p-6">
+            <form id="paymentForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Application Period <span class="text-red-600">*</span></label>
+                    <input type="month" name="period" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount Submitted (₦) <span class="text-red-600">*</span></label>
+                    <input type="number" name="amount_submitted" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closePaymentModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Close</button>
+            <button onclick="submitPayment()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">Create Application</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openPaymentModal() {
+    document.getElementById('addPaymentModal').classList.remove('hidden');
+}
+
+function closePaymentModal() {
+    document.getElementById('addPaymentModal').classList.add('hidden');
+}
+
+function submitPayment() {
+    closePaymentModal();
+    alert('Payment application created successfully');
+}
+
+document.getElementById('addPaymentModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePaymentModal();
+    }
+});
+</script>
+{% endblock %}
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">No payment applications yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Payment Application Modal -->
+<div class="modal fade" id="addPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create Payment Application</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Application Number</label>
+                            <input type="text" class="form-control" name="app_number" placeholder="e.g., PA-001" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Period</label>
+                            <input type="month" class="form-control" name="period" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Previous Certification</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₦</span>
+                                <input type="number" class="form-control" name="previous_cert" step="0.01" value="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Current Submission</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₦</span>
+                                <input type="number" class="form-control" name="current_submission" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description/Remarks</label>
+                        <textarea class="form-control" name="remarks" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supporting Documents</label>
+                        <input type="file" class="form-control" name="documents" multiple>
+                        <small class="text-muted">Upload invoices, timesheets, delivery notes, etc.</small>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="retention_applied" value="1">
+                        <label class="form-check-label">
+                            Apply 5% Retention
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="submitPaymentApp()">Submit Application</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitPaymentApp() {
+    const form = document.getElementById('paymentForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("qs_reports.payment_applications", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

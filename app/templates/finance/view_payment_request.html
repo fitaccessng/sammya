@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Request #{{ payment.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <h1 class="text-3xl font-bold mb-4">Payment Request #{{ payment.id }}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-slate-600">Status</p>
+                <span class="approval-badge pending">{{ payment.approval_state.value.upper() }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Invoice #</p>
+                <p class="font-semibold">{{ payment.invoice_number }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Amount</p>
+                <p class="text-xl font-bold">${{ "%.2f"|format(payment.invoice_amount) }}</p>
+            </div>
+        </div>
+        
+        <div class="pt-6 border-t">
+            <p class="text-sm text-slate-600">PO #</p>
+            <p class="font-semibold">{{ payment.po_id }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

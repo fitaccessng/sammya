@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}{{ batch.batch_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div class="py-6">
+                <a href="{{ url_for('payroll.batch_list') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1 mb-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Back to Batches
+                </a>
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">{{ batch.batch_name }}</h1>
+                        <p class="text-sm text-gray-600 mt-1">Period: {{ batch.payroll_period }} | Created: {{ batch.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                    <span class="px-4 py-2 rounded-full text-sm font-semibold 
+                        {% if batch.status == 'DRAFT' %}bg-gray-100 text-gray-800
+                        {% elif batch.status == 'HR_APPROVED' %}bg-yellow-100 text-yellow-800
+                        {% elif batch.status == 'ADMIN_APPROVED' %}bg-blue-100 text-blue-800
+                        {% elif batch.status == 'FINANCE_PROCESSING' %}bg-purple-100 text-purple-800
+                        {% elif batch.status == 'PAID' %}bg-green-100 text-green-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ batch.status.replace('_', ' ') }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
+        <!-- Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-gray-600 text-xs font-medium uppercase">Total Records</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ batch.payroll_records|length }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-gray-600 text-xs font-medium uppercase">Total Gross</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">₦{{ "{:,.0f}".format(batch.total_gross_salary) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-gray-600 text-xs font-medium uppercase">Total Deductions</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">₦{{ "{:,.0f}".format(batch.total_deductions) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4">
+                <p class="text-gray-600 text-xs font-medium uppercase">Total Adjustments</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">₦{{ "{:,.0f}".format(batch.total_adjustments or 0) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-4 border-2 border-blue-200">
+                <p class="text-gray-600 text-xs font-medium uppercase">Total Net</p>
+                <p class="text-2xl font-bold text-blue-600 mt-1">₦{{ "{:,.0f}".format(batch.total_net_salary) }}</p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="mb-8 flex gap-3 flex-wrap">
+            {% if can_calculate %}
+            <form method="POST" action="{{ url_for('payroll.calculate_batch', batch_id=batch.id) }}" class="inline">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Calculate Payroll
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_submit %}
+            <form method="POST" action="{{ url_for('payroll.submit_batch', batch_id=batch.id) }}" class="inline">
+                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    Submit for Approval
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_approve %}
+            <a href="{{ url_for('payroll.approve_batch', batch_id=batch.id) }}" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Approve
+            </a>
+
+            <form method="POST" action="{{ url_for('payroll.reject_batch', batch_id=batch.id) }}" class="inline"
+                  onsubmit="return confirm('Are you sure you want to reject this batch?');">
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    Reject
+                </button>
+            </form>
+            {% endif %}
+
+            {% if batch.status in ['PAID', 'FINANCE_PROCESSING', 'ADMIN_APPROVED'] %}
+            <div class="border-l border-gray-300 pl-3">
+                <a href="{{ url_for('payroll.export_bank_payment', batch_id=batch.id, format='excel') }}" class="text-green-600 hover:text-green-700 text-sm font-medium">
+                    📊 Bank Payment (Excel)
+                </a>
+                <span class="text-gray-400 mx-2">•</span>
+                <a href="{{ url_for('payroll.export_tax', batch_id=batch.id) }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                    📋 Tax Report
+                </a>
+                <span class="text-gray-400 mx-2">•</span>
+                <a href="{{ url_for('payroll.export_pension', batch_id=batch.id) }}" class="text-purple-600 hover:text-purple-700 text-sm font-medium">
+                    💾 Pension Export
+                </a>
+            </div>
+            {% endif %}
+
+            <a href="{{ url_for('payroll.audit_logs', batch_id=batch.id) }}" class="text-gray-600 hover:text-gray-700 text-sm font-medium ml-auto">
+                📝 View Audit Log
+            </a>
+        </div>
+
+        <!-- Tabs -->
+        <div class="mb-8">
+            <div class="flex gap-4 border-b border-gray-200">
+                <button class="tab-btn active pb-3 px-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600" data-tab="records">
+                    Payroll Records
+                </button>
+                <button class="tab-btn pb-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-900" data-tab="approvals">
+                    Approvals
+                </button>
+                <button class="tab-btn pb-3 px-4 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-900" data-tab="details">
+                    Details
+                </button>
+            </div>
+        </div>
+
+        <!-- Records Tab -->
+        <div id="records" class="tab-content">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Basic</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gross</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for record in records_pagination.items %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-900">{{ record.user.full_name }}</p>
+                                        <p class="text-xs text-gray-500">{{ record.user.email }}</p>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">₦{{ "{:,.0f}".format(record.basic_salary) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">₦{{ "{:,.0f}".format(record.gross_salary) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₦{{ "{:,.0f}".format(record.total_deductions) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">₦{{ "{:,.0f}".format(record.net_salary) }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                    <button class="text-blue-600 hover:text-blue-700 font-medium" onclick="toggleDetails('record-{{ record.id }}')">
+                                        View Details
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr id="record-{{ record.id }}" class="details-row hidden bg-gray-50">
+                                <td colspan="6" class="px-6 py-4">
+                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-600">House Allowance</p>
+                                            <p class="font-medium">₦{{ "{:,.0f}".format(record.house_allowance) }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600">Transport</p>
+                                            <p class="font-medium">₦{{ "{:,.0f}".format(record.transport_allowance) }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600">Tax</p>
+                                            <p class="font-medium">₦{{ "{:,.0f}".format(record.tax_amount) }}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600">Pension</p>
+                                            <p class="font-medium">₦{{ "{:,.0f}".format(record.pension_amount) }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if records_pagination.pages > 1 %}
+                <div class="px-6 py-4 border-t border-gray-200 flex justify-between items-center">
+                    <p class="text-sm text-gray-600">Page {{ records_pagination.page }} of {{ records_pagination.pages }}</p>
+                    <div class="flex gap-2">
+                        {% if records_pagination.has_prev %}
+                        <a href="?page={{ records_pagination.prev_num }}" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Previous</a>
+                        {% endif %}
+                        {% if records_pagination.has_next %}
+                        <a href="?page={{ records_pagination.next_num }}" class="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Approvals Tab -->
+        <div id="approvals" class="tab-content hidden">
+            <div class="space-y-4">
+                {% for approval in approvals %}
+                <div class="bg-white rounded-lg shadow p-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-lg font-semibold text-gray-900">
+                                Step {{ approval.step }}: 
+                                {% if approval.step == 1 %}HR Manager{% elif approval.step == 2 %}Admin{% else %}Finance Manager{% endif %}
+                            </h4>
+                            <p class="text-sm text-gray-600 mt-1">{{ approval.actor.full_name if approval.actor else 'Pending' }}</p>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                            {% if approval.status == 'approved' %}bg-green-100 text-green-800
+                            {% elif approval.status == 'rejected' %}bg-red-100 text-red-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ approval.status|title }}
+                        </span>
+                    </div>
+                    {% if approval.comments %}
+                    <p class="text-sm text-gray-700 mt-3 bg-gray-50 p-3 rounded">{{ approval.comments }}</p>
+                    {% endif %}
+                    <p class="text-xs text-gray-500 mt-3">{{ approval.approved_at.strftime('%Y-%m-%d %H:%M') if approval.approved_at else 'Pending' }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Details Tab -->
+        <div id="details" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                    <div>
+                        <p class="text-sm text-gray-600">Payroll Period</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.payroll_period }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Period Start</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.start_date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Period End</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.end_date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Payment Date</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.payment_date.strftime('%Y-%m-%d') }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Created By</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.created_by.full_name }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Created Date</p>
+                        <p class="text-lg font-medium text-gray-900">{{ batch.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+        document.getElementById(tabName).classList.remove('hidden');
+        
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('border-blue-600', 'text-blue-600');
+            b.classList.add('border-transparent', 'text-gray-600');
+        });
+        btn.classList.add('border-blue-600', 'text-blue-600');
+        btn.classList.remove('border-transparent', 'text-gray-600');
+    });
+});
+
+function toggleDetails(recordId) {
+    const row = document.getElementById(recordId);
+    row.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

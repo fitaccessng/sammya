@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Procurement - FitAccess ERP{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Procurement - Vendors</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <a href="{{ url_for('procurement.create_vendor') }}" class="bg-blue-50 border border-blue-200 rounded-lg p-4 hover:shadow-lg">
+        <h3 class="font-semibold text-blue-900">Create Vendor</h3>
+        <p class="text-sm text-blue-600">Add a new supplier</p>
+    </a>
+</div>
+
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h2 class="text-xl font-semibold">Vendor List</h2>
+    </div>
+    <div class="p-6">
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-slate-200">
+                    <th class="text-left py-2 px-4">Name</th>
+                    <th class="text-left py-2 px-4">Email</th>
+                    <th class="text-left py-2 px-4">City</th>
+                    <th class="text-left py-2 px-4">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vendor in vendors %}
+                <tr class="border-b border-slate-100">
+                    <td class="py-3 px-4">{{ vendor.name }}</td>
+                    <td class="py-3 px-4">{{ vendor.email or '-' }}</td>
+                    <td class="py-3 px-4">{{ vendor.city or '-' }}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs rounded-md {% if vendor.is_active %}bg-green-100 text-green-800{% else %}bg-slate-100 text-slate-800{% endif %}">
+                            {% if vendor.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

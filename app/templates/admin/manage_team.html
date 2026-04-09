@@ -1,0 +1,174 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Project Team{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">{{ project.name }} - Team Management</h1>
+            <p class="text-slate-600 mt-1">Add or remove team members from this project</p>
+        </div>
+        <a href="{{ url_for('admin.projects') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Projects
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Current Team Members -->
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">Current Team Members ({{ project.team_members|length }})</h2>
+                </div>
+                <div class="p-6">
+                    {% if staff_assignments %}
+                    <div class="space-y-4">
+                        {% for assignment in staff_assignments %}
+                        <div class="flex justify-between items-center p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
+                                    {{ assignment.user.name[0].upper() }}
+                                </div>
+                                <div>
+                                    <strong class="text-slate-900">{{ assignment.user.name }}</strong>
+                                    <br>
+                                    <small class="text-slate-500">{{ assignment.user.email }}</small>
+                                    <br>
+                                    <small class="text-blue-600 font-semibold">{{ assignment.role }}</small>
+                                </div>
+                            </div>
+                            <form method="POST" action="{{ url_for('admin.remove_team_member', project_id=project.id) }}" class="inline">
+                                <input type="hidden" name="user_id" value="{{ assignment.user.id }}">
+                                <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
+                                        onclick="return confirm('Remove this team member?');">
+                                    <i class="fas fa-trash"></i> Remove
+                                </button>
+                            </form>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="py-12 text-center">
+                        <i class="fas fa-users text-slate-300 text-4xl block mb-3"></i>
+                        <p class="text-slate-600">No team members assigned yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Team Members & Project Info -->
+        <div class="space-y-6">
+            <!-- Add Team Members -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-user-plus text-blue-600"></i> Add Team Member
+                    </h2>
+                </div>
+                <div class="p-6">
+                    <form method="POST" action="{{ url_for('admin.add_team_member', project_id=project.id) }}" class="space-y-4">
+                        <div>
+                            <label for="user_id" class="block text-sm font-semibold text-slate-900 mb-2">Select User</label>
+                            <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                    id="user_id" name="user_id" required>
+                                <option value="">-- Choose a user --</option>
+                                {% for user in available_users %}
+                                <option value="{{ user.id }}">{{ user.name }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="role" class="block text-sm font-semibold text-slate-900 mb-2">Assign Role</label>
+                            <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                    id="role" name="role" required>
+                                <option value="">-- Choose a role --</option>
+                                
+                                <!-- Project Roles -->
+                                <optgroup label="Project Management">
+                                    <option value="PROJECT_MANAGER">Project Manager</option>
+                                    <option value="PROJECT_STAFF">Project Staff</option>
+                                </optgroup>
+                                
+                                <!-- Quantity Surveyor -->
+                                <optgroup label="Quantity Surveying">
+                                    <option value="QS_MANAGER">QS Manager</option>
+                                    <option value="QS_STAFF">QS Staff</option>
+                                </optgroup>
+                                
+                                <!-- Procurement -->
+                                <optgroup label="Procurement">
+                                    <option value="PROCUREMENT_MANAGER">Procurement Manager</option>
+                                    <option value="PROCUREMENT_STAFF">Procurement Staff</option>
+                                </optgroup>
+                                
+                                <!-- Cost Control -->
+                                <optgroup label="Cost Control">
+                                    <option value="COST_CONTROL_MANAGER">Cost Control Manager</option>
+                                    <option value="COST_CONTROL_STAFF">Cost Control Staff</option>
+                                </optgroup>
+                                
+                                <!-- Finance -->
+                                <optgroup label="Finance">
+                                    <option value="FINANCE_MANAGER">Finance Manager</option>
+                                    <option value="ACCOUNTS_PAYABLE">Accounts Payable</option>
+                                </optgroup>
+                                
+                                <!-- Field Roles -->
+                                <optgroup label="Site/Field">
+                                    <option value="SITE_ENGINEER">Site Engineer</option>
+                                    <option value="SUPERVISOR">Supervisor</option>
+                                    <option value="LABORER">Laborer</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                            <i class="fas fa-user-plus"></i> Add to Team
+                        </button>
+                    </form>
+
+                    <!-- Available Users Count -->
+                    <div class="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <small class="text-slate-600">
+                            <strong>{{ available_users|length }}</strong> user(s) available to add
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Project Info -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-blue-600"></i> Project Info
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <small class="text-slate-500 font-semibold">Project Name</small>
+                        <p class="mt-1 text-slate-900 font-semibold">{{ project.name }}</p>
+                    </div>
+                    <div>
+                        <small class="text-slate-500 font-semibold">Status</small>
+                        <p class="mt-1">
+                            {% if project.status == 'active' %}
+                            <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">Active</span>
+                            {% elif project.status == 'planning' %}
+                            <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded-full">Planning</span>
+                            {% else %}
+                            <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded-full">{{ project.status }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <small class="text-slate-500 font-semibold">Budget</small>
+                        <p class="mt-1 text-slate-900 font-semibold">₦{{ "{:,.0f}".format(project.budget) if project.budget else "0" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

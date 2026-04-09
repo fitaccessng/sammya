@@ -1,0 +1,190 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Expense Reports{% endblock %}
+{% block page_title %}Expense Reports & Analysis{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-file-invoice-dollar"></i> Expense Reports</h1>
+            <p class="text-slate-600 mt-1">Review all recorded expenses and spending trends across the organization</p>
+        </div>
+        <a href="{{ url_for('admin.finance_activities') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Expenses</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_expenses|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">All recorded expenses</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(approved_expenses|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Verified and approved</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Review</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(pending_expenses|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Awaiting approval</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Last 30 Days</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(recent_expenses|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Recent spending</div>
+        </div>
+    </div>
+
+    <!-- Expense Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- By Category -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-purple-600"></i> Expenses by Category
+            </h2>
+            <div class="space-y-3">
+                {% if category_stats %}
+                    {% for category, total, count in category_stats %}
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <h3 class="font-semibold text-slate-900">{{ category }}</h3>
+                                <p class="text-xs text-slate-600">{{ count }} item{{ 's' if count != 1 else '' }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold text-slate-900">₦{{ "{:,.2f}".format(total) }}</div>
+                                <p class="text-xs text-slate-600">{{ "%.1f"|format((total / total_expenses * 100) if total_expenses > 0 else 0) }}%</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-full rounded-full" style="width: {{ (total / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-600 text-center py-8">No expense categories found</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Status Distribution -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-tasks text-blue-600"></i> Status Distribution
+            </h2>
+            <div class="space-y-3">
+                <div class="border border-green-200 rounded-lg p-4 bg-green-50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-slate-900">Approved</span>
+                        <span class="font-bold text-green-600">₦{{ "{:,.2f}".format(approved_expenses) }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ (approved_expenses / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                <div class="border border-amber-200 rounded-lg p-4 bg-amber-50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-slate-900">Pending</span>
+                        <span class="font-bold text-amber-600">₦{{ "{:,.2f}".format(pending_expenses) }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-amber-500 h-2 rounded-full" style="width: {{ (pending_expenses / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                <div class="border border-red-200 rounded-lg p-4 bg-red-50">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-semibold text-slate-900">Rejected</span>
+                        <span class="font-bold text-red-600">₦{{ "{:,.2f}".format(rejected_expenses) }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-red-500 h-2 rounded-full" style="width: {{ (rejected_expenses / total_expenses * 100) if total_expenses > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Expenses Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-receipt text-orange-600"></i> All Expenses ({{ expenses|length }})
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Category</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Project</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if expenses %}
+                        {% for expense in expenses[:50] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-900 font-semibold">{{ expense.description[:40] or 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ expense.category }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {% if expense.project %}
+                                {{ expense.project.name[:25] }}
+                                {% else %}
+                                <span class="text-slate-400">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-right font-semibold text-slate-900">₦{{ "{:,.2f}".format(expense.amount) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ expense.date.strftime('%b %d, %Y') if expense.date else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if expense.status == 'approved' %}
+                                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Approved</span>
+                                {% elif expense.status == 'pending' %}
+                                <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                                {% elif expense.status == 'rejected' %}
+                                <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">Rejected</span>
+                                {% else %}
+                                <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ expense.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if expense.status == 'pending' %}
+                                <div class="flex items-center gap-2">
+                                    <form method="POST" action="{{ url_for('admin.approve_expense', expense_id=expense.id) }}" style="display:inline;">
+                                        <button type="submit" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-xs font-semibold" title="Approve" onclick="return confirm('Approve this expense?');">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.reject_expense', expense_id=expense.id) }}" style="display:inline;">
+                                        <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs font-semibold" title="Reject" onclick="return confirm('Reject this expense?');">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <span class="text-slate-400 text-xs">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-600">No expenses recorded</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

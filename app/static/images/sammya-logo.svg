@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 420" role="img" aria-labelledby="title desc">
+  <title id="title">Sammya Nigeria Limited Logo</title>
+  <desc id="desc">Stylized roof mark with company name</desc>
+  <defs>
+    <style>
+      .roof { fill: #0f6797; }
+      .name { fill: #1a1414; font: 900 92px 'Segoe UI', Arial, sans-serif; letter-spacing: 1px; }
+    </style>
+  </defs>
+
+  <path class="roof" d="M700 0l-360 260L700 50l360 210z"/>
+  <path class="roof" d="M700 112l-245 153L700 140l245 125z"/>
+  <path class="roof" d="M700 180l-180 100L700 200l180 80z"/>
+  <circle class="roof" cx="700" cy="135" r="28"/>
+  <circle class="roof" cx="700" cy="190" r="14"/>
+
+  <text class="name" x="700" y="390" text-anchor="middle">Sammya Nigeria Limited</text>
+</svg>

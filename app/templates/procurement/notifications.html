@@ -1,0 +1,52 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Notifications & Alerts{% endblock %}
+{% block page_subtitle %}System alerts and important notifications{% endblock %}
+
+{% block main_content %}
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Title</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Type</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Severity</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if alerts %}
+                    {% for alert in alerts %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-800">{{ alert.title }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ alert.type|title }}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if alert.severity == 'high' %}bg-red-100 text-red-800
+                                {% elif alert.severity == 'medium' %}bg-orange-100 text-orange-800
+                                {% elif alert.severity == 'low' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ alert.severity|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if alert.status == 'unread' %}bg-blue-100 text-blue-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ alert.status|title }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-gray-600">{{ alert.created_at }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-gray-500">No alerts at this time</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

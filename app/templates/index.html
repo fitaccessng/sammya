@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Sammya{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <!-- Hero Section -->
+    <section class="px-4 py-12 sm:px-6 lg:px-8 max-w-6xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
+                    Welcome to <span class="text-blue-600">Sammya</span>
+                </h1>
+                <p class="text-lg text-slate-600 mb-8">
+                    A comprehensive Construction ERP system designed to streamline project management, 
+                    procurement, finance, HR, and cost control operations.
+                </p>
+                <div class="flex gap-4">
+                    {% if current_user.is_authenticated %}
+                        <a href="{{ url_for('main.dashboard') }}" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                            Go to Dashboard
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('main.login') }}" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                            Login
+                        </a>
+                        <!-- <a href="{{ url_for('main.signup') }}" class="px-6 py-3 border-2 border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition">
+                            Sign Up
+                        </a> -->
+                    {% endif %}
+                </div>
+            </div>
+            <div class="text-center">
+                <div class="inline-block text-9xl text-blue-100">
+                    <i class="fas fa-building"></i>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="px-4 py-12 sm:px-6 lg:px-8 bg-slate-50">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-slate-900 mb-12">Key Features</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Cost Control</h3>
+                    <p class="text-slate-600">Monitor and manage project costs with real-time budget tracking.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Procurement</h3>
+                    <p class="text-slate-600">Manage purchase orders, vendors, and inventory efficiently.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">HR Management</h3>
+                    <p class="text-slate-600">Handle employees, payroll, attendance, and leaves.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Finance</h3>
+                    <p class="text-slate-600">Process payments, invoices, and bank reconciliation.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">Projects</h3>
+                    <p class="text-slate-600">Plan, track, and manage construction projects.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-slate-900 mb-2">QS</h3>
+                    <p class="text-slate-600">Manage BOQ, valuations, and cost forecasting.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modules Section -->
+    <section class="px-4 py-12 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto">
+            <h2 class="text-3xl font-bold text-center text-slate-900 mb-12">Available Modules</h2>
+            
+            <div class="space-y-4">
+                <table class="w-full border-collapse border border-slate-300 rounded-lg overflow-hidden\">
+                    <thead class="bg-blue-600 text-white\">
+                        <tr>
+                            <th class="border border-slate-300 px-4 py-3 text-left\">Module</th>
+                            <th class="border border-slate-300 px-4 py-3 text-left\">Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">Admin</td>
+                            <td class="border border-slate-300 px-4 py-3\">System administration and user management</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">Procurement</td>
+                            <td class="border border-slate-300 px-4 py-3\">Purchase orders and vendor management</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">Cost Control</td>
+                            <td class="border border-slate-300 px-4 py-3\">Budget tracking and cost analysis</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">Finance</td>
+                            <td class="border border-slate-300 px-4 py-3\">Payment processing and reconciliation</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">HR</td>
+                            <td class="border border-slate-300 px-4 py-3\">Employee and payroll management</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">Projects</td>
+                            <td class="border border-slate-300 px-4 py-3\">Project planning and tracking</td>
+                        </tr>
+                        <tr class="hover:bg-slate-50\">
+                            <td class="border border-slate-300 px-4 py-3 font-bold\">QS</td>
+                            <td class="border border-slate-300 px-4 py-3\">Quantity surveying and valuations</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

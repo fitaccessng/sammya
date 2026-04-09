@@ -1,0 +1,353 @@
+{% extends "admin/base.html" %}
+
+{% block title %}System Settings{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900">System Settings</h1>
+        <p class="text-slate-600 mt-1">Configure system-wide settings and preferences</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Settings Navigation -->
+        <div class="lg:col-span-1">
+            <div class="bg-white rounded-lg shadow p-4 sticky top-24">
+                <nav class="space-y-2">
+                    <a href="#general" class="block px-4 py-2 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-cog mr-2"></i>General
+                    </a>
+                    <a href="#security" class="block px-4 py-2 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-lock mr-2"></i>Security
+                    </a>
+                    <a href="#email" class="block px-4 py-2 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-envelope mr-2"></i>Email
+                    </a>
+                    <a href="#notifications" class="block px-4 py-2 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-bell mr-2"></i>Notifications
+                    </a>
+                    <a href="#backup" class="block px-4 py-2 rounded-lg text-slate-700 hover:bg-blue-50 hover:text-blue-600 transition-colors">
+                        <i class="fas fa-database mr-2"></i>Backup
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Settings Content -->
+        <div class="lg:col-span-3 space-y-6">
+            <!-- General Settings -->
+            <div class="bg-white rounded-lg shadow overflow-hidden" id="general">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        <i class="fas fa-cog mr-2 text-blue-600"></i>General Settings
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">System Name</label>
+                            <input type="text" value="FitAccess ERP" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">System Version</label>
+                            <input type="text" value="1.0.0" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Company Name</label>
+                        <input type="text" value="FitAccess Construction" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex gap-2 pt-4">
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Save Changes</button>
+                        <button class="px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="bg-white rounded-lg shadow overflow-hidden" id="security">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        <i class="fas fa-lock mr-2 text-red-600"></i>Security Settings
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Enable Two-Factor Authentication</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Enforce Strong Passwords</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Session Timeout (minutes)</label>
+                        <input type="number" value="30" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="flex gap-2 pt-4">
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Configuration -->
+            <div class="bg-white rounded-lg shadow overflow-hidden" id="email">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        <i class="fas fa-envelope mr-2 text-green-600"></i>Email Configuration
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">SMTP Server</label>
+                            <input type="text" placeholder="smtp.example.com" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">SMTP Port</label>
+                            <input type="number" value="587" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">Email Address</label>
+                            <input type="email" placeholder="noreply@example.com" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-900 mb-2">Password</label>
+                            <input type="password" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-4">
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Test Connection</button>
+                        <button class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications -->
+            <div class="bg-white rounded-lg shadow overflow-hidden" id="notifications">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        <i class="fas fa-bell mr-2 text-yellow-600"></i>Notification Settings
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Email Notifications</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Payment Approvals</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" checked class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Project Updates</span>
+                        </label>
+                    </div>
+                    <div>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-medium text-slate-900">Daily Reports</span>
+                        </label>
+                    </div>
+                    <div class="flex gap-2 pt-4">
+                        <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Save</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup & Recovery -->
+            <div class="bg-white rounded-lg shadow overflow-hidden" id="backup">
+                <div class="px-6 py-4 border-b border-slate-200">
+                    <h2 class="text-lg font-semibold text-slate-900">
+                        <i class="fas fa-database mr-2 text-purple-600"></i>Backup & Recovery
+                    </h2>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-sm text-blue-900">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Last backup: December 5, 2024 at 2:30 PM
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button class="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-download"></i>Download Backup
+                        </button>
+                        <button class="flex items-center justify-center gap-2 px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                            <i class="fas fa-cogs"></i>Create Backup Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+                    <form>
+                        <div class="mb-3">
+                            <label for="system_name" class="form-label">System Name</label>
+                            <input type="text" class="form-control" id="system_name" value="Construction Management ERP" disabled>
+                            <small class="text-muted">The name of your system</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="system_version" class="form-label">System Version</label>
+                            <input type="text" class="form-control" id="system_version" value="1.0.0" disabled>
+                            <small class="text-muted">Current system version</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="timezone" class="form-label">Timezone</label>
+                            <select class="form-select">
+                                <option selected>UTC+1 (West Africa Time)</option>
+                                <option>UTC (GMT)</option>
+                                <option>UTC+2 (Central Africa Time)</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="card border-0 shadow-sm mb-4" id="security">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lock me-2"></i> Security Settings
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label class="form-label">Password Policy</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enforce_strong_pwd" checked>
+                                <label class="form-check-label" for="enforce_strong_pwd">
+                                    Enforce Strong Passwords
+                                </label>
+                            </div>
+                            <small class="text-muted d-block">Require at least 8 characters with numbers and special characters</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="session_timeout" class="form-label">Session Timeout (minutes)</label>
+                            <input type="number" class="form-control" id="session_timeout" value="30">
+                            <small class="text-muted">Auto-logout after inactivity</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Two-Factor Authentication</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_2fa">
+                                <label class="form-check-label" for="enable_2fa">
+                                    Enable 2FA for all users
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Security Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Email Configuration -->
+            <div class="card border-0 shadow-sm mb-4" id="email">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-envelope me-2"></i> Email Configuration
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="smtp_host" class="form-label">SMTP Host</label>
+                            <input type="text" class="form-control" id="smtp_host" placeholder="smtp.gmail.com">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="smtp_port" class="form-label">SMTP Port</label>
+                            <input type="number" class="form-control" id="smtp_port" value="587">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="smtp_user" class="form-label">SMTP Username</label>
+                            <input type="email" class="form-control" id="smtp_user" placeholder="your-email@gmail.com">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="smtp_pass" class="form-label">SMTP Password</label>
+                            <input type="password" class="form-control" id="smtp_pass">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Email Settings
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary">
+                            Test Connection
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Backup & Recovery -->
+            <div class="card border-0 shadow-sm mb-4" id="backup">
+                <div class="card-header bg-white border-bottom">
+                    <h6 class="mb-0">
+                        <i class="fas fa-save me-2"></i> Backup & Recovery
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info" role="alert">
+                        <i class="fas fa-info-circle"></i>
+                        Last backup: <strong>Today at 2:30 AM</strong>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Automatic Backup</label>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="auto_backup" checked>
+                                <label class="form-check-label" for="auto_backup">
+                                    Enable automatic daily backups
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="backup_time" class="form-label">Backup Time</label>
+                            <input type="time" class="form-control" id="backup_time" value="02:30">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-primary">
+                            <i class="fas fa-cloud-download-alt"></i> Create Backup Now
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary">
+                            <i class="fas fa-undo-alt"></i> Restore from Backup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

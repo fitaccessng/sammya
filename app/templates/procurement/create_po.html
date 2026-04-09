@@ -1,0 +1,260 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Create Purchase Order{% endblock %}
+{% block page_subtitle %}Submit a new purchase order for project materials{% endblock %}
+
+{% block main_content %}
+<div class="max-w-6xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 px-10 py-10">
+            <h1 class="text-4xl font-bold text-white mb-2">Create Purchase Order</h1>
+            <p class="text-blue-100 text-lg">Fill in the details below to create a new purchase order</p>
+        </div>
+
+        <form method="POST" class="p-10 space-y-8">
+            <!-- Basic Information Section -->
+            <div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-1 h-8 bg-blue-600 rounded"></div>
+                    <h2 class="text-2xl font-bold text-slate-900">Basic Information</h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Project Selection -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">
+                            <span class="text-red-500 mr-1">*</span> Project
+                        </label>
+                        <select name="project_id" required class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white hover:border-slate-400">
+                            <option value="">Select a project</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Vendor Selection -->
+                    <div>
+                        <label class="block text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">
+                            <span class="text-red-500 mr-1">*</span> Vendor/Supplier
+                        </label>
+                        <select name="vendor_id" required class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white hover:border-slate-400">
+                            <option value="">Select a vendor</option>
+                            {% for vendor in vendors %}
+                            <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label class="block text-sm font-bold text-slate-900 mb-3 uppercase tracking-wide">Description / Notes</label>
+                <textarea name="description" rows="4" class="w-full px-4 py-3 border-2 border-slate-300 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white" placeholder="Add any special requirements, delivery instructions, or notes for this purchase order..."></textarea>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t-2 border-slate-300 pt-8"></div>
+
+            <!-- Line Items Section -->
+            <div>
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1 h-8 bg-blue-600 rounded"></div>
+                        <h2 class="text-2xl font-bold text-slate-900">Line Items</h2>
+                    </div>
+                    <button type="button" id="addLineBtn" class="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105">
+                        <i class='bx bx-plus text-2xl'></i> Add Item
+                    </button>
+                </div>
+
+                <!-- Line Items Container -->
+                <div class="border-2 border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+                    <!-- Header Row -->
+                    <div class="hidden md:grid md:grid-cols-12 gap-4 bg-slate-900 text-white font-bold px-6 py-4 text-sm uppercase tracking-wider">
+                        <div class="md:col-span-4">Description</div>
+                        <div class="md:col-span-2 text-center">Unit</div>
+                        <div class="md:col-span-2 text-right">Quantity</div>
+                        <div class="md:col-span-2 text-right">Unit Cost</div>
+                        <div class="md:col-span-1 text-right">Total</div>
+                        <div class="md:col-span-1"></div>
+                    </div>
+
+                    <!-- Line Items Body -->
+                    <div id="lineItemsBody" class="divide-y divide-slate-300">
+                        <!-- Items will be added here -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="p-12 text-center">
+                        <i class='bx bx-inbox text-6xl text-slate-300 block mb-4'></i>
+                        <p class="text-slate-600 font-semibold text-lg mb-2">No items added yet</p>
+                        <p class="text-slate-500">Click "Add Item" to start adding line items to this purchase order</p>
+                    </div>
+                </div>
+
+                <!-- Totals Summary -->
+                <div class="mt-8 bg-gradient-to-r from-slate-900 to-slate-800 rounded-xl p-8 text-white">
+                    <div class="flex flex-col md:flex-row justify-end items-center gap-8">
+                        <div class="text-right">
+                            <p class="text-slate-300 text-sm font-semibold uppercase tracking-wide mb-2">Subtotal</p>
+                            <p class="text-3xl font-bold" id="subtotal">0.00</p>
+                        </div>
+                        <div class="hidden md:block w-1 h-16 bg-slate-700 rounded"></div>
+                        <div class="text-right min-w-48">
+                            <p class="text-blue-300 text-sm font-semibold uppercase tracking-wide mb-2">Total Amount</p>
+                            <p class="text-5xl font-bold text-blue-300" id="grandTotal">0.00</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hidden input to store line items data -->
+            <input type="hidden" id="lineItemsData" name="line_items" value="[]">
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row gap-4 pt-8 border-t-2 border-slate-300">
+                <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-4 px-8 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-3 text-lg">
+                    <i class='bx bx-check text-2xl'></i> Create Purchase Order
+                </button>
+                <a href="{{ url_for('procurement.purchases') }}" class="flex-1 bg-slate-300 hover:bg-slate-400 text-slate-900 font-bold py-4 px-8 rounded-lg transition-all duration-200 text-center flex items-center justify-center gap-3 text-lg">
+                    <i class='bx bx-x text-2xl'></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let lineItemsArray = [];
+    let itemIdCounter = 1;
+
+    function addLineItem() {
+        const id = itemIdCounter++;
+        const item = {
+            id: id,
+            description: '',
+            unit: '',
+            quantity: 0,
+            unitCost: 0
+        };
+        lineItemsArray.push(item);
+        renderLineItems();
+    }
+
+    function removeLineItem(id) {
+        lineItemsArray = lineItemsArray.filter(item => item.id !== id);
+        renderLineItems();
+    }
+
+    function updateLineItem(id, field, value) {
+        const item = lineItemsArray.find(item => item.id === id);
+        if (item) {
+            if (field === 'quantity' || field === 'unitCost') {
+                item[field] = parseFloat(value) || 0;
+            } else {
+                item[field] = value;
+            }
+            renderLineItems();
+        }
+    }
+
+    function calculateTotal(quantity, unitCost) {
+        return (quantity * unitCost).toFixed(2);
+    }
+
+    function calculateGrandTotal() {
+        return lineItemsArray.reduce((sum, item) => {
+            return sum + (item.quantity * item.unitCost);
+        }, 0).toFixed(2);
+    }
+
+    function renderLineItems() {
+        const tbody = document.getElementById('lineItemsBody');
+        const emptyState = document.getElementById('emptyState');
+        tbody.innerHTML = '';
+
+        if (lineItemsArray.length === 0) {
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            lineItemsArray.forEach(item => {
+                const total = calculateTotal(item.quantity, item.unitCost);
+                const row = document.createElement('div');
+                row.className = 'grid md:grid-cols-12 gap-4 px-6 py-4 bg-white hover:bg-blue-50 transition-colors border-b border-slate-200 items-start';
+                row.innerHTML = `
+                    <div class="md:col-span-4 space-y-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider md:hidden">Description</label>
+                        <input type="text" value="${item.description}" 
+                            onchange="updateLineItem(${item.id}, 'description', this.value)"
+                            placeholder="Item description"
+                            class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <div class="md:col-span-2 space-y-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider md:hidden">Unit</label>
+                        <input type="text" value="${item.unit}" 
+                            onchange="updateLineItem(${item.id}, 'unit', this.value)"
+                            placeholder="pcs"
+                            class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                    </div>
+                    <div class="md:col-span-2 space-y-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider md:hidden">Quantity</label>
+                        <input type="number" value="${item.quantity}" 
+                            onchange="updateLineItem(${item.id}, 'quantity', this.value)"
+                            class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            min="0" step="0.01">
+                    </div>
+                    <div class="md:col-span-2 space-y-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider md:hidden">Unit Cost</label>
+                        <input type="number" value="${item.unitCost}" 
+                            onchange="updateLineItem(${item.id}, 'unitCost', this.value)"
+                            class="w-full px-3 py-2.5 border-2 border-slate-300 rounded-lg text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            min="0" step="0.01">
+                    </div>
+                    <div class="md:col-span-1 space-y-1">
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider md:hidden">Total</label>
+                        <div class="px-3 py-2.5 font-bold text-slate-900 text-right text-lg">
+                            ${total}
+                        </div>
+                    </div>
+                    <div class="md:col-span-1 flex justify-center md:justify-end">
+                        <button type="button" onclick="removeLineItem(${item.id})" 
+                            class="text-red-600 hover:text-red-700 hover:bg-red-100 p-2.5 rounded-lg transition-all transform hover:scale-110">
+                            <i class='bx bx-trash text-xl'></i>
+                        </button>
+                    </div>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Update totals
+        const total = calculateGrandTotal();
+        document.getElementById('subtotal').textContent = total;
+        document.getElementById('grandTotal').textContent = total;
+
+        // Update hidden input
+        document.getElementById('lineItemsData').value = JSON.stringify(
+            lineItemsArray.map(item => ({
+                description: item.description,
+                unit: item.unit,
+                quantity: item.quantity,
+                unitCost: item.unitCost
+            }))
+        );
+    }
+
+    // Add event listener to the "Add Item" button
+    document.getElementById('addLineBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        addLineItem();
+    });
+
+    // Initialize with empty state
+    document.addEventListener('DOMContentLoaded', function() {
+        renderLineItems();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Leave Management{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active">Leave Management</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1"><i class='bx bxs-calendar-check'></i> Leave Management</h2>
+            <p class="text-muted mb-0">Request leave and track yearly balances</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4"><div class="stat-card"><p>Total Staff</p><h4>{{ total_staff }}</h4></div></div>
+        <div class="col-md-4"><div class="stat-card green"><p>On Leave Today</p><h4>{{ on_leave_today }}</h4></div></div>
+        <div class="col-md-4"><div class="stat-card orange"><p>Pending Requests</p><h4>{{ pending_approvals if is_hr else leave_requests.total }}</h4></div></div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><strong>Your {{ selected_year }} Leave Balance</strong></div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% for leave_type, data in balances.items() %}
+                <div class="col-md-4 col-lg-2">
+                    <div class="border rounded p-2">
+                        <small class="text-muted text-uppercase">{{ leave_type }}</small>
+                        <div class="fw-bold">{{ data.remaining }} / {{ data.allowed }} days</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><strong>New Leave Request</strong></div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('hr.create_leave') }}" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Leave Type</label>
+                    <select class="form-select" name="leave_type" required>
+                        <option value="casual">Casual (7 days)</option>
+                        <option value="compensate">Compensate (7 days)</option>
+                        <option value="annual">Annual (21 days)</option>
+                        <option value="maternity">Maternity (16 weeks)</option>
+                        <option value="paternity">Paternity (2 weeks)</option>
+                    </select>
+                </div>
+                <div class="col-md-2"><label class="form-label">Start Date</label><input type="date" class="form-control" name="start_date" required></div>
+                <div class="col-md-2"><label class="form-label">End Date</label><input type="date" class="form-control" name="end_date" required></div>
+                <div class="col-md-4"><label class="form-label">Reason</label><input type="text" class="form-control" name="reason" placeholder="Optional reason"></div>
+                <div class="col-md-1 d-grid"><label class="form-label">&nbsp;</label><button class="btn btn-primary" type="submit">Submit</button></div>
+            </form>
+        </div>
+    </div>
+
+    {% if is_hr %}
+    <div class="card mb-4">
+        <div class="card-header"><strong>Staff Leave Balance ({{ selected_year }})</strong></div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Staff</th>
+                            <th class="text-center">Casual</th>
+                            <th class="text-center">Compensate</th>
+                            <th class="text-center">Annual</th>
+                            <th class="text-center">Maternity</th>
+                            <th class="text-center">Paternity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in staff_leave_balances %}
+                        <tr>
+                            <td>{{ row.staff.name }}</td>
+                            <td class="text-center">{{ row.balances.casual.remaining }} / {{ row.balances.casual.allowed }}</td>
+                            <td class="text-center">{{ row.balances.compensate.remaining }} / {{ row.balances.compensate.allowed }}</td>
+                            <td class="text-center">{{ row.balances.annual.remaining }} / {{ row.balances.annual.allowed }}</td>
+                            <td class="text-center">{{ row.balances.maternity.remaining }} / {{ row.balances.maternity.allowed }}</td>
+                            <td class="text-center">{{ row.balances.paternity.remaining }} / {{ row.balances.paternity.allowed }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No staff leave balances found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-header"><strong>{% if is_hr %}All Leave Requests{% else %}Your Leave Requests{% endif %}</strong></div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Staff</th>
+                            <th>Type</th>
+                            <th>Date Range</th>
+                            <th>Days</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in leave_requests.items %}
+                        <tr>
+                            <td>{{ req.requester.name if req.requester else req.user_id }}</td>
+                            <td>{{ req.leave_type|title }}</td>
+                            <td>{{ req.start_date }} to {{ req.end_date }}</td>
+                            <td>{{ req.days_requested }}</td>
+                                    <td><span class="badge bg-{% if req.status == 'approved' %}success{% elif req.status == 'rejected' %}danger{% else %}warning{% endif %}">{{ req.status|title }}</span></td>
+                            <td>{{ req.reason or '-' }}</td>
+                            <td>
+                                {% if is_hr and req.status == 'pending' %}
+                                <form method="POST" action="{{ url_for('hr.approve_leave', leave_id=req.id) }}" class="d-inline">
+                                    <button class="btn btn-sm btn-success" type="submit">Approve</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('hr.reject_leave', leave_id=req.id) }}" class="d-inline">
+                                    <input type="hidden" name="rejection_reason" value="Rejected by HR">
+                                    <button class="btn btn-sm btn-danger" type="submit">Reject</button>
+                                </form>
+                                {% else %}
+                                -
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">No leave requests found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

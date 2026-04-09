@@ -1,0 +1,152 @@
+{% extends "qs/base.html" %}
+
+{% block title %}BOQ Report - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-800 px-6 py-6 flex items-start justify-between">
+            <div>
+                <p class="text-xs uppercase tracking-wider text-blue-200 font-semibold">Project Report</p>
+                <h1 class="text-3xl font-bold text-white mt-1 flex items-center">
+                    <i class="fas fa-file-invoice mr-3"></i>Bill of Quantities
+                </h1>
+                <p class="text-blue-100 text-sm mt-2">{{ project.name }}</p>
+                <p class="text-slate-300 text-xs mt-1">Generated {{ report_date.strftime('%d %b %Y') }}</p>
+            </div>
+            <div class="flex items-center gap-3 report-controls">
+                <button onclick="window.print()" class="px-4 py-2 rounded-lg bg-white text-slate-800 hover:bg-slate-100 transition font-medium">
+                    <i class="fas fa-print mr-2"></i>Print
+                </button>
+                <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-medium">
+                    <i class="fas fa-arrow-left mr-2"></i>Back
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+            <p class="text-sm text-gray-500 font-medium">Total Items</p>
+            <p class="text-3xl text-gray-900 font-bold mt-2">{{ boq_items|length }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+            <p class="text-sm text-gray-500 font-medium">BOQ Value</p>
+            <p class="text-3xl text-blue-700 font-bold mt-2">₦{{ "{:,.2f}".format(total_boq or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+            <p class="text-sm text-gray-500 font-medium">Budget</p>
+            <p class="text-3xl text-emerald-700 font-bold mt-2">₦{{ "{:,.2f}".format(project.budget or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
+            <p class="text-sm text-gray-500 font-medium">Variance</p>
+            {% set variance = (project.budget or 0) - (total_boq or 0) %}
+            <p class="text-3xl font-bold mt-2 {% if variance < 0 %}text-red-700{% else %}text-emerald-700{% endif %}">
+                ₦{{ "{:,.2f}".format(variance|abs) }}
+            </p>
+            <p class="text-xs mt-1 {% if variance < 0 %}text-red-600{% else %}text-emerald-600{% endif %}">
+                {% if variance < 0 %}Over Budget{% else %}Budget Remaining{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">BOQ Items</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-900 text-slate-100">
+                    <tr>
+                        <th class="text-left py-3 px-4 font-semibold">No.</th>
+                        <th class="text-left py-3 px-4 font-semibold">Description</th>
+                        <th class="text-right py-3 px-4 font-semibold">Qty</th>
+                        <th class="text-left py-3 px-4 font-semibold">Unit</th>
+                        <th class="text-right py-3 px-4 font-semibold">Unit Rate</th>
+                        <th class="text-right py-3 px-4 font-semibold">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in boq_items %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="py-3 px-4 text-gray-900">{{ loop.index }}</td>
+                        <td class="py-3 px-4 text-gray-900">{{ item.description }}</td>
+                        <td class="py-3 px-4 text-right text-gray-900">{{ item.quantity }}</td>
+                        <td class="py-3 px-4 text-gray-900">{{ item.unit or '-' }}</td>
+                        <td class="py-3 px-4 text-right text-gray-900">₦{{ "{:,.2f}".format(item.unit_rate or 0) }}</td>
+                        <td class="py-3 px-4 text-right font-semibold text-gray-900">₦{{ "{:,.2f}".format(item.amount or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="py-10 px-4 text-center text-gray-500">No BOQ items found for this project.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="bg-gray-50 border-t border-gray-200">
+                    <tr>
+                        <td colspan="5" class="py-3 px-4 text-right font-semibold text-gray-700">TOTAL BOQ</td>
+                        <td class="py-3 px-4 text-right font-bold text-blue-800">₦{{ "{:,.2f}".format(total_boq or 0) }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    {% if categories_summary %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+            <h2 class="text-lg font-semibold text-gray-900">Category Summary</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 text-gray-700">
+                    <tr>
+                        <th class="text-left py-3 px-4 font-semibold">Category</th>
+                        <th class="text-right py-3 px-4 font-semibold">Items</th>
+                        <th class="text-right py-3 px-4 font-semibold">Amount</th>
+                        <th class="text-right py-3 px-4 font-semibold">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category, data in categories_summary.items() %}
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-4 text-gray-900">{{ category }}</td>
+                        <td class="py-3 px-4 text-right text-gray-900">{{ data.count }}</td>
+                        <td class="py-3 px-4 text-right text-gray-900">₦{{ "{:,.2f}".format(data.total) }}</td>
+                        <td class="py-3 px-4 text-right text-gray-900">{{ "%.1f"|format((data.total / total_boq * 100) if total_boq else 0) }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-900">
+        <p class="font-semibold">Report Details</p>
+        <p class="mt-1">Generated on {{ now.strftime('%d %B %Y at %H:%M') }}.</p>
+    </div>
+</div>
+
+<style media="print">
+    .report-controls,
+    #sidebar,
+    #sidebarToggle,
+    header,
+    footer {
+        display: none !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    main {
+        padding: 0 !important;
+    }
+
+    .md\:ml-64 {
+        margin-left: 0 !important;
+    }
+</style>
+{% endblock %}

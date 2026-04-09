@@ -1,0 +1,178 @@
+{% extends "qs/base.html" %}
+
+{% block title %}Subcontractor Payments - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0"><i class="fas fa-handshake"></i> Subcontractor Payments</h3>
+            <div>
+                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addSubPaymentModal">
+                    <i class="fas fa-plus"></i> New Payment
+                </button>
+                <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="btn btn-light btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Subcontractors</h6>
+                        <h3>0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Allocated</h6>
+                        <h3>₦{{ "{:,.0f}".format(0) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Total Paid</h6>
+                        <h3>₦{{ "{:,.0f}".format(0) }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h6 class="text-muted">Outstanding</h6>
+                        <h3>₦{{ "{:,.0f}".format(0) }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subcontractors Table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Subcontractor</th>
+                        <th>Trade/Scope</th>
+                        <th class="text-end">Allocated (₦)</th>
+                        <th class="text-end">Paid (₦)</th>
+                        <th class="text-end">Outstanding (₦)</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No subcontractor payments recorded yet</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add Subcontractor Payment Modal -->
+<div class="modal fade" id="addSubPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Record Subcontractor Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="subPaymentForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Subcontractor Name</label>
+                            <input type="text" class="form-control" name="subcontractor_name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Trade/Scope of Work</label>
+                            <input type="text" class="form-control" name="trade_scope" placeholder="e.g., Electrical, Plumbing" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contact Person</label>
+                            <input type="text" class="form-control" name="contact_person">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone_number">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-control" name="email">
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Contract Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₦</span>
+                                <input type="number" class="form-control" name="contract_amount" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Payment Date</label>
+                            <input type="date" class="form-control" name="payment_date" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Amount</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₦</span>
+                            <input type="number" class="form-control" name="payment_amount" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Reference/Cheque No</label>
+                        <input type="text" class="form-control" name="payment_ref" placeholder="e.g., CHQ-12345">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Supporting Documents</label>
+                        <input type="file" class="form-control" name="documents" multiple>
+                        <small class="text-muted">Upload invoice, receipt, bank transfer confirmation, etc.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Remarks</label>
+                        <textarea class="form-control" name="remarks" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" onclick="submitSubPayment()">Record Payment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function submitSubPayment() {
+    const form = document.getElementById('subPaymentForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("qs_reports.subcontractor_payments", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

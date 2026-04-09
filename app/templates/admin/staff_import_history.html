@@ -1,0 +1,179 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Staff Import History - Admin{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+<li class="breadcrumb-item active">Import History</li>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900">Staff Import History</h1>
+        <p class="text-slate-600 mt-1">Complete history of all staff import batches</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-sm text-slate-600">Total Batches</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ total_batches }}</div>
+            <div class="text-xs text-slate-500 mt-2">All batches</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-sm text-slate-600">Total Records</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ total_records }}</div>
+            <div class="text-xs text-slate-500 mt-2">Across all batches</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-sm text-slate-600">Successfully Imported</div>
+            <div class="text-3xl font-bold text-green-600 mt-2">{{ total_imported }}</div>
+            <div class="text-xs text-slate-500 mt-2">Records imported</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div class="text-sm text-slate-600">Success Rate</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">
+                {% if total_records > 0 %}
+                    {{ "%.1f"|format((total_imported / total_records) * 100) }}%
+                {% else %}
+                    N/A
+                {% endif %}
+            </div>
+            <div class="text-xs text-slate-500 mt-2">Import success</div>
+        </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Filter by Status</h2>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ url_for('admin.staff_import_history', status='all') }}" 
+               class="px-4 py-2 rounded-lg font-semibold text-sm transition-colors {% if status_filter == 'all' %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-900 hover:bg-slate-200{% endif %}">
+                All
+            </a>
+            <a href="{{ url_for('admin.staff_import_history', status='pending') }}" 
+               class="px-4 py-2 rounded-lg font-semibold text-sm transition-colors {% if status_filter == 'pending' %}bg-amber-500 text-white{% else %}bg-slate-100 text-slate-900 hover:bg-slate-200{% endif %}">
+                Pending
+            </a>
+            <a href="{{ url_for('admin.staff_import_history', status='approved') }}" 
+               class="px-4 py-2 rounded-lg font-semibold text-sm transition-colors {% if status_filter == 'approved' %}bg-green-500 text-white{% else %}bg-slate-100 text-slate-900 hover:bg-slate-200{% endif %}">
+                Approved
+            </a>
+            <a href="{{ url_for('admin.staff_import_history', status='rejected') }}" 
+               class="px-4 py-2 rounded-lg font-semibold text-sm transition-colors {% if status_filter == 'rejected' %}bg-red-500 text-white{% else %}bg-slate-100 text-slate-900 hover:bg-slate-200{% endif %}">
+                Rejected
+            </a>
+        </div>
+    </div>
+
+    <!-- Batches Table -->
+    {% if batches.items %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900">Import Batches</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Batch Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Created By</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Records</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Imported</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Failed</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for batch in batches.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-slate-900">{{ batch.batch_name }}</div>
+                            <div class="text-xs text-slate-500 mt-1">{{ batch.file_name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.creator.name }}</td>
+                        <td class="px-6 py-4">
+                            {% if batch.approval_state == 'draft' %}
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-slate-200 text-slate-800">DRAFT</span>
+                            {% elif batch.approval_state == 'pending' %}
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">PENDING</span>
+                            {% elif batch.approval_state == 'approved' %}
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">APPROVED</span>
+                            {% elif batch.approval_state == 'rejected' %}
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">REJECTED</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-center text-slate-900 font-medium">{{ batch.total_records }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">{{ batch.imported_records }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            {% if batch.failed_records > 0 %}
+                                <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">{{ batch.failed_records }}</span>
+                            {% else %}
+                                <span class="text-slate-500">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ batch.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('admin.review_staff_import', batch_id=batch.id) }}" 
+                               class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors font-semibold text-sm">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% if batch.rejection_reason %}
+                    <tr class="bg-red-50">
+                        <td colspan="8" class="px-6 py-3">
+                            <div class="text-sm text-red-800">
+                                <strong>Rejection Reason:</strong> {{ batch.rejection_reason }}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+        <!-- Pagination -->
+        {% if batches.pages > 1 %}
+        <div class="flex justify-center items-center gap-2">
+            {% if batches.has_prev %}
+                <a href="{{ url_for('admin.staff_import_history', page=batches.prev_num, status=status_filter) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Previous</a>
+            {% endif %}
+
+            {% for page_num in batches.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == batches.page %}
+                        <span class="px-3 py-2 rounded-lg bg-slate-900 text-white font-semibold">{{ page_num }}</span>
+                    {% else %}
+                        <a href="{{ url_for('admin.staff_import_history', page=page_num, status=status_filter) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    <span class="px-3 py-2">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if batches.has_next %}
+                <a href="{{ url_for('admin.staff_import_history', page=batches.next_num, status=status_filter) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-info-circle text-blue-500 text-2xl"></i>
+                <div>
+                    <p class="text-blue-900 font-semibold">No batches found</p>
+                    <p class="text-sm text-blue-800 mt-1">No import batches found with the selected status.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

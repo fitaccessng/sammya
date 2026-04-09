@@ -1,0 +1,256 @@
+{% extends "hr/base.html" %}
+
+{% block title %}HR Tasks{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">HR Tasks</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">HR Tasks</h2>
+            <p class="text-muted">Manage HR department tasks and projects</p>
+        </div>
+        <a href="{{ url_for('hr.create_task') }}" class="btn btn-primary">
+            <i class='bx bxs-plus-circle'></i> New Task
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h4>{{ data.total_tasks or 0 }}</h4>
+                <p>Total Tasks</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card orange">
+                <h4>{{ data.pending_tasks or 0 }}</h4>
+                <p>Pending</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card yellow">
+                <h4>{{ data.in_progress_tasks or 0 }}</h4>
+                <p>In Progress</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card green">
+                <h4>{{ data.completed_tasks or 0 }}</h4>
+                <p>Completed</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kanban Board -->
+    <div class="row">
+        <!-- Pending Column -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="card-title mb-0">
+                        <i class='bx bxs-time'></i> Pending
+                        <span class="badge bg-warning ms-2">{{ data.pending_tasks or 0 }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                    {% if data.pending_tasks_list %}
+                        {% for task in data.pending_tasks_list %}
+                            <div class="card m-2 cursor-pointer" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="loadTask({{ task.id }})">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">{{ task.title }}</h6>
+                                    <p class="card-text small text-muted mb-2">{{ task.description[:60] }}...</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{ task.assigned_to }}</small>
+                                        <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                                            {{ task.priority }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-4">No pending tasks</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- In Progress Column -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h5 class="card-title mb-0">
+                        <i class='bx bxs-rocket'></i> In Progress
+                        <span class="badge bg-info ms-2">{{ data.in_progress_tasks or 0 }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                    {% if data.in_progress_tasks_list %}
+                        {% for task in data.in_progress_tasks_list %}
+                            <div class="card m-2 cursor-pointer" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="loadTask({{ task.id }})">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1">{{ task.title }}</h6>
+                                    <div class="progress mb-2" style="height: 5px;">
+                                        <div class="progress-bar" style="width: {{ task.progress or 50 }}%"></div>
+                                    </div>
+                                    <p class="card-text small text-muted mb-2">{{ task.description[:60] }}...</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{ task.assigned_to }}</small>
+                                        <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                                            {{ task.priority }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-4">No in-progress tasks</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Column -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success bg-opacity-10">
+                    <h5 class="card-title mb-0">
+                        <i class='bx bxs-check-circle'></i> Completed
+                        <span class="badge bg-success ms-2">{{ data.completed_tasks or 0 }}</span>
+                    </h5>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                    {% if data.completed_tasks_list %}
+                        {% for task in data.completed_tasks_list %}
+                            <div class="card m-2 opacity-50 cursor-pointer" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="loadTask({{ task.id }})">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title mb-1"><s>{{ task.title }}</s></h6>
+                                    <p class="card-text small text-muted mb-2">{{ task.description[:60] }}...</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{ task.assigned_to }}</small>
+                                        <small class="text-success">{{ task.completed_date }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted text-center py-4">No completed tasks</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task List View -->
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">All Tasks</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 small">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Assigned To</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Due Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data.all_tasks %}
+                        {% for task in data.all_tasks %}
+                            <tr>
+                                <td><strong>{{ task.title }}</strong></td>
+                                <td>{{ task.assigned_to }}</td>
+                                <td>
+                                    <span class="badge bg-{% if task.priority == 'High' %}danger{% elif task.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                                        {{ task.priority }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if task.status == 'Pending' %}warning{% elif task.status == 'In Progress' %}info{% elif task.status == 'Completed' %}success{% else %}secondary{% endif %}">
+                                        {{ task.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="progress-bar" style="width: {{ task.progress or 0 }}%"></div>
+                                    </div>
+                                </td>
+                                <td>{{ task.due_date or 'N/A' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="loadTask({{ task.id }})">
+                                        <i class='bx bxs-show'></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No tasks found</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskTitle">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="updateTaskForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" class="form-control" id="taskTitleInput" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" id="taskDescInput" rows="3" readonly></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select" id="taskStatusInput">
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Progress (%)</label>
+                            <input type="number" name="progress" class="form-control" id="taskProgressInput" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadTask(taskId) {
+        // In a real app, fetch task details via AJAX
+        document.getElementById('updateTaskForm').action = `{{ url_for('hr.update_task') }}?task_id=${taskId}`;
+    }
+</script>
+{% endblock %}

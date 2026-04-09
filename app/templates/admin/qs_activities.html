@@ -1,0 +1,803 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Quantity Surveyor Activities{% endblock %}
+{% block page_title %}Quantity Surveyor{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-calculator"></i> Quantity Surveyor Module</h1>
+            <p class="text-slate-600 mt-1">Manage BOQ, variations, cost control, and budget analysis</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- QS Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">BOQ Total Cost</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_boq_cost) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ active_boq_count }} items</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved Variations</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_variations_cost) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ approved_var_count }} orders</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Variations</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(pending_variations_cost) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ pending_var_count }} awaiting approval</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Cost</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_boq_cost + total_variations_cost) }}</div>
+            <div class="text-xs text-slate-500 mt-1">BOQ + Approved</div>
+        </div>
+    </div>
+
+    <!-- QS Team & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-blue-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-user-tie"></i> <h5 class="font-semibold m-0">Quantity Surveyor Team</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Role</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in qs_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full" alt="Avatar">
+                                    <span class="font-medium text-slate-900">{{ staff.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">{{ staff.role.replace('_', ' ').title() }}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-cyan-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-history"></i> <h5 class="font-semibold m-0">Recent QS Activities</h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto space-y-4">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex gap-3">
+                            <div class="text-blue-500 text-lg"><i class="fas fa-circle text-xs"></i></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ log.entity_type }}
+                                    <span class="ml-2 inline-block px-2 py-0.5 bg-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-100 text-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-800 text-xs font-semibold rounded">
+                                        {{ log.approval_state }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- BOQ Items Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-blue-600 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-list-check"></i> <h5 class="font-semibold m-0">Bill of Quantities ({{ boq_items.total }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Unit</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Quantity</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Unit Rate</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Estimated Cost</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if boq_items.items %}
+                        {% for item in boq_items.items %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-semibold text-slate-900">{{ item.description[:40] if item.description else 'Item ' + item.id|string }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% set proj = item.project %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ proj.name if proj else 'Unknown' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ item.unit or 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">{{ "%.2f"|format(item.quantity or 0) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">₦{{ "{:,.2f}".format(item.unit_rate or 0) }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "{:,.2f}".format(item.estimated_cost or 0) }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <a href="#" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-slate-500">No BOQ items found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if boq_items.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-center gap-2">
+            {% if boq_items.has_prev %}
+            <a href="{{ url_for('admin.qs_activities', page=boq_items.prev_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Previous</a>
+            {% endif %}
+
+            {% for page_num in boq_items.iter_pages(left_edge=1, right_edge=4, left_margin=1, right_margin=1) %}
+                {% if page_num %}
+                    {% if page_num == boq_items.page %}
+                    <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.qs_activities', page=page_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                <span class="px-3 py-1 text-slate-500 text-sm">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if boq_items.has_next %}
+            <a href="{{ url_for('admin.qs_activities', page=boq_items.next_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Pending Variations -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-amber-600 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-exclamation-triangle"></i> <h5 class="font-semibold m-0">Pending Variations ({{ pending_var_count }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Reason</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Requested Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if pending_variations %}
+                        {% for variation in pending_variations[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-semibold text-slate-900">{{ variation.description[:40] if variation.description else 'Variation ' + variation.id|string }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% set proj = variation.project %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ proj.name if proj else 'Unknown' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ variation.reason[:30] if variation.reason else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "{:,.2f}".format(variation.variation_amount or 0) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ variation.created_at.strftime('%b %d, %Y') if variation.created_at else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm flex gap-2">
+                                <button class="inline-block px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="inline-block px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors" title="Reject">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-slate-500">No pending variations</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Approved Variations -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-green-600 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-check-circle"></i> <h5 class="font-semibold m-0">Approved Variations ({{ approved_var_count }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Reason</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Approved Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if approved_variations %}
+                        {% for variation in approved_variations[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 font-semibold text-slate-900">{{ variation.description[:40] if variation.description else 'Variation ' + variation.id|string }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                {% set proj = variation.project %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ proj.name if proj else 'Unknown' }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ variation.reason[:30] if variation.reason else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "{:,.2f}".format(variation.variation_amount or 0) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ variation.updated_at.strftime('%b %d, %Y') if variation.updated_at else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <a href="#" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="px-6 py-4 text-center text-slate-500">No approved variations</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- QS Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-list-check text-3xl text-blue-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">BOQ Analysis</h6>
+            <p class="text-slate-600 text-sm mt-1">Cost breakdown</p>
+            <button onclick="openBOQModal()" class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-exchange-alt text-3xl text-amber-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Variations</h6>
+            <p class="text-slate-600 text-sm mt-1">Change orders</p>
+            <button onclick="openVariationsModal()" class="inline-block mt-3 px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-coins text-3xl text-cyan-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Cost Control</h6>
+            <p class="text-slate-600 text-sm mt-1">Budget tracking</p>
+            <button onclick="openCostControlModal()" class="inline-block mt-3 px-3 py-1 bg-cyan-600 text-white rounded text-sm font-semibold hover:bg-cyan-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-file-pdf text-3xl text-green-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">QS Reports</h6>
+            <p class="text-slate-600 text-sm mt-1">Financial summary</p>
+            <button onclick="openQSReportsModal()" class="inline-block mt-3 px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold hover:bg-green-700 transition-colors">View</button>
+        </div>
+    </div>
+</div>
+
+<!-- BOQ Analysis Modal -->
+<div id="boqModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-list-check"></i> BOQ Analysis
+            </h3>
+            <button onclick="closeBOQModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="boqLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading BOQ data...</p>
+            </div>
+            <div id="boqContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Estimated Cost</p>
+                        <p class="text-2xl font-bold text-blue-600" id="boqTotalCost">₦0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Items</p>
+                        <p class="text-2xl font-bold text-green-600" id="boqTotalItems">0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Projects</p>
+                        <p class="text-2xl font-bold text-purple-600" id="boqProjects">0</p>
+                    </div>
+                </div>
+                <div class="space-y-4" id="boqProjectsList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Variations Modal -->
+<div id="variationsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-amber-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-exchange-alt"></i> Variation Orders
+            </h3>
+            <button onclick="closeVariationsModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="variationsLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading variations...</p>
+            </div>
+            <div id="variationsContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Pending Amount</p>
+                        <p class="text-2xl font-bold text-amber-600" id="variationsPending">₦0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Approved Amount</p>
+                        <p class="text-2xl font-bold text-green-600" id="variationsApproved">₦0</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Count</p>
+                        <p class="text-2xl font-bold text-slate-600" id="variationsTotal">0</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Description</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Project</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Amount</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="variationsTable" class="divide-y divide-slate-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Control Modal -->
+<div id="costControlModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-cyan-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-coins"></i> Cost Control & Budget Status
+            </h3>
+            <button onclick="closeCostControlModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="costControlLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading cost control data...</p>
+            </div>
+            <div id="costControlContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-cyan-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total BOQ Cost</p>
+                        <p class="text-2xl font-bold text-cyan-600" id="costBoqTotal">₦0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Estimated Cost</p>
+                        <p class="text-2xl font-bold text-blue-600" id="costTotalEstimate">₦0</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Project</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Budget</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">BOQ Cost</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Variations</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Total Cost</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Variance</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="costControlTable" class="divide-y divide-slate-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QS Reports Modal -->
+<div id="qsReportsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-green-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Quantity Surveyor Reports
+            </h3>
+            <button onclick="closeQSReportsModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="qsReportsLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading reports...</p>
+            </div>
+            <div id="qsReportsContent" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total BOQ Cost</p>
+                        <p class="text-2xl font-bold text-green-600" id="reportBoqCost">₦0</p>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Approved Variations</p>
+                        <p class="text-2xl font-bold text-amber-600" id="reportApprovedVar">₦0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Pending Variations</p>
+                        <p class="text-2xl font-bold text-blue-600" id="reportPendingVar">₦0</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total Cost</p>
+                        <p class="text-2xl font-bold text-slate-600" id="reportTotalCost">₦0</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                    <h4 class="font-semibold text-slate-900 mb-3">Summary Statistics</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <p class="text-slate-600">Total Projects</p>
+                            <p class="text-xl font-bold text-slate-900" id="reportTotalProjects">0</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-600">Total BOQ Items</p>
+                            <p class="text-xl font-bold text-slate-900" id="reportTotalItems">0</p>
+                        </div>
+                        <div>
+                            <p class="text-slate-600">Total Variations</p>
+                            <p class="text-xl font-bold text-slate-900" id="reportTotalVar">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Projects Summary</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-100 border-b border-slate-200">
+                                <tr>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Project Name</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Budget</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">BOQ Cost</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Variations</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Total Cost</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Variance</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Items</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportProjectsTable" class="divide-y divide-slate-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility function to format currency
+function formatCurrency(amount) {
+    return '₦' + new Intl.NumberFormat('en-NG', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// BOQ Analysis Modal
+function openBOQModal() {
+    document.getElementById('boqModal').classList.remove('hidden');
+    loadBOQData();
+}
+
+function closeBOQModal() {
+    document.getElementById('boqModal').classList.add('hidden');
+}
+
+function loadBOQData() {
+    const loading = document.getElementById('boqLoading');
+    const content = document.getElementById('boqContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_qs_boq_analysis") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('boqTotalCost').textContent = formatCurrency(data.total_estimated_cost);
+            document.getElementById('boqTotalItems').textContent = data.total_items;
+            document.getElementById('boqProjects').textContent = data.projects;
+            
+            const boqProjectsList = document.getElementById('boqProjectsList');
+            boqProjectsList.innerHTML = '';
+            
+            data.project_summary.forEach(proj => {
+                boqProjectsList.innerHTML += `
+                    <div class="border border-slate-200 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <h5 class="font-semibold text-slate-900">${proj.name}</h5>
+                            <span class="text-sm font-bold text-blue-600">${formatCurrency(proj.cost)}</span>
+                        </div>
+                        <p class="text-sm text-slate-600">${proj.items} items</p>
+                    </div>
+                `;
+            });
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading BOQ data:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Variations Modal
+function openVariationsModal() {
+    document.getElementById('variationsModal').classList.remove('hidden');
+    loadVariationsData();
+}
+
+function closeVariationsModal() {
+    document.getElementById('variationsModal').classList.add('hidden');
+}
+
+function loadVariationsData() {
+    const loading = document.getElementById('variationsLoading');
+    const content = document.getElementById('variationsContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_qs_variations") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('variationsPending').textContent = formatCurrency(data.pending_amount);
+            document.getElementById('variationsApproved').textContent = formatCurrency(data.approved_amount);
+            document.getElementById('variationsTotal').textContent = data.total_variations;
+            
+            const variationsTable = document.getElementById('variationsTable');
+            variationsTable.innerHTML = '';
+            
+            if (data.variations.length === 0) {
+                variationsTable.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No variations found</td></tr>';
+            } else {
+                data.variations.forEach(var_order => {
+                    const statusColor = var_order.status === 'APPROVED' ? 'green' : 'amber';
+                    variationsTable.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-semibold text-slate-900">${var_order.description}</td>
+                            <td class="py-3 px-4 text-slate-700">${var_order.project_name}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(var_order.amount)}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-block px-2 py-1 bg-${statusColor}-100 text-${statusColor}-700 text-xs font-semibold rounded">
+                                    ${var_order.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading variations:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Cost Control Modal
+function openCostControlModal() {
+    document.getElementById('costControlModal').classList.remove('hidden');
+    loadCostControlData();
+}
+
+function closeCostControlModal() {
+    document.getElementById('costControlModal').classList.add('hidden');
+}
+
+function loadCostControlData() {
+    const loading = document.getElementById('costControlLoading');
+    const content = document.getElementById('costControlContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_qs_cost_control") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('costBoqTotal').textContent = formatCurrency(data.total_boq_cost);
+            document.getElementById('costTotalEstimate').textContent = formatCurrency(data.estimated_total_cost);
+            
+            const costControlTable = document.getElementById('costControlTable');
+            costControlTable.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                costControlTable.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-500">No projects found</td></tr>';
+            } else {
+                data.projects.forEach(proj => {
+                    const statusColor = proj.status === 'Over Budget' ? 'red' : 'green';
+                    costControlTable.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-semibold text-slate-900">${proj.project_name}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.original_budget)}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.boq_cost)}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.approved_variations)}</td>
+                            <td class="py-3 px-4 font-semibold text-slate-900">${formatCurrency(proj.total_cost)}</td>
+                            <td class="py-3 px-4 text-${statusColor === 'red' ? 'red' : 'green'}-600 font-semibold">${formatCurrency(proj.variance)}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-block px-2 py-1 bg-${statusColor}-100 text-${statusColor}-700 text-xs font-semibold rounded">
+                                    ${proj.status}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading cost control data:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// QS Reports Modal
+function openQSReportsModal() {
+    document.getElementById('qsReportsModal').classList.remove('hidden');
+    loadQSReportsData();
+}
+
+function closeQSReportsModal() {
+    document.getElementById('qsReportsModal').classList.add('hidden');
+}
+
+function loadQSReportsData() {
+    const loading = document.getElementById('qsReportsLoading');
+    const content = document.getElementById('qsReportsContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_qs_reports") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('reportBoqCost').textContent = formatCurrency(data.total_boq_cost);
+            document.getElementById('reportApprovedVar').textContent = formatCurrency(data.total_approved_variations);
+            document.getElementById('reportPendingVar').textContent = formatCurrency(data.total_pending_variations);
+            document.getElementById('reportTotalCost').textContent = formatCurrency(data.total_boq_cost + data.total_approved_variations);
+            
+            document.getElementById('reportTotalProjects').textContent = data.total_projects;
+            document.getElementById('reportTotalItems').textContent = data.total_boq_items;
+            document.getElementById('reportTotalVar').textContent = data.total_variations;
+            
+            const reportProjectsTable = document.getElementById('reportProjectsTable');
+            reportProjectsTable.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                reportProjectsTable.innerHTML = '<tr><td colspan="7" class="py-4 text-center text-slate-500">No projects found</td></tr>';
+            } else {
+                data.projects.forEach(proj => {
+                    reportProjectsTable.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-semibold text-slate-900">${proj.name}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.budget)}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.boq_cost)}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.variations)}</td>
+                            <td class="py-3 px-4 font-semibold text-slate-900">${formatCurrency(proj.total_cost)}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(proj.variance)}</td>
+                            <td class="py-3 px-4 text-center">${proj.items_count}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading QS reports:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Close modals when clicking on the background
+document.getElementById('boqModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeBOQModal();
+});
+
+document.getElementById('variationsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeVariationsModal();
+});
+
+document.getElementById('costControlModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeCostControlModal();
+});
+
+document.getElementById('qsReportsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeQSReportsModal();
+});
+</script>
+{% endblock %}

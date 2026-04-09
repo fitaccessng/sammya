@@ -1,0 +1,37 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Document Management</h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Upload Documents</h2>
+        <form method="POST" enctype="multipart/form-data" class="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <input type="file" name="file" required class="block mb-4 w-full">
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                Upload
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Documents</h2>
+        
+        {% if documents %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for doc in documents %}
+            <div class="border border-gray-300 rounded-lg p-4 hover:shadow-lg transition">
+                <p class="font-semibold text-gray-800">{{ doc }}</p>
+                <div class="mt-2 flex gap-2">
+                    <a href="#" class="text-sm px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Download</a>
+                    <button class="text-sm px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No documents uploaded yet</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

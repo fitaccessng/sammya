@@ -1,0 +1,56 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="py-6 space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Chart of Accounts</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="p-3 bg-green-50 rounded border">Cash In: <strong>&#8358;{{ "{:,.2f}".format(total_cash_in) }}</strong></div>
+            <div class="p-3 bg-red-50 rounded border">Cash Out: <strong>&#8358;{{ "{:,.2f}".format(total_cash_out) }}</strong></div>
+            <div class="p-3 bg-blue-50 rounded border">Net: <strong>&#8358;{{ "{:,.2f}".format(total_cash_in - total_cash_out) }}</strong></div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100"><tr><th class="border px-3 py-2">Code</th><th class="border px-3 py-2">Name</th><th class="border px-3 py-2">Type</th><th class="border px-3 py-2 text-right">Balance</th><th class="border px-3 py-2 text-right">Transactions</th><th class="border px-3 py-2 text-center">Actions</th></tr></thead>
+                <tbody>
+                    {% for acc in accounts %}
+                    <tr>
+                        <td class="border px-3 py-2">{{ acc.account_code }}</td>
+                        <td class="border px-3 py-2">{{ acc.account_name }}</td>
+                        <td class="border px-3 py-2 text-uppercase">{{ acc.account_type }}</td>
+                        <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(balances.get(acc.id, 0)) }}</td>
+                        <td class="border px-3 py-2 text-right">{{ account_transaction_counts.get(acc.id, 0) }}</td>
+                        <td class="border px-3 py-2 text-center">
+                            <a class="text-blue-600 hover:underline mr-3" href="{{ url_for('finance.ledger', account_id=acc.id) }}">View</a>
+                            <form method="POST" action="{{ url_for('finance.delete_chart_account', account_id=acc.id) }}" class="inline" onsubmit="return confirm('Delete this account? This only works if there are no ledger entries.');">
+                                <button type="submit" class="text-red-600 hover:underline">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="font-bold mb-3">Add Account</h3>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <input class="border rounded px-3 py-2" name="account_code" placeholder="Code" required>
+            <input class="border rounded px-3 py-2" name="account_name" placeholder="Account Name" required>
+            <select class="border rounded px-3 py-2" name="account_type" required>
+                <option value="asset">Asset</option><option value="liability">Liability</option><option value="revenue">Revenue</option><option value="expense">Expense</option><option value="equity">Equity</option>
+            </select>
+            <input class="border rounded px-3 py-2" name="opening_balance" type="number" step="0.01" min="0" placeholder="Opening Balance">
+            <input class="border rounded px-3 py-2 md:col-span-2" name="description" placeholder="Description">
+            <label class="md:col-span-2 text-sm flex items-center gap-2"><input type="checkbox" name="create_bank_account"> Create linked bank account</label>
+            <input class="border rounded px-3 py-2" name="bank_name" placeholder="Bank Name (optional)">
+            <input class="border rounded px-3 py-2" name="bank_account_number" placeholder="Bank Account Number">
+            <input class="border rounded px-3 py-2" name="currency" value="NGN" placeholder="Currency">
+            <button class="bg-blue-600 text-white rounded px-4 py-2 md:col-span-6">Create Account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+

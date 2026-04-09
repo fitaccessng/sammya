@@ -1,0 +1,64 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Accounts Receivable</h1>
+        <a href="{{ url_for('finance.create_receivable') }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+            + Create Receivable
+        </a>
+    </div>
+
+    <div class="bg-blue-50 rounded-lg p-4 mb-6 border-l-4 border-blue-600">
+        <p class="text-sm text-gray-600">Total Outstanding</p>
+        <p class="text-3xl font-bold text-blue-600">&#8358;{{ "%.2f"|format(total_outstanding) }}</p>
+        <p class="text-xs text-gray-500 mt-2">Amount to be collected</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Invoice #</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Customer / Vendor</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">History</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Amount</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Status</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Created Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if receivables.items %}
+                        {% for item in receivables.items %}
+                        <tr class="hover:bg-gray-50 border-b border-gray-300">
+                            <td class="border border-gray-300 px-4 py-3 font-mono font-semibold text-blue-600">{{ item.invoice_number }}</td>
+                            <td class="border border-gray-300 px-4 py-3">{{ supplier_history[item.id].supplier_name if supplier_history and supplier_history[item.id] else '-' }}</td>
+                            <td class="border border-gray-300 px-4 py-3">{{ supplier_history[item.id].history_count if supplier_history and supplier_history[item.id] else 0 }} records</td>
+                            <td class="border border-gray-300 px-4 py-3 text-right font-semibold">&#8358;{{ "%.2f"|format(item.invoice_amount) }}</td>
+                            <td class="border border-gray-300 px-4 py-3">
+                                {% set state = (item.approval_state.value if item.approval_state is not string and item.approval_state.value is defined else item.approval_state|string)|lower %}
+                                {% if 'approved' in state %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Approved</span>
+                                {% elif 'rejected' in state %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">Rejected</span>
+                                {% elif 'review' in state %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">In Review</span>
+                                {% else %}
+                                <span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="border border-gray-300 px-4 py-3 text-gray-600">{{ item.created_at.strftime('%Y-%m-%d') }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="border border-gray-300 px-4 py-8 text-center text-gray-500">No receivables found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

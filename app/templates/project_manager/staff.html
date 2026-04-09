@@ -1,0 +1,185 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Team Members - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Team Members</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Team Members</h1>
+        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2" onclick="openAssignStaffModal()">
+            <i class="fas fa-plus"></i>
+            <span>Add Member</span>
+        </button>
+    </div>
+
+    <!-- Staff Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Members</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ staff_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Active</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ staff_stats.active }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Managers</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ staff_stats.managers }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Field Staff</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">{{ staff_stats.field_staff }}</p>
+        </div>
+    </div>
+
+    <!-- Project Managers -->
+    {% if managers %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900">Project Managers & Engineers</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% for staff in managers %}
+            <div class="p-6 hover:bg-gray-50 transition">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://ui-avatars.com/api/?name={{ staff.user.name }}" alt="{{ staff.user.name }}" class="h-12 w-12 rounded-full">
+                        <div>
+                            <h3 class="font-bold text-gray-900">{{ staff.user.name }}</h3>
+                            <p class="text-gray-600 text-sm">{{ staff.role }} • {{ staff.user.email }}</p>
+                            {% if staff.start_date %}
+                            <p class="text-gray-600 text-xs mt-1">Since {{ staff.start_date.strftime('%d %b %Y') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button onclick="removeStaff({{ project.id }}, {{ staff.id }})" class="px-4 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200 font-medium">
+                        <i class="fas fa-trash mr-2"></i> Remove
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Supervisors & Laborers -->
+    {% if supervisors or laborers %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-xl font-bold text-gray-900">Field Staff</h2>
+        </div>
+        <div class="divide-y divide-gray-200">
+            {% for staff in supervisors + laborers %}
+            <div class="p-6 hover:bg-gray-50 transition">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <img src="https://ui-avatars.com/api/?name={{ staff.user.name }}" alt="{{ staff.user.name }}" class="h-12 w-12 rounded-full">
+                        <div>
+                            <h3 class="font-bold text-gray-900">{{ staff.user.name }}</h3>
+                            <p class="text-gray-600 text-sm">{{ staff.role }} • {{ staff.user.email }}</p>
+                            {% if staff.start_date %}
+                            <p class="text-gray-600 text-xs mt-1">Since {{ staff.start_date.strftime('%d %b %Y') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <button onclick="removeStaff({{ project.id }}, {{ staff.id }})" class="px-4 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200 font-medium">
+                        <i class="fas fa-trash mr-2"></i> Remove
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if not managers and not supervisors and not laborers %}
+    <div class="bg-white rounded-lg shadow p-12 text-center">
+        <i class="fas fa-users text-6xl text-gray-300 mb-4"></i>
+        <p class="text-gray-600 text-lg mb-4">No team members assigned yet</p>
+        <button onclick="openAssignStaffModal()" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+            Add First Member
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Assign Staff Modal -->
+<div id="assignStaffModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Team Member</h2>
+        
+        <form method="POST" action="{{ url_for('project.assign_staff', project_id=project.id) }}" class="space-y-4">
+            <div>
+                <label for="employee_id" class="block text-sm font-bold text-gray-900 mb-2">Select Employee *</label>
+                <select id="employee_id" name="employee_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Choose an employee...</option>
+                    {% for user in available_employees %}
+                    <option value="{{ user.id }}">{{ user.name }} - {{ user.email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="role" class="block text-sm font-bold text-gray-900 mb-2">Role *</label>
+                <select id="role" name="role" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Choose a role...</option>
+                    <option value="PROJECT_MANAGER">Project Manager</option>
+                    <option value="SITE_ENGINEER">Site Engineer</option>
+                    <option value="SUPERVISOR">Supervisor</option>
+                    <option value="LABORER">Laborer</option>
+                    <option value="PROJECT_STAFF">Project Staff</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-bold text-gray-900 mb-2">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-bold text-gray-900 mb-2">End Date</label>
+                    <input type="date" id="end_date" name="end_date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Add Member
+                </button>
+                <button type="button" onclick="closeAssignStaffModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAssignStaffModal() {
+    document.getElementById('assignStaffModal').classList.remove('hidden');
+}
+
+function closeAssignStaffModal() {
+    document.getElementById('assignStaffModal').classList.add('hidden');
+}
+
+function removeStaff(projectId, staffId) {
+    if (!confirm('Remove this team member?')) return;
+    fetch(`/projects/${projectId}/staff/${staffId}/remove`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) window.location.reload();
+            else alert('Error: ' + d.message);
+        });
+}
+
+document.getElementById('assignStaffModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAssignStaffModal();
+});
+</script>
+{% endblock %}

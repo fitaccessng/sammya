@@ -1,0 +1,49 @@
+{% extends "project_staff/base.html" %}
+
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block page_subtitle %}Account details and assigned projects{% endblock %}
+
+{% block staff_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center gap-4">
+            <img src="https://ui-avatars.com/api/?name={{ current_user.name|urlencode }}&background=0f172a&color=ffffff" alt="User avatar" class="h-16 w-16 rounded-full">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">{{ current_user.name }}</h2>
+                <p class="text-sm text-gray-600">{{ current_user.email }}</p>
+                <p class="mt-1 inline-flex items-center px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+                    {{ current_user.role.replace('_', ' ').title() }}
+                </p>
+            </div>
+        </div>
+        <div class="mt-6 border-t border-gray-200 pt-4">
+            <a href="{{ url_for('auth.logout') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-sm font-medium">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b bg-gray-50">
+            <h3 class="font-semibold text-gray-900">Assigned Projects</h3>
+        </div>
+        <div class="divide-y">
+            {% for p in accessible_projects %}
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div>
+                    <p class="font-medium text-gray-900">{{ p.name }}</p>
+                    <p class="text-sm text-gray-600">{{ p.status|default('active')|replace('_', ' ')|title }}</p>
+                </div>
+                <a href="{{ url_for('project.staff_dashboard', project_id=p.id) }}" class="text-sm font-medium text-blue-600 hover:text-blue-800">
+                    Open dashboard
+                </a>
+            </div>
+            {% else %}
+            <div class="px-6 py-6 text-gray-500">No assigned projects found.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

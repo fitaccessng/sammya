@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}QC Inspection #{{ inspection.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <h1 class="text-3xl font-bold mb-4">QC Inspection #{{ inspection.id }}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-slate-600">Status</p>
+                <span class="approval-badge pending">{{ inspection.approval_state.value.upper() }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Delivery</p>
+                <p class="font-semibold">{{ inspection.delivery.grn_number }}</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-slate-600">Approved Quantity</p>
+                <p class="text-xl font-semibold">{{ inspection.approved_quantity }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Rejected Quantity</p>
+                <p class="text-xl font-semibold text-red-600">{{ inspection.rejected_quantity or 0 }}</p>
+            </div>
+        </div>
+        
+        {% if inspection.rejection_reason %}
+        <div class="mt-6 p-4 bg-red-50 border border-red-200 rounded">
+            <p class="text-sm font-medium text-red-900">Rejection Reason</p>
+            <p class="text-red-800 mt-1">{{ inspection.rejection_reason }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Cash Flow Analysis</h1>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 rounded-lg p-4 shadow-sm border-l-4 border-blue-600">
+            <p class="text-sm text-gray-600">Current Balance</p>
+            <p class="text-2xl font-bold text-blue-600">₦{{ "%.2f"|format(current_balance) }}</p>
+            <p class="text-xs text-gray-500 mt-1">All active accounts</p>
+        </div>
+        <div class="bg-green-50 rounded-lg p-4 shadow-sm border-l-4 border-green-600">
+            <p class="text-sm text-gray-600">30-Day Inflows</p>
+            <p class="text-2xl font-bold text-green-600">₦{{ "%.2f"|format(inflows) }}</p>
+            <p class="text-xs text-gray-500 mt-1">Payments received</p>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4 shadow-sm border-l-4 border-red-600">
+            <p class="text-sm text-gray-600">30-Day Outflows</p>
+            <p class="text-2xl font-bold text-red-600">₦{{ "%.2f"|format(outflows) }}</p>
+            <p class="text-xs text-gray-500 mt-1">Approved expenses</p>
+        </div>
+        <div class="{% if (inflows - outflows) >= 0 %}bg-green-50{% else %}bg-orange-50{% endif %} rounded-lg p-4 shadow-sm border-l-4 {% if (inflows - outflows) >= 0 %}border-green-600{% else %}border-orange-600{% endif %}">
+            <p class="text-sm text-gray-600">Net Flow (30-Day)</p>
+            <p class="text-2xl font-bold {% if (inflows - outflows) >= 0 %}text-green-600{% else %}text-orange-600{% endif %}">₦{{ "%.2f"|format(inflows - outflows) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{% if (inflows - outflows) >= 0 %}Surplus{% else %}Deficit{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Forecast Alerts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-100 border border-blue-300 rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-blue-800 font-semibold">Projected Balance</p>
+                    <p class="text-2xl font-bold text-blue-900">₦{{ "%.2f"|format(projected_balance) }}</p>
+                </div>
+                <div class="text-3xl">📊</div>
+            </div>
+        </div>
+        <div class="{% if cash_gap > 0 %}bg-red-100 border-red-300{% else %}bg-green-100 border-green-300{% endif %} border rounded-lg p-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm {% if cash_gap > 0 %}text-red-800{% else %}text-green-800{% endif %} font-semibold">Cash Gap (Forecast)</p>
+                    <p class="text-2xl font-bold {% if cash_gap > 0 %}text-red-900{% else %}text-green-900{% endif %}">₦{{ "%.2f"|format(cash_gap) }}</p>
+                    <p class="text-xs mt-1 {% if cash_gap > 0 %}text-red-700{% else %}text-green-700{% endif %}">
+                        {% if cash_gap > 0 %}⚠️ Outflows exceed inflows{% else %}✓ Inflows exceed outflows{% endif %}
+                    </p>
+                </div>
+                <div class="text-3xl">{% if cash_gap > 0 %}⚠️{% else %}✓{% endif %}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weekly Trend -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Weekly Trend (Last 5 Weeks)</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Week</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Inflow</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Outflow</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Net Flow</th>
+                        <th class="border border-gray-300 px-4 py-2 text-center">Trend</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for week in weekly_data %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border border-gray-300 px-4 py-2 font-semibold">{{ week.week }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right text-green-600 font-semibold">₦{{ "%.2f"|format(week.inflow) }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right text-red-600 font-semibold">₦{{ "%.2f"|format(week.outflow) }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right font-bold {% if week.net >= 0 %}text-green-600{% else %}text-red-600{% endif %}">₦{{ "%.2f"|format(week.net) }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-center">
+                            {% if week.net >= 0 %}
+                                <span class="text-green-600 font-bold">⬆️</span>
+                            {% else %}
+                                <span class="text-red-600 font-bold">⬇️</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <!-- Latest Money In -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-green-600 mb-4">💰 Latest Money In (Last 10)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse border border-gray-300 text-sm">
+                    <thead class="bg-green-50">
+                        <tr>
+                            <th class="border border-gray-300 px-3 py-2 text-left">Date</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left">Method</th>
+                            <th class="border border-gray-300 px-3 py-2 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if latest_inflows %}
+                            {% for inflow in latest_inflows %}
+                            <tr class="hover:bg-green-50">
+                                <td class="border border-gray-300 px-3 py-2">{{ inflow.payment_date.strftime('%Y-%m-%d') }}</td>
+                                <td class="border border-gray-300 px-3 py-2 text-xs text-gray-600">{{ inflow.payment_method or 'N/A' }}</td>
+                                <td class="border border-gray-300 px-3 py-2 text-right text-green-600 font-semibold">₦{{ "%.2f"|format(inflow.amount_paid) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="border border-gray-300 px-3 py-2 text-center text-gray-500">No recent inflows</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Latest Money Out -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-lg font-semibold text-red-600 mb-4">💸 Latest Money Out (Last 10)</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full border-collapse border border-gray-300 text-sm">
+                    <thead class="bg-red-50">
+                        <tr>
+                            <th class="border border-gray-300 px-3 py-2 text-left">Date</th>
+                            <th class="border border-gray-300 px-3 py-2 text-left">Category</th>
+                            <th class="border border-gray-300 px-3 py-2 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if latest_outflows %}
+                            {% for outflow in latest_outflows %}
+                            <tr class="hover:bg-red-50">
+                                <td class="border border-gray-300 px-3 py-2">{{ outflow.date.strftime('%Y-%m-%d') }}</td>
+                                <td class="border border-gray-300 px-3 py-2 text-xs text-gray-600">{{ outflow.category or 'General' }}</td>
+                                <td class="border border-gray-300 px-3 py-2 text-right text-red-600 font-semibold">₦{{ "%.2f"|format(outflow.amount) }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="border border-gray-300 px-3 py-2 text-center text-gray-500">No recent outflows</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forecast Section -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">📈 Forecast (Up to 30 Days)</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-blue-50 p-4 rounded border-l-4 border-blue-500">
+                <p class="text-sm text-gray-600">Expected Inflows</p>
+                <p class="text-2xl font-bold text-blue-600">₦{{ "%.2f"|format(forecasted_inflows) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Approved + Pending invoices</p>
+            </div>
+            <div class="bg-red-50 p-4 rounded border-l-4 border-red-500">
+                <p class="text-sm text-gray-600">Expected Outflows</p>
+                <p class="text-2xl font-bold text-red-600">₦{{ "%.2f"|format(forecasted_outflows) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Pending + Approved expenses</p>
+            </div>
+            <div class="{% if forecast_net >= 0 %}bg-green-50{% else %}bg-orange-50{% endif %} p-4 rounded border-l-4 {% if forecast_net >= 0 %}border-green-500{% else %}border-orange-500{% endif %}">
+                <p class="text-sm text-gray-600">Forecast Net</p>
+                <p class="text-2xl font-bold {% if forecast_net >= 0 %}text-green-600{% else %}text-orange-600{% endif %}">₦{{ "%.2f"|format(forecast_net) }}</p>
+                <p class="text-xs text-gray-500 mt-1">Expected surplus/deficit</p>
+            </div>
+        </div>
+        <div class="bg-gray-50 p-4 rounded text-sm text-gray-700">
+            <p><strong>Note:</strong> Forecasts are based on invoices and expenses marked as Approved or Pending. Actual cash flow may vary based on payment timing and approvals.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

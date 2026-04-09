@@ -1,0 +1,239 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Import Staff from Excel{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.staff_list') }}">Staff Management</a></li>
+<li class="breadcrumb-item active">Import Staff</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h2 class="mb-1">Import Staff from Excel</h2>
+        <p class="text-muted">Upload an Excel file to bulk import staff records with personal information, employment details, compensation, and deductions</p>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Upload Card -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Upload Excel File</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Batch Name (Optional)</label>
+                            <input type="text" name="batch_name" class="form-control" 
+                                   placeholder="e.g., 'Q1 2024 Hiring' or leave blank for auto-generated name">
+                            <small class="text-muted">A descriptive name to identify this import batch</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Excel File *</label>
+                            <div class="input-group">
+                                <input type="file" name="excel_file" class="form-control" 
+                                       accept=".xlsx,.xls" required id="fileInput">
+                                <span class="input-group-text">
+                                    <i class="bi bi-file-earmark-excel"></i>
+                                </span>
+                            </div>
+                            <small class="text-muted">Supported formats: .xlsx, .xls (Maximum 10MB)</small>
+                        </div>
+
+                        <div class="alert alert-info" role="alert">
+                            <h6 class="alert-heading">✓ Required Column Headers (MUST include these exactly):</h6>
+                            <ul class="mb-2">
+                                <li><code>first_name</code> - Staff first name (e.g., "John")</li>
+                                <li><code>last_name</code> - Staff last name (e.g., "Doe")</li>
+                                <li><code>email</code> - Email address (e.g., "john.doe@company.com") - Must be unique</li>
+                                <li><code>basic_salary</code> - Monthly basic salary (e.g., "5000000" or "5000000.00")</li>
+                            </ul>
+                            <small class="text-warning"><strong>⚠️ Important:</strong> Your Excel file MUST have these 4 columns with these exact names. Column names are case-sensitive.</small>
+                        </div>
+
+                        <div class="alert alert-secondary" role="alert">
+                            <h6 class="alert-heading">Optional Column Headers:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Personal Info:</strong>
+                                    <ul class="mb-0">
+                                        <li><code>phone_number</code></li>
+                                        <li><code>gender</code> (Male/Female/Other)</li>
+                                        <li><code>date_of_birth</code> (YYYY-MM-DD)</li>
+                                        <li><code>address</code></li>
+                                        <li><code>city</code></li>
+                                        <li><code>state</code></li>
+                                        <li><code>marital_status</code></li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Employment:</strong>
+                                    <ul class="mb-0">
+                                        <li><code>employee_id</code></li>
+                                        <li><code>joining_date</code> (YYYY-MM-DD)</li>
+                                        <li><code>department</code> (HR/Finance/Procurement/QC/Projects/Cost Control)</li>
+                                        <li><code>position</code></li>
+                                        <li><code>role</code> (admin/hr_manager/hr_staff/etc.)</li>
+                                        <li><code>employment_type</code> (Full-time/Part-time/Contract/Intern)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Compensation:</strong>
+                                    <ul class="mb-0">
+                                        <li><code>basic_salary</code> - Monthly basic salary (e.g., 5000000.00)</li>
+                                        <li><code>allowances</code> - Monthly allowances (e.g., 500000.00)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Deductions:</strong>
+                                    <ul class="mb-0">
+                                        <li><code>deduction_type_1</code> - Type (e.g., Tax, Insurance, Loan)</li>
+                                        <li><code>deduction_amount_1</code> - Amount (e.g., 100000.00)</li>
+                                        <li><code>deduction_type_2</code>, <code>deduction_amount_2</code>, etc.</li>
+                                        <li class="text-muted"><small>Add multiple deductions using numbered suffix</small></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <strong>Emergency Contact(s) - Next of Kin:</strong>
+                                    <ul class="mb-0">
+                                        <li><code>nok_full_name</code> - Full name *</li>
+                                        <li><code>nok_relationship</code> - Relationship (Spouse/Parent/Sibling/Child/Friend/etc.) *</li>
+                                        <li><code>nok_phone</code> - Phone number *</li>
+                                        <li><code>nok_email</code> - Email address</li>
+                                        <li><code>nok_address</code> - Residential address</li>
+                                        <li><code>nok_city</code> - City</li>
+                                        <li><code>nok_state</code> - State</li>
+                                        <li><code>nok_is_primary</code> - Mark as primary (TRUE/FALSE)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> Upload and Preview
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sample File Card -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Need Help?</h5>
+                </div>
+                <div class="card-body">
+                    <h6>How to prepare your Excel file:</h6>
+                    <ol>
+                        <li>Create an Excel file (.xlsx or .xls) with staff information</li>
+                        <li>Use the column headers listed above (first row of the spreadsheet)</li>
+                        <li>Fill in data for each staff member in subsequent rows</li>
+                        <li>Ensure email addresses are unique (not used by existing staff)</li>
+                        <li>Use valid date formats: YYYY-MM-DD (e.g., 2026-02-02)</li>
+                        <li>For salary and deductions: use numeric values (e.g., 5000000.00)</li>
+                        <li>Upload the file here to preview before importing</li>
+                    </ol>
+                    
+                    <h6 class="mt-4">Salary & Deductions:</h6>
+                    <ul>
+                        <li><strong>Basic Salary:</strong> Monthly base salary amount</li>
+                        <li><strong>Allowances:</strong> Optional monthly allowances</li>
+                        <li><strong>Multiple Deductions:</strong> Add as many deductions as needed:
+                            <ul>
+                                <li>Column: <code>deduction_type_1</code> (e.g., "Tax")</li>
+                                <li>Column: <code>deduction_amount_1</code> (e.g., 100000.00)</li>
+                                <li>Column: <code>deduction_type_2</code>, <code>deduction_amount_2</code>, etc.</li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <h6 class="mt-4">Emergency Contact (Next of Kin):</h6>
+                    <ul>
+                        <li><strong>Full Name:</strong> Required - Complete name of emergency contact</li>
+                        <li><strong>Relationship:</strong> Required - Spouse, Parent, Sibling, Child, Friend, etc.</li>
+                        <li><strong>Phone:</strong> Required - Contact phone number</li>
+                        <li><strong>Email:</strong> Optional - Email address</li>
+                        <li><strong>Address:</strong> Optional - Residential address</li>
+                        <li><strong>City & State:</strong> Optional - City and state/province</li>
+                        <li><strong>Primary Contact:</strong> Use TRUE/FALSE to mark as primary emergency contact</li>
+                    </ul>
+
+                    <h6 class="mt-4">What happens after upload:</h6>
+                    <ol>
+                        <li>System validates all data in the file</li>
+                        <li>Shows you a preview of valid and invalid records</li>
+                        <li>You can review and adjust role assignments</li>
+                        <li>Submit for admin approval when ready</li>
+                        <li>Admin reviews and imports the batch</li>
+                        <li>Staff accounts are created with default password based on their email</li>
+                        <li>Compensation, deductions, and emergency contacts are automatically linked</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Imports Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Your Recent Imports</h5>
+                </div>
+                <div class="card-body p-0">
+                    {% set recent_batches = get_user_import_batches(current_user.id, limit=5) %}
+                    {% if recent_batches %}
+                        <div class="list-group list-group-flush">
+                            {% for batch in recent_batches %}
+                                <a href="{{ url_for('hr.preview_import', batch_id=batch.id) }}" 
+                                   class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ batch.batch_name }}</h6>
+                                        <small class="text-muted">{{ batch.total_records }} records</small>
+                                    </div>
+                                    <p class="mb-1 small text-muted">{{ batch.file_name }}</p>
+                                    <small class="text-muted">{{ batch.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                    <br>
+                                    {% if batch.approval_state == 'draft' %}
+                                        <span class="badge bg-secondary">{{ batch.approval_state.upper() }}</span>
+                                    {% elif batch.approval_state == 'pending' %}
+                                        <span class="badge bg-warning">{{ batch.approval_state.upper() }}</span>
+                                    {% elif batch.approval_state == 'approved' %}
+                                        <span class="badge bg-success">{{ batch.approval_state.upper() }}</span>
+                                    {% elif batch.approval_state == 'rejected' %}
+                                        <span class="badge bg-danger">{{ batch.approval_state.upper() }}</span>
+                                    {% endif %}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="p-3 text-muted text-center">
+                            <p>No recent imports</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-light">
+                    <a href="{{ url_for('hr.import_batches') }}" class="btn btn-sm btn-outline-primary w-100">
+                        View All Batches
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// File input change handler to show selected filename
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const filename = e.target.files[0]?.name || 'No file chosen';
+    console.log('Selected file:', filename);
+});
+</script>
+{% endblock %}

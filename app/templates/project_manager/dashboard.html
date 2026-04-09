@@ -1,0 +1,204 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Dashboard - Project Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900 dashboard-number">Dashboard</h1>
+        
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Projects -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-medium">Total Projects</p>
+                    <p class="text-3xl font-bold text-gray-900 dashboard-number">{{ stats.total }}</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <i class="fas fa-folder text-blue-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Projects -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-medium">Active Projects</p>
+                    <p class="text-3xl font-bold text-gray-900 dashboard-number">{{ stats.active }}</p>
+                </div>
+                <div class="bg-green-100 p-4 rounded-lg">
+                    <i class="fas fa-play text-green-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Projects -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-medium">Completed</p>
+                    <p class="text-3xl font-bold text-gray-900 dashboard-number">{{ stats.completed }}</p>
+                </div>
+                <div class="bg-purple-100 p-4 rounded-lg">
+                    <i class="fas fa-check-circle text-purple-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Budget -->
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-orange-500">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-gray-600 text-sm font-medium">Total Budget</p>
+                    <p class="text-3xl font-bold text-gray-900 dashboard-number">₦{{ "{:,.0f}".format(stats.budget|float) }}</p>
+                </div>
+                <div class="bg-orange-100 p-4 rounded-lg">
+                    <i class="fas fa-wallet text-orange-600 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Projects List -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900">Your Projects</h2>
+                    <span class="text-sm text-gray-600">{{ projects|length }} total</span>
+                </div>
+
+                {% if projects %}
+                    <div class="divide-y divide-gray-200">
+                        {% for project in projects[:5] %}
+                        <div class="p-6 hover:bg-gray-50 transition">
+                            <div class="flex items-start justify-between mb-3">
+                                <div>
+                                    <a href="{{ url_for('project.project_details', project_id=project.id) }}" class="text-lg font-bold text-blue-600 hover:text-blue-800">
+                                        {{ project.name }}
+                                    </a>
+                                    <p class="text-sm text-gray-600 mt-1">{{ project.description[:100] }}...</p>
+                                </div>
+                                <span class="px-3 py-1 rounded-full text-sm font-medium {% if project.status == 'active' %}bg-green-100 text-green-800{% elif project.status == 'completed' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ project.status|upper }}
+                                </span>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-4 text-sm mt-4">
+                                <div>
+                                    <p class="text-gray-600">Budget</p>
+                                    <p class="font-bold text-gray-900 dashboard-number">₦{{ "{:,.0f}".format(project.budget|float) }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-600">Start Date</p>
+                                    <p class="font-bold text-gray-900">{{ project.start_date.strftime('%d %b %Y') if project.start_date else 'N/A' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-gray-600">End Date</p>
+                                    <p class="font-bold text-gray-900">{{ project.end_date.strftime('%d %b %Y') if project.end_date else 'N/A' }}</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center space-x-2 mt-4">
+                                <a href="{{ url_for('project.project_details', project_id=project.id) }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">View Details</a>
+                                <a href="{{ url_for('project.edit_project', project_id=project.id) }}" class="px-4 py-2 bg-gray-200 text-gray-900 rounded hover:bg-gray-300 text-sm">Edit</a>
+                                <a href="{{ url_for('project.timeline_index', project_id=project.id) }}" class="px-4 py-2 bg-gray-200 text-gray-900 rounded hover:bg-gray-300 text-sm">Milestones</a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="p-12 text-center">
+                        <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+                        <p class="text-gray-600 text-lg mb-4">No projects yet</p>
+                        <!-- <a href="{{ url_for('project.create_project') }}" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            Create Your First Project
+                        </a> -->
+                    </div>
+                {% endif %}
+
+                {% if projects|length > 5 %}
+                <div class="p-6 text-center border-t border-gray-200">
+                    <a href="{{ url_for('project.index') }}" class="text-blue-600 hover:text-blue-800 font-medium">View All {{ projects|length }} Projects →</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions & Recent Activity -->
+        <div class="space-y-6">
+            <!-- Departments -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Departments</h3>
+                <div class="space-y-3">
+                    <a href="{{ url_for('qs_dashboard.dashboard') }}" class="block w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-calculator mr-2"></i> Quantity Surveyor
+                    </a>
+                    <a href="#" class="block w-full bg-cyan-50 hover:bg-cyan-100 text-cyan-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-hard-hat mr-2"></i> Procurement
+                    </a>
+                    <a href="#" class="block w-full bg-amber-50 hover:bg-amber-100 text-amber-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-chart-line mr-2"></i> Finance
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+                <div class="space-y-3">
+                    <!-- <a href="{{ url_for('project.create_project') }}" class="block w-full bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-plus mr-2"></i> Create Project
+                    </a> -->
+                    <a href="{{ url_for('project.index') }}" class="block w-full bg-green-50 hover:bg-green-100 text-green-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-list mr-2"></i> All Projects
+                    </a>
+                    <a href="{{ url_for('project.settings') }}" class="block w-full bg-purple-50 hover:bg-purple-100 text-purple-600 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-cog mr-2"></i> Settings
+                    </a>
+                    <a href="{{ url_for('hr.leave_management') }}" class="block w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-calendar-check mr-2"></i> Leave Request
+                    </a>
+                    <a href="{{ url_for('main.account_settings') }}" class="block w-full bg-slate-50 hover:bg-slate-100 text-slate-700 px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-user-cog mr-2"></i> Account Settings
+                    </a>
+                </div>
+            </div>
+
+            <!-- Budget Overview -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Budget Overview</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm font-medium text-gray-600">Utilization</p>
+                            <p class="text-sm font-bold text-gray-900">{{ stats.budget_utilization }}%</p>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ stats.budget_utilization }}%"></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p class="text-gray-600">Total</p>
+                            <p class="font-bold text-gray-900 dashboard-number">₦{{ "{:,.0f}".format(stats.budget|float) }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600">Spent</p>
+                            <p class="font-bold text-gray-900 dashboard-number">₦{{ "{:,.0f}".format(stats.spent|float) }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

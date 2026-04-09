@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Create Material Request{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Create Material Request</h1>
+    
+    <form method="POST" class="bg-white rounded-lg shadow p-6 space-y-6">
+        <div>
+            <label for="description" class="block text-sm font-medium text-slate-700">Description</label>
+            <textarea 
+                id="description" 
+                name="description" 
+                required
+                class="mt-1 form-input"
+                rows="4"
+                placeholder="Describe the materials needed..."></textarea>
+        </div>
+        
+        <div class="border-t pt-6">
+            <h3 class="text-lg font-semibold mb-4">Items</h3>
+            <div id="itemsContainer" class="space-y-4">
+                <div class="grid grid-cols-4 gap-4">
+                    <input type="text" placeholder="Description" name="item_description" class="form-input col-span-2">
+                    <input type="text" placeholder="Unit (m, kg, no)" name="unit" class="form-input">
+                    <input type="number" placeholder="Qty" name="quantity" step="0.01" class="form-input">
+                </div>
+            </div>
+            <button type="button" onclick="addItem()" class="mt-4 text-blue-600 hover:underline text-sm">+ Add Item</button>
+        </div>
+        
+        <div class="flex gap-4 pt-6 border-t">
+            <button type="submit" class="btn-primary">Create Request</button>
+            <a href="{{ url_for('main.dashboard') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+function addItem() {
+    const container = document.getElementById('itemsContainer');
+    const newItem = document.createElement('div');
+    newItem.className = 'grid grid-cols-4 gap-4';
+    newItem.innerHTML = `
+        <input type="text" placeholder="Description" name="item_description" class="form-input col-span-2">
+        <input type="text" placeholder="Unit" name="unit" class="form-input">
+        <input type="number" placeholder="Qty" name="quantity" step="0.01" class="form-input">
+    `;
+    container.appendChild(newItem);
+}
+</script>
+{% endblock %}

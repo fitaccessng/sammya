@@ -1,0 +1,70 @@
+{% extends 'finance/base.html' %}
+
+{% block title %}Account Details - {{ account.account_name }}{% endblock %}
+
+{% block finance_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">{{ account.account_name }}</h1>
+            <p class="text-gray-600">{{ account.bank_name }} - {{ account.account_number }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ url_for('finance.reconcile_account_form', account_id=account.id) }}" 
+               class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">🔄 Reconcile Account</a>
+            <a href="{{ url_for('finance.bank_reconciliation') }}" 
+               class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">← Back</a>
+        </div>
+    </div>
+
+    <!-- Account Summary -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+        <div class="text-sm text-gray-600">Current Ledger Balance</div>
+        <div class="text-3xl font-bold text-blue-600">₦{{ "{:,.2f}".format(account.balance) }}</div>
+        <div class="text-xs text-gray-500 mt-2">{{ account.account_number }} | {{ account.currency }}</div>
+    </div>
+
+    <!-- Reconciliation History -->
+    {% if reconciliations %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Reconciliation History</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Date</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Statement Balance</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Ledger Balance</th>
+                        <th class="border border-gray-300 px-4 py-2 text-right">Difference</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Status</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for reconcil in reconciliations %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="border border-gray-300 px-4 py-2">{{ reconcil.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right">₦{{ "{:,.2f}".format(reconcil.statement_balance) }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right">₦{{ "{:,.2f}".format(reconcil.ledger_balance) }}</td>
+                        <td class="border border-gray-300 px-4 py-2 text-right {% if reconcil.difference == 0 %}text-green-600 font-bold{% else %}text-red-600 font-bold{% endif %}">
+                            ₦{{ "{:,.2f}".format(reconcil.difference) }}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            <span class="px-2 py-1 rounded text-sm font-medium
+                                {% if reconcil.status == 'reconciled' %}bg-green-100 text-green-800
+                                {% elif reconcil.status == 'discrepancy' %}bg-red-100 text-red-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ reconcil.status|upper }}
+                            </span>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2 text-sm text-gray-600">{{ reconcil.notes or 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

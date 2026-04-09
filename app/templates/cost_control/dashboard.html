@@ -1,0 +1,175 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Overview of budget status and spending{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('cost_control.add_category') }}" class="btn btn-primary">
+    <i class='bx bxs-plus'></i> Add Category
+</a>
+<a href="{{ url_for('cost_control.reports') }}" class="btn btn-outline-secondary">
+    <i class='bx bxs-file-pdf'></i> Reports
+</a>
+<a href="{{ url_for('hr.leave_management') }}" class="btn btn-outline-success">
+    <i class='bx bxs-calendar-check'></i> Leave Request
+</a>
+<a href="{{ url_for('main.account_settings') }}" class="btn btn-outline-dark">
+    <i class='bx bxs-user-circle'></i> Account Settings
+</a>
+{% endblock %}
+
+{% block main_content %}
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <!-- Total Budget Card -->
+    <div class="col-md-3 mb-3">
+        <div class="stat-card blue">
+            <p><i class='bx bxs-wallet'></i> Total Budget</p>
+            <h4 class="dashboard-number">₦{{ "{:,.2f}".format(total_budget) }}</h4>
+            <small class="text-muted">All Projects</small>
+        </div>
+    </div>
+
+    <!-- Committed Spend Card -->
+    <div class="col-md-3 mb-3">
+        <div class="stat-card orange">
+            <p><i class='bx bxs-check-circle'></i> Committed</p>
+            <h4 class="dashboard-number">₦{{ "{:,.2f}".format(total_committed) }}</h4>
+            <small class="text-muted">Approved POs</small>
+        </div>
+    </div>
+
+    <!-- Actual Spend Card -->
+    <div class="col-md-3 mb-3">
+        <div class="stat-card green">
+            <p><i class='bx bxs-check'></i> Actual Spend</p>
+            <h4 class="dashboard-number">₦{{ "{:,.2f}".format(total_spent) }}</h4>
+            <small class="text-muted">Paid Invoices</small>
+        </div>
+    </div>
+
+    <!-- Remaining Budget Card -->
+    <div class="col-md-3 mb-3">
+        <div class="stat-card purple">
+            <p><i class='bx bxs-coin'></i> Remaining</p>
+            <h4 class="dashboard-number">₦{{ "{:,.2f}".format(total_remaining) }}</h4>
+            <small class="text-muted">Available Budget</small>
+        </div>
+    </div>
+</div>
+
+<!-- Budget Utilization -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Budget Utilization</h5>
+        <span class="h4 mb-0 dashboard-number" style="color: #0d6efd;">{{ "{:.1f}".format(total_utilization) }}%</span>
+    </div>
+    <div class="card-body">
+        <div class="progress mb-3" style="height: 30px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: {{ total_utilization }}%;" aria-valuenow="{{ total_utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="row text-center">
+            <div class="col-md-3">
+                <small class="text-muted">Budget Used</small>
+                <p class="mb-0"><strong>{{ "{:.1f}".format(total_utilization) }}%</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Budget Remaining</small>
+                <p class="mb-0"><strong>{{ "{:.1f}".format(100 - total_utilization) }}%</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Total Budget</small>
+                <p class="mb-0"><strong>₦{{ "{:,.0f}".format(total_budget) }}</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Remaining Amount</small>
+                <p class="mb-0"><strong>₦{{ "{:,.0f}".format(total_remaining) }}</strong></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budget by Category -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Budget by Category</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Category</th>
+                                <th>Allocated</th>
+                                <th>Spent</th>
+                                <th>Remaining</th>
+                                <th>Utilization</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if categories %}
+                                {% for cat in categories %}
+                                <tr>
+                                    <td><strong>{{ cat.name }}</strong></td>
+                                    <td>₦{{ "{:,.2f}".format(cat.allocated or 0) }}</td>
+                                    <td>₦{{ "{:,.2f}".format(cat.spent or 0) }}</td>
+                                    <td>₦{{ "{:,.2f}".format((cat.allocated or 0) - (cat.spent or 0)) }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" style="width: {{ (cat.spent or 0) / (cat.allocated or 1) * 100 }}%;" aria-valuenow="{{ (cat.spent or 0) / (cat.allocated or 1) * 100 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No categories found</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Transactions</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_transactions %}
+                <div class="list-group list-group-flush">
+                    {% for trans in recent_transactions[:5] %}
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ trans.description }}</h6>
+                            <small class="text-muted">{{ trans.date.strftime('%d %b %Y') }}</small>
+                        </div>
+                        <span class="badge bg-primary">₦{{ "{:,.2f}".format(trans.amount) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">No recent transactions</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Trends -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Cost Trends</h5>
+    </div>
+    <div class="card-body">
+        <p class="text-muted">Cost trend visualization will be displayed here</p>
+    </div>
+</div>
+{% endblock %}
+

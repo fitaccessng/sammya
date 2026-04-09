@@ -1,0 +1,301 @@
+{% extends "qs/base.html" %}
+
+{% block title %}Material Schedule - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i class="fas fa-cube mr-3"></i>Material Schedule
+                </h1>
+                <p class="text-amber-100 text-sm mt-1">{{ project.name }}</p>
+            </div>
+            <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="bg-white text-amber-600 px-4 py-2 rounded-lg font-medium hover:bg-amber-50 transition flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Items</p>
+            <p class="text-4xl font-bold text-gray-900 mt-2">{{ total_items }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Categories</p>
+            <p class="text-4xl font-bold text-amber-600 mt-2">{{ categories|length }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Value</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">₦{{ "{:,.0f}".format(total_value) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Avg Unit Rate</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">₦{{ "{:,.0f}".format(avg_rate) }}</p>
+        </div>
+    </div>
+
+    <!-- Material by Category -->
+    {% if materials_by_category %}
+    <div class="space-y-4">
+        {% for category, items in materials_by_category.items() %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="flex items-center">
+                    <i class="fas fa-tag text-gray-600 mr-3"></i>
+                    <div>
+                        <h3 class="font-semibold text-gray-900">{{ category or "Uncategorized" }}</h3>
+                        <p class="text-sm text-gray-500">{{ items|length }} items</p>
+                    </div>
+                </div>
+                <span class="text-lg font-bold text-green-600">₦{{ "{:,.2f}".format(items|map(attribute='amount')|sum) }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="text-left py-3 px-6 font-semibold text-gray-700">Description</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Qty</th>
+                            <th class="text-center py-3 px-6 font-semibold text-gray-700">Unit</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Unit Rate</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                            <td class="py-3 px-6 text-gray-900">{{ item.description }}</td>
+                            <td class="py-3 px-6 text-right text-gray-900">{{ item.quantity }}</td>
+                            <td class="py-3 px-6 text-center text-gray-900">{{ item.unit }}</td>
+                            <td class="py-3 px-6 text-right text-gray-900">₦{{ "{:,.2f}".format(item.unit_rate) }}</td>
+                            <td class="py-3 px-6 text-right font-semibold text-gray-900">₦{{ "{:,.2f}".format(item.amount) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+        <i class="fas fa-inbox text-4xl text-blue-300 mb-3"></i>
+        <p class="text-blue-900 font-medium">No materials scheduled yet</p>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="flex gap-3 justify-end">
+        <button onclick="openUploadMaterialModal()" class="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+            <i class="fas fa-upload mr-2"></i>Upload Material Schedule
+        </button>
+        <button onclick="exportToCSV()" class="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">
+            <i class="fas fa-download mr-2"></i>Export as CSV
+        </button>
+        <button onclick="window.print()" class="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-medium">
+            <i class="fas fa-print mr-2"></i>Print
+        </button>
+    </div>
+</div>
+
+<!-- Upload Material Modal -->
+<div id="uploadMaterialModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4">
+            <h2 class="text-xl font-bold text-white flex items-center">
+                <i class="fas fa-upload mr-3"></i>Upload Material Schedule
+            </h2>
+        </div>
+        
+        <form id="uploadMaterialForm" enctype="multipart/form-data" class="p-6 space-y-4">
+            <!-- Drag-Drop Area -->
+            <div class="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-500 hover:bg-purple-50 transition cursor-pointer" onclick="document.getElementById('materialFileInput').click()">
+                <i class="fas fa-cloud-upload-alt text-4xl text-purple-400 mb-3"></i>
+                <p class="text-gray-900 font-medium">Click to upload or drag and drop</p>
+                <p class="text-sm text-gray-500 mt-1">CSV, Excel (.xlsx, .xls)</p>
+                <input type="file" id="materialFileInput" name="file" class="hidden" accept=".csv,.xlsx,.xls" onchange="updateMaterialFileName()">
+            </div>
+            
+            <!-- File Name Display -->
+            <div id="materialFileName" class="text-sm text-gray-600 flex items-center">
+                <i class="fas fa-info-circle mr-2 text-blue-500"></i>No file selected
+            </div>
+            
+            <!-- Required Columns Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                <p class="font-semibold text-blue-900 mb-2">Required Columns (Material and Labour Schedule):</p>
+                <ul class="list-disc list-inside space-y-1 text-blue-800">
+                    <li>Item ID</li><li>Description</li>
+                    <li>Material: Qty, Unit, Rate, Totals</li>
+                    <li>Labour: Qty, Unit, Rate, Total</li><li>Grand Total (or Grd Total)</li>
+                </ul>
+                <p class="font-semibold text-blue-900 mt-2 mb-2">Optional:</p>
+                <ul class="list-disc list-inside space-y-1 text-blue-800">
+                    <li>Material Total</li>
+                    <li>Labour Total</li>
+                </ul>
+            </div>
+            
+            <!-- Buttons -->
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeMaterialUploadModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-medium">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+                    <i class="fas fa-check mr-2"></i>Upload & Import
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function exportToCSV() {
+    let csv = 'Description,Quantity,Unit,Unit Rate,Amount,Category\n';
+    
+    const rows = document.querySelectorAll('table tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const rowData = Array.from(cells).map(cell => {
+            let text = cell.textContent.trim();
+            // Remove currency symbols and extra spaces
+            text = text.replace(/₦/g, '').replace(/,/g, '').trim();
+            return '"' + text + '"';
+        }).join(',');
+        csv += rowData + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'material-schedule-{{ project.name }}.csv';
+    a.click();
+}
+
+function openUploadMaterialModal() {
+    document.getElementById('uploadMaterialModal').classList.remove('hidden');
+}
+
+function closeMaterialUploadModal() {
+    document.getElementById('uploadMaterialModal').classList.add('hidden');
+    document.getElementById('uploadMaterialForm').reset();
+    document.getElementById('materialFileName').innerHTML = '<i class="fas fa-info-circle mr-2 text-blue-500"></i>No file selected';
+}
+
+function updateMaterialFileName() {
+    const input = document.getElementById('materialFileInput');
+    const fileDisplay = document.getElementById('materialFileName');
+    
+    if (input.files.length > 0) {
+        const fileName = input.files[0].name;
+        fileDisplay.innerHTML = `<i class="fas fa-check-circle mr-2 text-green-500"></i>${fileName}`;
+    } else {
+        fileDisplay.innerHTML = '<i class="fas fa-info-circle mr-2 text-blue-500"></i>No file selected';
+    }
+}
+
+function submitMaterialUploadForm(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('materialFileInput');
+    if (!fileInput.files.length) {
+        alert('Please select a file first');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    const button = event.target.querySelector('button[type="submit"]');
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading...';
+    button.disabled = true;
+    
+    fetch('{{ url_for("qs_boq.upload_material_schedule", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        
+        if (data.success) {
+            alert(`✓ Successfully imported ${data.created} material(s)!`);
+            closeMaterialUploadModal();
+            // Reload the page to show new materials
+            location.reload();
+        } else {
+            let errorMsg = data.message || 'Upload failed';
+            if (data.errors && data.errors.length > 0) {
+                errorMsg += '\n\nErrors:\n';
+                data.errors.slice(0, 5).forEach(err => {
+                    errorMsg += `• Row ${err.row}: ${err.error}\n`;
+                });
+                if (data.errors.length > 5) {
+                    errorMsg += `\n... and ${data.errors.length - 5} more errors`;
+                }
+            }
+            alert(errorMsg);
+        }
+    })
+    .catch(error => {
+        button.innerHTML = originalText;
+        button.disabled = false;
+        alert('Error uploading file: ' + error.message);
+    });
+}
+
+document.getElementById('uploadMaterialForm').addEventListener('submit', submitMaterialUploadForm);
+
+// Drag and drop support
+const uploadArea = document.querySelector('[onclick="document.getElementById(\'materialFileInput\').click()"]');
+if (uploadArea) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight(e) {
+        uploadArea.classList.add('border-purple-500', 'bg-purple-50');
+    }
+    
+    function unhighlight(e) {
+        uploadArea.classList.remove('border-purple-500', 'bg-purple-50');
+    }
+    
+    uploadArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        document.getElementById('materialFileInput').files = files;
+        updateMaterialFileName();
+    }
+}
+</script>
+
+<style>
+    @media print {
+        [class*="bg-gradient"], .flex.gap-3, button { display: none !important; }
+    }
+</style>
+{% endblock %}
+

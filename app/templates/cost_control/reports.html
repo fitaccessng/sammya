@@ -1,0 +1,107 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}Cost control reporting and analytics{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('cost_control.export_report', report_type='budget') }}" class="btn btn-secondary">
+    <i class="bi bi-download"></i> Export Report
+</a>
+{% endblock %}
+
+{% block main_content %}
+<!-- Report Selection -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card border-start border-5 border-primary h-100 hover-shadow">
+            <div class="card-body">
+                <h5 class="card-title">Budget Summary</h5>
+                <p class="card-text small text-muted">Overall budget allocation and utilization across all projects</p>
+                <a href="?type=summary" class="link-primary stretched-link">View Report →</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card border-start border-5 border-success h-100 hover-shadow">
+            <div class="card-body">
+                <h5 class="card-title">Spending Analysis</h5>
+                <p class="card-text small text-muted">Detailed breakdown of spending by project and category</p>
+                <a href="?type=spending" class="link-success stretched-link">View Report →</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card border-start border-5 border-warning h-100 hover-shadow">
+            <div class="card-body">
+                <h5 class="card-title">Variance Report</h5>
+                <p class="card-text small text-muted">Comparison of planned vs actual spending with variance analysis</p>
+                <a href="?type=variance" class="link-warning stretched-link">View Report →</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-3">
+        <div class="card border-start border-5 border-info h-100 hover-shadow">
+            <div class="card-body">
+                <h5 class="card-title">Project Detail</h5>
+                <p class="card-text small text-muted">In-depth report for selected project including BOQ and POs</p>
+                <div class="mt-3">
+                    <select class="form-select form-select-sm">
+                        <option value="">Select Project</option>
+                        {% for project in projects %}
+                        <option value="{{ project.id }}">{{ project.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Report Preview Section -->
+<div class="card border-secondary">
+    <div class="card-body">
+        <h5 class="card-title">Report Generated</h5>
+        <p class="card-text small text-muted">Generated on: {{ generated_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+        
+        <!-- Summary Stats -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="p-3 bg-light border-start border-4 border-primary rounded">
+                    <p class="small fw-semibold mb-2">Total Projects</p>
+                    <p class="h4 mb-0 text-primary">{{ projects|length }}</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="p-3 bg-light border-start border-4 border-success rounded">
+                    <p class="small fw-semibold mb-2">Total Budget</p>
+                    <p class="h5 mb-0 text-success">₦{{ "{:,.0f}".format(projects|sum(attribute='budget')) }}</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="p-3 bg-light border-start border-4 border-warning rounded">
+                    <p class="small fw-semibold mb-2">Report Type</p>
+                    <p class="h5 mb-0 text-warning">{{ report_type|title }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Export Options -->
+        <hr>
+        <h6 class="fw-semibold mb-3">Export Options</h6>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('cost_control.export_report', report_type='budget') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-file-text"></i> Export as CSV
+            </a>
+            <a href="#" class="btn btn-sm btn-secondary">
+                <i class="bi bi-file-pdf"></i> Export as PDF
+            </a>
+            <a href="#" class="btn btn-sm btn-secondary">
+                <i class="bi bi-file-earmark-excel"></i> Export as Excel
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

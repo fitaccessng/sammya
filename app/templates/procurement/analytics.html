@@ -1,0 +1,52 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Analytics & Reports{% endblock %}
+{% block page_subtitle %}Procurement spending analysis{% endblock %}
+
+{% block main_content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Vendor Spending -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Top Vendors by Spending</h3>
+        <div class="space-y-3">
+            {% if data.vendor_spend %}
+                {% for item in data.vendor_spend %}
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-700 font-medium">{{ item.vendor }}</span>
+                        <span class="text-gray-800 font-semibold">₦{{ "{:,.0f}".format(item.amount) }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: {% if data.vendor_spend[0].amount > 0 %}{{ (item.amount / data.vendor_spend[0].amount * 100) }}{% endif %}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-600">No vendor data available</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Monthly Spending -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Spending by Month</h3>
+        <div class="space-y-3">
+            {% if data.spend_by_month %}
+                {% for item in data.spend_by_month %}
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-gray-700 font-medium">{{ item.month }}</span>
+                        <span class="text-gray-800 font-semibold">₦{{ "{:,.0f}".format(item.amount) }}</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: {% if data.spend_by_month[0].amount > 0 %}{{ (item.amount / data.spend_by_month[0].amount * 100) }}{% endif %}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-gray-600">No monthly data available</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

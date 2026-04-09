@@ -1,0 +1,82 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Variance Analysis{% endblock %}
+{% block page_subtitle %}Compare planned vs actual spending{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card blue border-0">
+            <div class="card-body">
+                <p class="card-text small text-muted">TOTAL PLANNED</p>
+                <h3 class="fw-bold mb-0 text-dark">&#8358;{{ "{:,.2f}".format(total_planned) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card orange border-0">
+            <div class="card-body">
+                <p class="card-text small text-muted">ACTUAL SPENT</p>
+                <h3 class="fw-bold mb-0 text-dark">&#8358;{{ "{:,.2f}".format(total_actual) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card green border-0">
+            <div class="card-body">
+                <p class="card-text small text-muted">TOTAL VARIANCE</p>
+                <h3 class="fw-bold mb-0 text-dark">&#8358;{{ "{:,.2f}".format(total_variance) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card purple border-0">
+            <div class="card-body">
+                <p class="card-text small text-muted">VARIANCE %</p>
+                <h3 class="fw-bold mb-0 text-dark">{% if total_planned > 0 %}{{ "{:.1f}".format((total_variance / total_planned) * 100) }}{% else %}0{% endif %}%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-secondary shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light border-bottom">
+                <tr>
+                    <th class="text-start">Project</th>
+                    <th class="text-end">Planned Budget</th>
+                    <th class="text-end">Actual Spend</th>
+                    <th class="text-end">Variance (?)</th>
+                    <th class="text-end">Variance %</th>
+                    <th class="text-center">Status</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for item in variance_data %}
+                <tr>
+                    <td class="text-start fw-medium">{{ item.project.name }}</td>
+                    <td class="text-end">&#8358;{{ "{:,.2f}".format(item.planned) }}</td>
+                    <td class="text-end">&#8358;{{ "{:,.2f}".format(item.actual) }}</td>
+                    <td class="text-end {% if item.variance < 0 %}text-danger fw-semibold{% else %}text-success fw-semibold{% endif %}">
+                        &#8358;{{ "{:,.2f}".format(item.variance) }}
+                    </td>
+                    <td class="text-end {% if item.variance_percent < 0 %}text-danger fw-semibold{% else %}text-success fw-semibold{% endif %}">
+                        {{ "{:.1f}".format(item.variance_percent) }}%
+                    </td>
+                    <td class="text-center">
+                        {% if item.status == 'over_budget' %}
+                            <span class="badge bg-danger">Over Budget</span>
+                        {% else %}
+                            <span class="badge bg-success">Under Budget</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+

@@ -1,0 +1,62 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Assets Report{% endblock %}
+{% block page_subtitle %}Asset stock and transfer movement report{% endblock %}
+
+{% block main_content %}
+<div class="row mb-4">
+    <div class="col-md-6"><div class="card stat-card green"><div class="card-body"><p>Total Stock Quantity</p><h4>{{ "{:,.2f}".format(total_qty) }}</h4></div></div></div>
+    <div class="col-md-6"><div class="card stat-card blue"><div class="card-body"><p>Total Transfers</p><h4>{{ transfers|length }}</h4></div></div></div>
+</div>
+
+<div class="card border-secondary mb-4">
+    <div class="card-body">
+        <h5 class="fw-bold mb-3">Current Asset Stock</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead><tr><th>Item</th><th>Project ID</th><th class="text-end">Quantity</th><th>Unit</th></tr></thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr><td>{{ item.item_description }}</td><td>{{ item.project_id or '-' }}</td><td class="text-end">{{ "{:,.2f}".format(item.quantity_on_hand or 0) }}</td><td>{{ item.unit or '-' }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">No assets found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card border-secondary">
+    <div class="card-body">
+        <h5 class="fw-bold mb-3">Recent Asset Transfers</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead><tr><th>Date</th><th>Item</th><th>From Project</th><th>To Project</th><th class="text-end">Quantity</th><th>Status</th></tr></thead>
+                <tbody>
+                    {% for t in transfers %}
+                    <tr>
+                        <td>{{ t.transfer_date.strftime('%Y-%m-%d') if t.transfer_date else '-' }}</td>
+                        <td>{{ t.inventory.item_description if t.inventory else '-' }}</td>
+                        <td>{{ t.from_project.name if t.from_project else '-' }}</td>
+                        <td>{{ t.to_project.name if t.to_project else '-' }}</td>
+                        <td class="text-end">{{ "{:,.2f}".format(t.quantity or 0) }}</td>
+                        <td>
+                            {% if t.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif t.status == 'cancelled' %}
+                            <span class="badge bg-danger">Cancelled</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-4">No transfers recorded.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

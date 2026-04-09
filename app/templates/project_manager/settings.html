@@ -1,0 +1,101 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Settings - Project Manager{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <h1 class="text-3xl font-bold text-gray-900">Settings</h1>
+
+    <!-- General Settings -->
+    <div class="bg-white rounded-lg shadow p-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">General Settings</h2>
+        <form method="POST" action="{{ url_for('project.update_settings') }}" class="space-y-6">
+            <div>
+                <label for="notifications_enabled" class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="notifications_enabled" name="notifications_enabled" checked class="w-5 h-5 text-blue-600">
+                    <span class="text-gray-900 font-medium">Enable Email Notifications</span>
+                </label>
+                <p class="text-gray-600 text-sm mt-2">Receive email notifications for project updates</p>
+            </div>
+
+            <div>
+                <label for="daily_digest" class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="daily_digest" name="daily_digest" checked class="w-5 h-5 text-blue-600">
+                    <span class="text-gray-900 font-medium">Daily Digest</span>
+                </label>
+                <p class="text-gray-600 text-sm mt-2">Receive a daily summary of project activities</p>
+            </div>
+
+            <div>
+                <label for="milestone_alerts" class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="milestone_alerts" name="milestone_alerts" checked class="w-5 h-5 text-blue-600">
+                    <span class="text-gray-900 font-medium">Milestone Alerts</span>
+                </label>
+                <p class="text-gray-600 text-sm mt-2">Get alerts for milestone deadlines and changes</p>
+            </div>
+
+            <div>
+                <label for="budget_alerts" class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="budget_alerts" name="budget_alerts" checked class="w-5 h-5 text-blue-600">
+                    <span class="text-gray-900 font-medium">Budget Alerts</span>
+                </label>
+                <p class="text-gray-600 text-sm mt-2">Get alerts when budget threshold is exceeded</p>
+            </div>
+
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                Save Settings
+            </button>
+        </form>
+    </div>
+
+    <!-- Notification Preferences -->
+    <div class="bg-white rounded-lg shadow p-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
+        <form method="POST" action="{{ url_for('project.update_notification_settings') }}" class="space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-gray-900 mb-3">Notify me about:</label>
+                <div class="space-y-3">
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" name="notify_staff_changes" checked class="w-5 h-5 text-blue-600">
+                        <span class="text-gray-900">Staff assignment changes</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" name="notify_dpr_submitted" checked class="w-5 h-5 text-blue-600">
+                        <span class="text-gray-900">DPR submissions</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" name="notify_milestone_completed" checked class="w-5 h-5 text-blue-600">
+                        <span class="text-gray-900">Milestone completions</span>
+                    </label>
+                    <label class="flex items-center space-x-3 cursor-pointer">
+                        <input type="checkbox" name="notify_document_uploaded" checked class="w-5 h-5 text-blue-600">
+                        <span class="text-gray-900">Document uploads</span>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                Update Preferences
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-3">Account Profile</h2>
+        <p class="text-gray-600 mb-4">Update your email address and password.</p>
+        <a href="{{ url_for('main.account_settings') }}" class="inline-flex items-center bg-slate-100 hover:bg-slate-200 text-slate-800 px-5 py-2 rounded-lg font-medium transition">
+            <i class="fas fa-user-cog mr-2"></i> Open Account Settings
+        </a>
+    </div>
+
+    <!-- About -->
+    <!-- <div class="bg-white rounded-lg shadow p-8">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">About</h2>
+        <div class="space-y-4 text-gray-600">
+            <p><span class="font-medium text-gray-900">Application:</span> FitAccess Project Management System</p>
+            <p><span class="font-medium text-gray-900">Version:</span> 1.0.0</p>
+            <p><span class="font-medium text-gray-900">Last Updated:</span> {{ now.strftime('%d %B %Y') }}</p>
+        </div>
+    </div> -->
+</div>
+{% endblock %}

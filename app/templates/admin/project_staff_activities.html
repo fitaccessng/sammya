@@ -1,0 +1,263 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Project Staff Activities{% endblock %}
+{% block page_title %}Project Staff{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-hard-hat"></i> Project Staff Module</h1>
+            <p class="text-slate-600 mt-1">Monitor staff attendance, timesheets, work assignments, and productivity</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Staff Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Staff</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ project_staff.total }}</div>
+            <div class="text-xs text-slate-500 mt-1">Active project staff</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Present Today</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ (project_staff.total * 0.92)|int }}</div>
+            <div class="text-xs text-green-600 font-semibold mt-1">92% attendance</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Timesheets</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">8</div>
+            <div class="text-xs text-slate-500 mt-1">To be approved</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Active Projects</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ projects|length }}</div>
+            <div class="text-xs text-slate-500 mt-1">Team assignments</div>
+        </div>
+    </div>
+
+    <!-- Recent Activities & Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-cyan-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-history"></i> <h5 class="font-semibold m-0">Recent Staff Activities</h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto space-y-4">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:8] %}
+                    <div class="pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex gap-3">
+                            <div class="text-cyan-500 text-lg"><i class="fas fa-circle text-xs"></i></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ log.entity_type }}
+                                    <span class="ml-2 inline-block px-2 py-0.5 bg-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-100 text-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-800 text-xs font-semibold rounded">
+                                        {{ log.approval_state }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Today's Summary -->
+        <div class="bg-cyan-50 border border-cyan-200 rounded-lg p-6">
+            <h5 class="font-semibold text-slate-900 flex items-center gap-2 mb-4">
+                <i class="fas fa-info-circle text-cyan-600"></i> Today's Summary
+            </h5>
+            <ul class="space-y-3 text-sm">
+                <li class="flex items-center justify-between">
+                    <span class="text-slate-700">Total Staff On Site:</span>
+                    <span class="font-semibold text-slate-900">{{ (project_staff.total * 0.92)|int }}</span>
+                </li>
+                <li class="flex items-center justify-between">
+                    <span class="text-slate-700">Work Assignments:</span>
+                    <span class="font-semibold text-slate-900">{{ (projects|length * 3)|int }}</span>
+                </li>
+                <li class="flex items-center justify-between">
+                    <span class="text-slate-700">Safety Incidents:</span>
+                    <span class="font-semibold text-green-600">0</span>
+                </li>
+                <li class="flex items-center justify-between">
+                    <span class="text-slate-700">Productivity Rate:</span>
+                    <span class="font-semibold text-green-600">95%</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Project Staff List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-800 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-users"></i> <h5 class="font-semibold m-0">Project Staff ({{ project_staff.total }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">ID</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Assigned Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Position</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Attendance Today</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Hours Worked</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for staff in project_staff.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <img src="https://via.placeholder.com/40" class="w-10 h-10 rounded-full" alt="Avatar">
+                                <span class="font-semibold text-slate-900">{{ staff.name }}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">#{{ staff.id }}</td>
+                        <td class="px-6 py-4 text-sm"><span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Project A</span></td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ staff.role.replace('_', ' ').title() }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Present</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">8.5 hrs</td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if staff.is_active %}
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                            {% else %}
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm flex gap-2">
+                            <a href="#" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="View Timesheet">
+                                <i class="fas fa-file-alt"></i>
+                            </a>
+                            <a href="#" class="inline-block px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors" title="View Performance">
+                                <i class="fas fa-chart-line"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if project_staff.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-center gap-2">
+            {% if project_staff.has_prev %}
+            <a href="{{ url_for('admin.project_staff_activities', page=project_staff.prev_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Previous</a>
+            {% endif %}
+
+            {% for page_num in project_staff.iter_pages(left_edge=1, right_edge=4, left_margin=1, right_margin=1) %}
+                {% if page_num %}
+                    {% if page_num == project_staff.page %}
+                    <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.project_staff_activities', page=page_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                <span class="px-3 py-1 text-slate-500 text-sm">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if project_staff.has_next %}
+            <a href="{{ url_for('admin.project_staff_activities', page=project_staff.next_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Project Assignments -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-700 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-project-diagram"></i> <h5 class="font-semibold m-0">Project Assignments ({{ projects|length }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Project Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Assigned Staff</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Team Lead</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Duration</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for project in projects %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ project.name }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">
+                            {% if project.team_members %}
+                            {{ project.team_members|length }} staff members
+                            {% else %}
+                            No assignment
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Project Manager</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Jan 2025 - Dec 2025</td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if project.status == 'active' %}
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                            {% elif project.status == 'planning' %}
+                            <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">Planning</span>
+                            {% else %}
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ project.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <a href="{{ url_for('admin.manage_team', project_id=project.id) }}" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Manage Team">
+                                <i class="fas fa-users"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Staff Management Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-clipboard-list text-3xl text-blue-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Timesheets</h6>
+            <p class="text-slate-600 text-sm mt-1">Manage work hours</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-calendar-check text-3xl text-green-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Attendance</h6>
+            <p class="text-slate-600 text-sm mt-1">Track attendance</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold hover:bg-green-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-tasks text-3xl text-amber-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Work Orders</h6>
+            <p class="text-slate-600 text-sm mt-1">Daily assignments</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-red-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-file-pdf text-3xl text-red-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Performance Reports</h6>
+            <p class="text-slate-600 text-sm mt-1">Evaluate staff</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm font-semibold hover:bg-red-700 transition-colors">View</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "hr/base.html" %}
+
+{% block title %}HR Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">HR Dashboard</h2>
+            <p class="text-muted">Welcome to the HR Management System</p>
+        </div>
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-primary">
+                <i class='bx bxs-users'></i> View Staff
+            </a>
+            <a href="{{ url_for('hr.assignments') }}" class="btn btn-success">
+                <i class='bx bxs-briefcase'></i> Assignments
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <i class='bx bxs-user' style="font-size: 2rem; color: var(--primary-color);"></i>
+                <h4>{{ dashboard.total_staff }}</h4>
+                <p>Total Staff</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card green">
+                <i class='bx bxs-user-check' style="font-size: 2rem; color: var(--success-color);"></i>
+                <h4>{{ dashboard.active_staff }}</h4>
+                <p>Active Staff</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card orange">
+                <i class='bx bxs-calendar-check' style="font-size: 2rem; color: var(--warning-color);"></i>
+                <h4>{{ dashboard.pending_leaves }}</h4>
+                <p>Pending Leaves</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card red">
+                <i class='bx bxs-credit' style="font-size: 2rem; color: var(--danger-color);"></i>
+                <h4>{{ dashboard.pending_payroll }}</h4>
+                <p>Pending Payroll</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Attendance -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Today's Attendance</h5>
+                    <span class="badge bg-primary">{{ dashboard.present_today + dashboard.absent_today + dashboard.late_today }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3 class="text-success">{{ dashboard.present_today }}</h3>
+                            <p class="text-muted">Present</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-danger">{{ dashboard.absent_today }}</h3>
+                            <p class="text-muted">Absent</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3 class="text-warning">{{ dashboard.late_today }}</h3>
+                            <p class="text-muted">Late</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Status -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Leave Status</h5>
+                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Active Leaves</span>
+                        <h5>{{ dashboard.active_leaves }}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Pending Approval</span>
+                        <h5 class="text-warning">{{ dashboard.pending_leaves }}</h5>
+                    </div>
+                    <hr>
+                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-primary w-100">
+                        <i class='bx bxs-users'></i> Manage Staff
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks & Queries -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Tasks</h5>
+                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">Manage</a>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Pending Tasks</span>
+                        <h5>{{ dashboard.pending_tasks }}</h5>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>In Progress</span>
+                        <h5 class="text-info">{{ dashboard.in_progress_tasks }}</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Staff Queries</h5>
+                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total Projects</span>
+                        <h5>{{ dashboard.total_projects }}</h5>
+                    </div>
+                    <hr>
+                    <a href="{{ url_for('hr.assignments') }}" class="btn btn-sm btn-primary w-100">
+                        <i class='bx bxs-briefcase'></i> View Assignments
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Recent Activities</h5>
+        </div>
+        <div class="card-body">
+            {% if dashboard.recent_activities %}
+                <div class="timeline">
+                    {% for activity in dashboard.recent_activities %}
+                        <div class="timeline-item mb-3 pb-3 border-bottom">
+                            <div class="d-flex">
+                                <div class="timeline-marker">
+                                    <i class='bx bx-circle' style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                                </div>
+                                <div class="timeline-content ms-3">
+                                    <h6 class="mb-1">{{ activity.title }}</h6>
+                                    <small class="text-muted">{{ activity.time }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">No recent activities</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 0;
+    }
+
+    .timeline-marker {
+        flex-shrink: 0;
+    }
+
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+</style>
+{% endblock %}

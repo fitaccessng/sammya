@@ -1,0 +1,190 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Recruitment Management{% endblock %}
+{% block page_title %}Recruitment{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-handshake"></i> Recruitment Management</h1>
+            <p class="text-slate-600 mt-1">Manage job openings, applications, interviews, and hiring</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Recruitment Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Open Positions</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ open_positions }}</div>
+            <div class="text-xs text-slate-500 mt-1">Active jobs</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Applications</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ applications }}</div>
+            <div class="text-xs text-slate-500 mt-1">Received</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Interviews Scheduled</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ interviews_scheduled }}</div>
+            <div class="text-xs text-slate-500 mt-1">This week</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Hired</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ hired }}</div>
+            <div class="text-xs text-slate-500 mt-1">This month</div>
+        </div>
+    </div>
+
+    <!-- HR Team & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-blue-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-users"></i> <h5 class="font-semibold m-0">HR Recruiters</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Role</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in hr_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full" alt="Avatar">
+                                    <span class="font-medium text-slate-900">{{ staff.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600">Recruiter</td>
+                            <td class="px-6 py-4">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-cyan-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-history"></i> <h5 class="font-semibold m-0">Recent Activities</h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto space-y-4">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex gap-3">
+                            <div class="text-blue-500 text-lg"><i class="fas fa-circle text-xs"></i></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">{{ log.entity_type }}</p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Applications -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-800 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-file-alt"></i> <h5 class="font-semibold m-0">Recent Applications ({{ applications }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Applicant</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Position</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Applied Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Rating</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">John Okafor</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Site Engineer</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Dec 3, 2025</td>
+                        <td class="px-6 py-4 text-sm"><span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">Interview</span></td>
+                        <td class="px-6 py-4 text-sm"><span class="text-amber-600 font-semibold">4.5/5</span></td>
+                        <td class="px-6 py-4 text-sm flex gap-2">
+                            <a href="#" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="#" class="inline-block px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                <i class="fas fa-check"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-medium text-slate-900">Chioma Eze</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Safety Officer</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Dec 2, 2025</td>
+                        <td class="px-6 py-4 text-sm"><span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Qualified</span></td>
+                        <td class="px-6 py-4 text-sm"><span class="text-green-600 font-semibold">4.8/5</span></td>
+                        <td class="px-6 py-4 text-sm flex gap-2">
+                            <a href="#" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="#" class="inline-block px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                <i class="fas fa-check"></i>
+                            </a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recruitment Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-briefcase text-3xl text-blue-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Post Job</h6>
+            <p class="text-slate-600 text-sm mt-1">Create job openings</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold hover:bg-blue-700 transition-colors">Post</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-users-class text-3xl text-cyan-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Manage Applications</h6>
+            <p class="text-slate-600 text-sm mt-1">Review & screen</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-cyan-600 text-white rounded text-sm font-semibold hover:bg-cyan-700 transition-colors">Manage</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-calendar-check text-3xl text-green-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Schedule Interviews</h6>
+            <p class="text-slate-600 text-sm mt-1">Coordinate interviews</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold hover:bg-green-700 transition-colors">Schedule</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-award text-3xl text-amber-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Make Offer</h6>
+            <p class="text-slate-600 text-sm mt-1">Send job offers</p>
+            <button class="inline-block mt-3 px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700 transition-colors">Offer</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

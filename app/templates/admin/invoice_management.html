@@ -1,0 +1,229 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Invoice Management{% endblock %}
+{% block page_title %}Invoice Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-file-invoice"></i> Invoice Management</h1>
+            <p class="text-slate-600 mt-1">Track invoices, receipts, and payment execution across all purchase orders</p>
+        </div>
+        <a href="{{ url_for('admin.finance_activities') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Invoice Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-slate-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Invoices</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_invoices|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">All payment requests</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Amount</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(pending_amount|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ pending_count }} invoices waiting</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Paid</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_paid|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">{{ paid_count }} payments executed</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Payment %</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ "%.1f"|format((total_paid / total_invoices * 100) if total_invoices > 0 else 0) }}%</div>
+            <div class="text-xs text-slate-500 mt-1">Invoices paid</div>
+        </div>
+    </div>
+
+    <!-- Invoice Status Distribution -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Status Count -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-doughnut text-purple-600"></i> Invoice Status Distribution
+            </h2>
+            <div class="space-y-3">
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-semibold text-slate-600">Draft</span>
+                        <span class="text-sm font-bold text-slate-900">{{ draft_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-slate-500 h-2 rounded-full" style="width: {{ (draft_count / (draft_count + pending_count + approved_count) * 100) if (draft_count + pending_count + approved_count) > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-semibold text-slate-600">Pending Approval</span>
+                        <span class="text-sm font-bold text-slate-900">{{ pending_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-amber-500 h-2 rounded-full" style="width: {{ (pending_count / (draft_count + pending_count + approved_count) * 100) if (draft_count + pending_count + approved_count) > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-sm font-semibold text-slate-600">Approved</span>
+                        <span class="text-sm font-bold text-slate-900">{{ approved_count }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ (approved_count / (draft_count + pending_count + approved_count) * 100) if (draft_count + pending_count + approved_count) > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Execution -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-check-circle text-green-600"></i> Payment Execution Summary
+            </h2>
+            <div class="space-y-4">
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-slate-600">Executed Payments</span>
+                        <span class="text-xl font-bold text-green-600">{{ paid_count }}</span>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-1">Total amount: ₦{{ "{:,.2f}".format(total_paid) }}</p>
+                </div>
+                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-slate-600">Pending Approvals</span>
+                        <span class="text-xl font-bold text-amber-600">{{ pending_count }}</span>
+                    </div>
+                    <p class="text-sm text-slate-500 mt-1">Total amount: ₦{{ "{:,.2f}".format(pending_amount) }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Payment Requests -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-amber-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-hourglass text-amber-600"></i> Pending Invoices ({{ pending_count }})
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Invoice #</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">PO Reference</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Submitted Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if pending_payments %}
+                        {% for payment in pending_payments[:15] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">#{{ payment.invoice_number|default(payment.id) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">PO-{{ payment.po_id }}</td>
+                            <td class="px-6 py-4 text-sm text-right font-semibold text-slate-900">₦{{ "{:,.2f}".format(payment.invoice_amount) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.created_at.strftime('%b %d, %Y') if payment.created_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-600">No pending invoices</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Approved Payment Requests -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-check-circle text-green-600"></i> Approved Invoices ({{ approved_count }})
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Invoice #</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">PO Reference</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Approved Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if approved_payments %}
+                        {% for payment in approved_payments[:15] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">#{{ payment.invoice_number|default(payment.id) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">PO-{{ payment.po_id }}</td>
+                            <td class="px-6 py-4 text-sm text-right font-semibold text-slate-900">₦{{ "{:,.2f}".format(payment.invoice_amount) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.created_at.strftime('%b %d, %Y') if payment.created_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Approved</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-600">No approved invoices</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Payment Executions -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-blue-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-exchange-alt text-blue-600"></i> Recent Payment Executions
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Transaction #</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Reference</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount Paid</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Payment Method</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Payment Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if paid_records %}
+                        {% for record in paid_records[:15] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">#{{ record.id }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ record.reference_number|default('N/A') }}</td>
+                            <td class="px-6 py-4 text-sm text-right font-semibold text-green-600">₦{{ "{:,.2f}".format(record.amount_paid) }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">{{ record.payment_method|default('N/A')|title }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ record.payment_date.strftime('%b %d, %Y') if record.payment_date else 'N/A' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-600">No payment records</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div class="py-6 flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Payroll Dashboard</h1>
+                    <p class="text-sm text-gray-600 mt-1">Manage payroll batches, approvals, and exports</p>
+                </div>
+                {% if 'hr_manager' in user_roles or 'admin' in user_roles %}
+                <a href="{{ url_for('payroll.create_batch') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    New Batch
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
+        <!-- Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Batches</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">{{ total_batches }}</p>
+                    </div>
+                    <div class="bg-blue-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4z"></path>
+                            <path fill-rule="evenodd" d="M3 10a1 1 0 011-1h6v6H4a1 1 0 01-1-1v-4z" clip-rule="evenodd"></path>
+                            <path fill-rule="evenodd" d="M14 9a1 1 0 00-1 1v4a1 1 0 001 1h2a1 1 0 001-1v-4a1 1 0 00-1-1h-2z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Pending Approval</p>
+                        <p class="text-3xl font-bold text-yellow-600 mt-2">{{ pending_approval }}</p>
+                    </div>
+                    <div class="bg-yellow-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Staff with Mapping</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2">{{ total_staff }}</p>
+                    </div>
+                    <div class="bg-green-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path fill-rule="evenodd" d="M17 0a4 4 0 100 8A4 4 0 0017 0zm-1.5 4a.5.5 0 11-1 0 .5.5 0 011 0z" clip-rule="evenodd"></path>
+                            <path d="M13.067 6.313a.5.5 0 00-.866.5l.5.866a.5.5 0 00.866-.5l-.5-.866zM15.5 10.5a.5.5 0 11-1 0 .5.5 0 011 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Processed</p>
+                        <p class="text-3xl font-bold text-purple-600 mt-2">₦{{ "{:,.0f}".format(total_processed) }}</p>
+                    </div>
+                    <div class="bg-purple-100 rounded-lg p-3">
+                        <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Recent Batches -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-900">Recent Batches</h3>
+                        <a href="{{ url_for('payroll.batch_list') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">View All</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Records</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% for batch in batches %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-3 whitespace-nowrap">
+                                        <a href="{{ url_for('payroll.view_batch', batch_id=batch.id) }}" class="text-blue-600 hover:underline">
+                                            {{ batch.batch_name }}
+                                        </a>
+                                    </td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600">{{ batch.payroll_period }}</td>
+                                    <td class="px-6 py-3 whitespace-nowrap">
+                                        <span class="px-3 py-1 rounded-full text-xs font-semibold 
+                                            {% if batch.status == 'DRAFT' %}bg-gray-100 text-gray-800
+                                            {% elif batch.status == 'HR_APPROVED' %}bg-yellow-100 text-yellow-800
+                                            {% elif batch.status == 'ADMIN_APPROVED' %}bg-blue-100 text-blue-800
+                                            {% elif batch.status == 'PAID' %}bg-green-100 text-green-800
+                                            {% else %}bg-purple-100 text-purple-800{% endif %}">
+                                            {{ batch.status.replace('_', ' ') }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-600">{{ batch.payroll_records|length }}</td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900">₦{{ "{:,.0f}".format(batch.total_net_salary) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Recent Activity -->
+            <div class="space-y-6">
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <a href="{{ url_for('payroll.create_batch') }}" class="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition">
+                            Create New Batch
+                        </a>
+                        <a href="{{ url_for('payroll.salary_mapping_list') }}" class="block w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-900 py-2 rounded-lg text-sm font-medium transition">
+                            Manage Salary Mapping
+                        </a>
+                        <a href="{{ url_for('payroll.batch_list') }}" class="block w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-900 py-2 rounded-lg text-sm font-medium transition">
+                            View All Batches
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+                    <div class="space-y-3 max-h-64 overflow-y-auto">
+                        {% for log in audit_logs[:10] %}
+                        <div class="text-sm border-l-4 border-blue-400 pl-3">
+                            <p class="text-gray-900 font-medium">{{ log.action.replace('_', ' ').title() }}</p>
+                            <p class="text-gray-600 text-xs">{{ log.actor.full_name if log.actor else 'System' }}</p>
+                            <p class="text-gray-500 text-xs">{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Add Machinery{% endblock %}
+{% block page_subtitle %}Register project equipment and maintenance status{% endblock %}
+
+{% block main_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-secondary">
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Serial Number</label>
+                        <input type="text" name="serial_no" placeholder="e.g., EQ-001" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description *</label>
+                        <input type="text" name="description" placeholder="e.g., Excavator CAT 320" required class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Model / Name</label>
+                        <input type="text" name="model" placeholder="e.g., CAT 320" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Equipment Type</label>
+                        <input type="text" name="type" placeholder="e.g., Excavator, Crane, Generator" class="form-control">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Project *</label>
+                        <select name="project_id" class="form-select" required>
+                            <option value="">Select Project</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2 pt-3">
+                        <button type="submit" class="btn btn-primary">Add Equipment</button>
+                        <a href="{{ url_for('cost_control.machinery') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

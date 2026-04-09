@@ -1,0 +1,58 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Add Fuel Log{% endblock %}
+{% block page_subtitle %}Record equipment fuel consumption{% endblock %}
+
+{% block main_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-secondary">
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Serial Number -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Equipment Serial Number *</label>
+                        <input type="text" name="serial_no" placeholder="e.g., EQ-001" required class="form-control">
+                    </div>
+                    
+                    <!-- Equipment Code -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Equipment Code</label>
+                        <input type="text" name="equipment_code" placeholder="e.g., EC-0001" class="form-control">
+                    </div>
+                    
+                    <!-- Operator -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Operator Name</label>
+                        <input type="text" name="operator" placeholder="Operator name" class="form-control">
+                    </div>
+                    
+                    <!-- Meter Readings -->
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold">Start Meter (Hrs/km)</label>
+                            <input type="number" name="start_meter" placeholder="0" step="0.01" class="form-control">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold">End Meter (Hrs/km)</label>
+                            <input type="number" name="end_meter" placeholder="0" step="0.01" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <!-- Fuel Consumed -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Fuel Consumed (Liters) *</label>
+                        <input type="number" name="fuel_consumed" placeholder="0.00" step="0.01" required class="form-control">
+                    </div>
+                    
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 pt-3">
+                        <button type="submit" class="btn btn-primary">Record Fuel Log</button>
+                        <a href="{{ url_for('cost_control.fuel_logs') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

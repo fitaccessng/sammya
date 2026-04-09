@@ -1,0 +1,112 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Leave Report{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.reports') }}">Reports</a></li>
+    <li class="breadcrumb-item active">Leave Report</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Leave Report</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                        <i class='bx bxs-printer'></i> Print
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4 pb-3 border-bottom">
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Total Allocated Days</label>
+                            <p class="h4">18</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Used Days</label>
+                            <p class="h4" style="color: #dc3545;">0</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Remaining Days</label>
+                            <p class="h4" style="color: #28a745;">18</p>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">Pending Requests</label>
+                            <p class="h4" style="color: #ffc107;">{{ data.pending_requests }}</p>
+                        </div>
+                    </div>
+
+                    <h6 class="mb-3">Leave Status by Staff</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Staff Name</th>
+                                    <th>Email</th>
+                                    <th>Leave Balance</th>
+                                    <th>Used Days</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if data.staff %}
+                                    {% for staff in data.staff %}
+                                    <tr>
+                                        <td><strong>{{ staff.name }}</strong></td>
+                                        <td>{{ staff.email }}</td>
+                                        <td>{{ staff.leave_balance }} days</td>
+                                        <td>{{ staff.used }} days</td>
+                                        <td>
+                                            {% if staff.leave_balance > 5 %}
+                                            <span class="badge bg-success">Sufficient</span>
+                                            {% elif staff.leave_balance > 0 %}
+                                            <span class="badge bg-warning">Low</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Exhausted</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No leave data available</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Summary</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Total Staff:</strong> {{ data.total_staff }}</p>
+                    <p class="mb-2"><strong>Report Period:</strong> Current</p>
+                    <p class="mb-0"><strong>Generated At:</strong> Now</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('hr.reports') }}" class="btn btn-secondary w-100">
+                        <i class='bx bxs-left-arrow'></i> Back to Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

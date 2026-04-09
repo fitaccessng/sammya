@@ -1,0 +1,577 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Edit Staff{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.staff_list') }}">Staff Management</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('hr.staff_details', staff_id=staff.id) }}">{{ staff.name }}</a></li>
+<li class="breadcrumb-item active">Edit</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h2 class="mb-1">Edit Staff Member</h2>
+        <p class="text-muted">Update information for {{ staff.name }}</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('hr.edit_staff', staff_id=staff.id) }}" enctype="multipart/form-data">
+                        <!-- Personal Information Section -->
+                        <h5 class="mb-4 border-bottom pb-3">Personal Information</h5>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" name="name" class="form-control" value="{{ staff.name or '' }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Email *</label>
+                                <input type="email" name="email" class="form-control" value="{{ staff.email or '' }}" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" name="phone" class="form-control" value="{{ staff.phone or '' }}">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Date of Birth</label>
+                                <input type="date" name="date_of_birth" class="form-control" value="{% if staff.date_of_birth %}{{ staff.date_of_birth.strftime('%Y-%m-%d') }}{% endif %}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Gender</label>
+                                <select name="gender" class="form-select">
+                                    <option value="">Select Gender</option>
+                                    <option value="Male" {% if staff.gender == 'Male' %}selected{% endif %}>Male</option>
+                                    <option value="Female" {% if staff.gender == 'Female' %}selected{% endif %}>Female</option>
+                                    <option value="Other" {% if staff.gender == 'Other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Marital Status</label>
+                                <select name="marital_status" class="form-select">
+                                    <option value="">Select Status</option>
+                                    <option value="Single" {% if staff.marital_status == 'Single' %}selected{% endif %}>Single</option>
+                                    <option value="Married" {% if staff.marital_status == 'Married' %}selected{% endif %}>Married</option>
+                                    <option value="Divorced" {% if staff.marital_status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                                    <option value="Widowed" {% if staff.marital_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Role</label>
+                                <select name="role" class="form-select">
+                                    <option value="">Select Role</option>
+                                    {% for role in roles %}
+                                        <option value="{{ role }}" {% if staff.role == role %}selected{% endif %}>{{ role }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Address</label>
+                                <textarea name="address" class="form-control" rows="2" placeholder="Residential address">{{ staff.address or '' }}</textarea>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">City</label>
+                                <input type="text" name="city" class="form-control" value="{{ staff.city or '' }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">State/Province</label>
+                                <input type="text" name="state" class="form-control" value="{{ staff.state or '' }}">
+                            </div>
+                        </div>
+
+                        <!-- Employment Information Section -->
+                        <h5 class="mb-4 border-bottom pb-3 mt-5">Employment Information</h5>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Employee ID</label>
+                                <input type="text" name="employee_id" class="form-control" value="{{ staff.employee_id or '' }}" placeholder="e.g., EMP-001">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Date of Employment</label>
+                                <input type="date" name="date_of_employment" class="form-control" value="{% if staff.date_of_employment %}{{ staff.date_of_employment.strftime('%Y-%m-%d') }}{% endif %}">
+                            </div>
+                        </div>
+
+                        <!-- Next of Kin / Emergency Contacts Section -->
+                        <h5 class="mb-4 border-bottom pb-3 mt-5">Emergency Contact(s) - Next of Kin</h5>
+
+                        <div id="nextOfKinContainer">
+                            {% if staff.next_of_kin and staff.next_of_kin|length > 0 %}
+                                {% for kin in staff.next_of_kin %}
+                                    <div class="card mb-3 next-of-kin-card" data-kin-id="{{ kin.id }}">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">{{ kin.full_name }} ({{ kin.relationship }})</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNextOfKin({{ kin.id }})">
+                                                <i class='bx bxs-trash'></i> Remove
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            <input type="hidden" name="kin_id[]" value="{{ kin.id }}">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Full Name *</label>
+                                                    <input type="text" name="kin_name[]" class="form-control" value="{{ kin.full_name }}" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Relationship *</label>
+                                                    <input type="text" name="kin_relationship[]" class="form-control" value="{{ kin.relationship }}" placeholder="e.g., Spouse, Parent, Sibling" required>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Phone *</label>
+                                                    <input type="tel" name="kin_phone[]" class="form-control" value="{{ kin.phone }}" required>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Email</label>
+                                                    <input type="email" name="kin_email[]" class="form-control" value="{{ kin.email or '' }}">
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Address</label>
+                                                    <textarea name="kin_address[]" class="form-control" rows="2">{{ kin.address or '' }}</textarea>
+                                                </div>
+                                            </div>
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">City</label>
+                                                    <input type="text" name="kin_city[]" class="form-control" value="{{ kin.city or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">State</label>
+                                                    <input type="text" name="kin_state[]" class="form-control" value="{{ kin.state or '' }}">
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="kin_primary[]" id="primary_{{ kin.id }}" value="{{ kin.id }}" {% if kin.is_primary %}checked{% endif %}>
+                                                        <label class="form-check-label" for="primary_{{ kin.id }}">
+                                                            Mark as Primary Emergency Contact
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class='bx bx-info-circle'></i> No emergency contacts added yet. Click "Add Next of Kin" to add one.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <button type="button" class="btn btn-outline-primary" onclick="addNextOfKinForm()">
+                                <i class='bx bxs-plus-circle'></i> Add Next of Kin
+                            </button>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Basic Salary (₦) *</label>
+                                <input type="number" id="basicSalary" name="basic_salary" class="form-control" step="0.01" value="{{ staff.basic_salary or 0 }}" required onchange="calculateNetSalary()">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Net Salary (₦)</label>
+                                <input type="text" id="netSalary" class="form-control" disabled style="background-color: #f0f0f0; font-weight: bold;">
+                            </div>
+                        </div>
+
+                        <!-- Deductions Section -->
+                        <h5 class="mb-4 border-bottom pb-3 mt-5">Payroll Deductions</h5>
+                        
+                        <div id="deductionsContainer">
+                            {% set deductions = staff.payroll_deductions if staff.payroll_deductions else [] %}
+                            {% if deductions|length > 0 %}
+                                {% for deduction in deductions %}
+                                    <div class="card mb-3 deduction-card" data-deduction-id="{{ deduction.id }}">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">{{ deduction.deduction_type }} - ₦{{ "%.2f"|format(deduction.amount) }}</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDeduction({{ deduction.id }})">
+                                                <i class='bx bxs-trash'></i> Remove
+                                            </button>
+                                        </div>
+                                        <div class="card-body">
+                                            <input type="hidden" name="deduction_id[]" value="{{ deduction.id }}">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Deduction Type *</label>
+                                                    <input type="text" name="deduction_type[]" class="form-control deduction-type" value="{{ deduction.deduction_type }}" placeholder="e.g., Tax, Insurance, Loan" required onchange="calculateNetSalary()">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Amount (₦) *</label>
+                                                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="{{ "%.2f"|format(deduction.amount) }}" required onchange="calculateNetSalary()">
+                                                </div>
+                                            </div>
+                                            <div class="row">
+                                                <div class="col-md-12">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" name="deduction_recurring[]" value="{{ deduction.id }}" {% if deduction.is_recurring %}checked{% endif %} onchange="calculateNetSalary()">
+                                                        <label class="form-check-label">
+                                                            Recurring (Applied to all payrolls)
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class='bx bx-info-circle'></i> No deductions added yet. Click "Add Deduction" to add one.
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <button type="button" class="btn btn-outline-primary" onclick="addDeductionForm()">
+                                <i class='bx bxs-plus-circle'></i> Add Deduction
+                            </button>
+                        </div>
+
+                        <!-- Total Deductions Summary -->
+                        <div class="card mb-4 bg-light border-warning">
+                            <div class="card-body">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <h6 class="text-muted mb-1">Basic Salary</h6>
+                                        <h5 id="displayBasicSalary">₦{{ "%.2f"|format(staff.basic_salary or 0) }}</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-danger mb-1">Total Deductions</h6>
+                                        <h5 id="displayTotalDeductions">₦0.00</h5>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h6 class="text-success mb-1">Net Salary (Take-Home)</h6>
+                                        <h5 id="displayNetSalary">₦{{ "%.2f"|format(staff.basic_salary or 0) }}</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Section -->
+                        <h5 class="mb-4 border-bottom pb-3 mt-5">Status</h5>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label">Account Status</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="on" {% if staff.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        Active Staff
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{{ url_for('hr.staff_details', staff_id=staff.id) }}" class="btn btn-secondary">
+                                <i class='bx bxs-x-circle'></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class='bx bxs-save'></i> Update Staff
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Sidebar -->
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class='bx bxs-info-circle'></i> Form Tips
+                    </h5>
+                    <ul class="small text-muted">
+                        <li class="mb-2">Fields marked with <span class="text-danger">*</span> are required</li>
+                        <li class="mb-2">Salary changes take effect from next payroll period</li>
+                        <li class="mb-2">Default deductions are automatically applied to payroll</li>
+                        <li class="mb-2">Changing status affects leave and payroll processing</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        <i class='bx bxs-time'></i> Account Info
+                    </h5>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td class="text-muted">Created:</td>
+                            <td>{{ staff.created_at.strftime('%Y-%m-%d') if staff.created_at else 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Last Updated:</td>
+                            <td>{{ staff.updated_at.strftime('%Y-%m-%d') if staff.updated_at else 'N/A' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Counter for new deduction entries (not yet saved)
+let newDeductionCounter = 0;
+
+function addDeductionForm() {
+    const container = document.getElementById('deductionsContainer');
+    const newId = 'new_' + newDeductionCounter;
+    newDeductionCounter++;
+    
+    const deductionCard = document.createElement('div');
+    deductionCard.className = 'card mb-3 deduction-card';
+    deductionCard.setAttribute('data-deduction-id', newId);
+    deductionCard.innerHTML = `
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">New Deduction</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeDeductionForm('${newId}')">
+                <i class='bx bxs-trash'></i> Remove
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Deduction Type *</label>
+                    <input type="text" name="deduction_type[]" class="form-control deduction-type" placeholder="e.g., Tax, Insurance, Loan" required onchange="calculateNetSalary()">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Amount (₦) *</label>
+                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="0.00" required onchange="calculateNetSalary()">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="deduction_recurring[]" value="${newId}" onchange="calculateNetSalary()">
+                        <label class="form-check-label">
+                            Recurring (Applied to all payrolls)
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Hide the info alert if it exists
+    const alert = container.querySelector('.alert-info');
+    if (alert) alert.style.display = 'none';
+    
+    container.appendChild(deductionCard);
+    calculateNetSalary();
+}
+
+function removeDeductionForm(deductionId) {
+    const card = document.querySelector(`[data-deduction-id="${deductionId}"]`);
+    if (card) {
+        card.remove();
+        
+        // Show alert if no deductions left
+        const container = document.getElementById('deductionsContainer');
+        const cards = container.querySelectorAll('.deduction-card');
+        if (cards.length === 0) {
+            const alert = container.querySelector('.alert-info');
+            if (alert) alert.style.display = 'block';
+        }
+        
+        calculateNetSalary();
+    }
+}
+
+function removeDeduction(deductionId) {
+    // For existing records, mark them for deletion
+    if (confirm('Are you sure you want to remove this deduction?')) {
+        // Add a hidden input to mark as deleted
+        const form = document.querySelector('form');
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'deduction_delete[]';
+        hiddenInput.value = deductionId;
+        form.appendChild(hiddenInput);
+        
+        // Remove from UI
+        const card = document.querySelector(`[data-deduction-id="${deductionId}"]`);
+        if (card) {
+            card.remove();
+        }
+        
+        calculateNetSalary();
+    }
+}
+
+function calculateNetSalary() {
+    const basicSalaryInput = document.getElementById('basicSalary');
+    const basicSalary = parseFloat(basicSalaryInput.value) || 0;
+    
+    // Get all deduction amounts
+    const deductionAmountInputs = document.querySelectorAll('.deduction-amount');
+    let totalDeductions = 0;
+    
+    deductionAmountInputs.forEach(input => {
+        const amount = parseFloat(input.value) || 0;
+        totalDeductions += amount;
+    });
+    
+    const netSalary = basicSalary - totalDeductions;
+    
+    // Update display fields
+    document.getElementById('netSalary').value = '₦' + netSalary.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('displayBasicSalary').textContent = '₦' + basicSalary.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('displayTotalDeductions').textContent = '₦' + totalDeductions.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('displayNetSalary').textContent = '₦' + netSalary.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    // Update color based on net salary
+    const netSalaryDisplay = document.getElementById('displayNetSalary');
+    if (netSalary < 0) {
+        netSalaryDisplay.classList.remove('text-success');
+        netSalaryDisplay.classList.add('text-danger');
+    } else {
+        netSalaryDisplay.classList.remove('text-danger');
+        netSalaryDisplay.classList.add('text-success');
+    }
+}
+
+// Counter for new next of kin entries (not yet saved)
+let newKinCounter = 0;
+
+function addNextOfKinForm() {
+    const container = document.getElementById('nextOfKinContainer');
+    const newId = 'new_' + newKinCounter;
+    newKinCounter++;
+    
+    const kinCard = document.createElement('div');
+    kinCard.className = 'card mb-3 next-of-kin-card';
+    kinCard.setAttribute('data-kin-id', newId);
+    kinCard.innerHTML = `
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">New Emergency Contact</h6>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNextOfKinForm('${newId}')">
+                <i class='bx bxs-trash'></i> Remove
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Full Name *</label>
+                    <input type="text" name="kin_name[]" class="form-control" placeholder="Full name" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Relationship *</label>
+                    <input type="text" name="kin_relationship[]" class="form-control" placeholder="e.g., Spouse, Parent, Sibling" required>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Phone *</label>
+                    <input type="tel" name="kin_phone[]" class="form-control" placeholder="Phone number" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="kin_email[]" class="form-control" placeholder="Email address">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <label class="form-label">Address</label>
+                    <textarea name="kin_address[]" class="form-control" rows="2" placeholder="Residential address"></textarea>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">City</label>
+                    <input type="text" name="kin_city[]" class="form-control" placeholder="City">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">State</label>
+                    <input type="text" name="kin_state[]" class="form-control" placeholder="State">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="kin_primary[]" value="${newId}">
+                        <label class="form-check-label">
+                            Mark as Primary Emergency Contact
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Hide the info alert if it exists
+    const alert = container.querySelector('.alert-info');
+    if (alert) alert.style.display = 'none';
+    
+    container.appendChild(kinCard);
+}
+
+function removeNextOfKinForm(kinId) {
+    const card = document.querySelector(`[data-kin-id="${kinId}"]`);
+    if (card) {
+        card.remove();
+        
+        // Show alert if no kinships left
+        const container = document.getElementById('nextOfKinContainer');
+        const cards = container.querySelectorAll('.next-of-kin-card');
+        if (cards.length === 0) {
+            const alert = container.querySelector('.alert-info');
+            if (alert) alert.style.display = 'block';
+        }
+    }
+}
+
+function removeNextOfKin(kinId) {
+    // For existing records, mark them for deletion
+    if (confirm('Are you sure you want to remove this emergency contact?')) {
+        // Add a hidden input to mark as deleted
+        const form = document.querySelector('form');
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'kin_delete[]';
+        hiddenInput.value = kinId;
+        form.appendChild(hiddenInput);
+        
+        // Remove from UI
+        const card = document.querySelector(`[data-kin-id="${kinId}"]`);
+        if (card) {
+            card.remove();
+        }
+    }
+}
+
+// Initialize salary calculation on page load
+document.addEventListener('DOMContentLoaded', function() {
+    calculateNetSalary();
+});
+</script>
+{% endblock %}

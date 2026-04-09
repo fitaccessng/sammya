@@ -1,0 +1,111 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Edit User - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-slate-900">Edit User</h2>
+            <a href="{{ url_for('admin.users') }}" class="flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                <i class="fas fa-arrow-left"></i> Back to Users
+            </a>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" class="space-y-4">
+                <!-- User Info Card -->
+                <div class="bg-blue-50 rounded-lg p-4 mb-6">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                            {{ user.name[0].upper() }}
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-600 font-semibold">{{ user.name }}</p>
+                            <p class="text-xs text-blue-500">Registered since {{ user.created_at.strftime('%b %d, %Y') if user.created_at else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="space-y-4">
+                    <!-- Name Field -->
+                    <div>
+                        <label for="name" class="block text-sm font-semibold text-slate-900 mb-2">Full Name</label>
+                        <input type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               id="name" name="name" value="{{ user.name }}" required>
+                        <p class="text-xs text-slate-500 mt-1">User's full name</p>
+                    </div>
+
+                    <!-- Email Field -->
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-slate-900 mb-2">Email Address</label>
+                        <input type="email" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                               id="email" name="email" value="{{ user.email }}" required>
+                        <p class="text-xs text-slate-500 mt-1">User's email address</p>
+                    </div>
+
+                    <!-- Role Field -->
+                    <div>
+                        <label for="role" class="block text-sm font-semibold text-slate-900 mb-2">Role</label>
+                        <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                id="role" name="role" required>
+                            <option value="">-- Select Role --</option>
+                            {% for role_option in roles %}
+                            <option value="{{ role_option }}" {% if user.role == role_option %}selected{% endif %}>
+                                {% if 'manager' in role_option %}
+                                    👔 {{ role_option.replace('_', ' ').title() }}
+                                {% elif 'admin' in role_option %}
+                                    🔐 {{ role_option.title() }}
+                                {% else %}
+                                    👷 {{ role_option.replace('_', ' ').title() }}
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">User's system role and permissions</p>
+                    </div>
+
+                    <!-- Department Field -->
+                    <div>
+                        <label for="department" class="block text-sm font-semibold text-slate-900 mb-2">Department</label>
+                        <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                id="department" name="department">
+                            <option value="">-- Select Department --</option>
+                            <option value="HR" {% if user.department == 'HR' %}selected{% endif %}>HR & Payroll</option>
+                            <option value="Finance" {% if user.department == 'Finance' %}selected{% endif %}>Finance & Accounting</option>
+                            <option value="Procurement" {% if user.department == 'Procurement' %}selected{% endif %}>Procurement</option>
+                            <option value="Cost Control" {% if user.department == 'Cost Control' %}selected{% endif %}>Cost Control</option>
+                            <option value="Projects" {% if user.department == 'Projects' %}selected{% endif %}>Project Manager</option>
+                            <option value="QS" {% if user.department == 'QS' %}selected{% endif %}>Quality & Safety</option>
+                        </select>
+                        <p class="text-xs text-slate-500 mt-1">User's department</p>
+                    </div>
+
+                    <!-- Status Field -->
+                    <div class="pt-2">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %} class="w-4 h-4 rounded border-slate-300">
+                            <span class="text-sm font-semibold text-slate-900">Active Account</span>
+                        </label>
+                        <p class="text-xs text-slate-500 mt-1">User can login to the system when active</p>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="border-t border-slate-200 pt-6 mt-6 flex gap-3">
+                    <button type="submit" class="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        <i class="fas fa-save mr-2"></i>Save Changes
+                    </button>
+                    <button type="reset" class="flex-1 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors">
+                        <i class="fas fa-undo mr-2"></i>Reset
+                    </button>
+                    <a href="{{ url_for('admin.users') }}" class="flex-1 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-center">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

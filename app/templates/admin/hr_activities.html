@@ -1,0 +1,230 @@
+{% extends "admin/base.html" %}
+
+{% block title %}HR & Payroll Activities{% endblock %}
+{% block page_title %}HR & Payroll{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-users"></i> Human Resources Module</h1>
+            <p class="text-slate-600 mt-1">Monitor employee management, payroll, and recruitment activities</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Employees</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ hr_users.total }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Active Staff</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ hr_staff|length }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Departments</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">12</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Reviews</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">5</div>
+        </div>
+    </div>
+
+    <!-- HR Staff & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- HR Team Members -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-blue-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-user-tie text-blue-600"></i> HR Team Members</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Role</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in hr_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                        {{ staff.name[0].upper() }}
+                                    </div>
+                                    {{ staff.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">{{ staff.role.replace('_', ' ').title() }}</span>
+                            </td>
+                            <td class="px-6 py-3">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-history text-green-600"></i> Recent Activities</h2>
+            </div>
+            <div class="p-6 space-y-4 max-h-96 overflow-y-auto">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="flex gap-3 pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-circle text-blue-600 text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-slate-900">{{ log.entity_type }}</p>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                            </p>
+                        </div>
+                        <span class="inline-block px-2 py-1 bg-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-100 text-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-800 text-xs font-semibold rounded">
+                            {{ log.approval_state }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-600 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- All Employees Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-900 text-white">
+            <h2 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-list"></i> All Employees ({{ hr_users.total }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Department</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Joined Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for employee in hr_users.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <div class="w-9 h-9 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                    {{ employee.name[0].upper() }}
+                                </div>
+                                {{ employee.name }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ employee.email }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">HR</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">{{ employee.role.replace('_', ' ').title() }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ employee.created_at.strftime('%b %d, %Y') if employee.created_at else 'N/A' }}</td>
+                        <td class="px-6 py-4">
+                            {% if employee.is_active %}
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                            {% else %}
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('admin.edit_user', user_id=employee.id) }}" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button title="View Performance" class="px-3 py-1 bg-cyan-100 text-cyan-700 rounded hover:bg-cyan-200 transition-colors text-sm">
+                                    <i class="fas fa-chart-line"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if hr_users.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+            <small class="text-slate-600">Page {{ hr_users.page }} of {{ hr_users.pages }}</small>
+            <nav class="flex items-center gap-2">
+                {% if hr_users.has_prev %}
+                <a href="{{ url_for('admin.hr_activities', page=1) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">First</a>
+                {% endif %}
+
+                {% for page_num in hr_users.iter_pages(left_edge=1, right_edge=4) %}
+                    {% if page_num %}
+                        {% if page_num == hr_users.page %}
+                        <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('admin.hr_activities', page=page_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">{{ page_num }}</a>
+                        {% endif %}
+                    {% else %}
+                    <span class="px-3 py-1 border border-slate-300 text-slate-500 rounded text-sm">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if hr_users.has_next %}
+                <a href="{{ url_for('admin.hr_activities', page=hr_users.next_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">Next</a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- HR Functions Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-file-alt text-4xl text-blue-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Payroll Management</h3>
+            <p class="text-sm text-slate-600 mt-2">Process and manage salaries</p>
+            <a href="{{ url_for('admin.payroll_management') }}" class="mt-4 inline-block px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold">View</a>
+        </div>
+        <!-- <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-briefcase text-4xl text-green-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Recruitment</h3>
+            <p class="text-sm text-slate-600 mt-2">Job postings and applications</p>
+            <a href="{{ url_for('admin.recruitment') }}" class="mt-4 inline-block px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold">View</a>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-calendar text-4xl text-cyan-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Leave Management</h3>
+            <p class="text-sm text-slate-600 mt-2">Attendance and leave requests</p>
+            <a href="{{ url_for('admin.leave_management') }}" class="mt-4 inline-block px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors text-sm font-semibold">View</a>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-graduation-cap text-4xl text-amber-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Training & Development</h3>
+            <p class="text-sm text-slate-600 mt-2">Employee development programs</p>
+            <a href="{{ url_for('admin.training_development') }}" class="mt-4 inline-block px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-semibold">View</a>
+        </div> -->
+    </div>
+</div>
+{% endblock %}

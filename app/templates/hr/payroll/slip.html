@@ -1,0 +1,118 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Salary Slip{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+    <li class="breadcrumb-item active">Salary Slip - {{ slip.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Salary Slip</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                        <i class='bx bxs-printer'></i> Print
+                    </button>
+                </div>
+                <div class="card-body">
+                    <!-- Slip Header -->
+                    <div class="text-center mb-4 pb-3 border-bottom">
+                        <h4>FitAccess</h4>
+                        <p class="text-muted">Salary Slip</p>
+                        <small class="text-muted">{{ slip.date_generated }}</small>
+                    </div>
+
+                    <!-- Staff Information -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Staff Name</label>
+                            <p class="h6">{{ slip.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Email</label>
+                            <p class="h6">{{ slip.email }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Salary Details -->
+                    <div class="table-responsive mb-4">
+                        <table class="table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Earnings</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Basic Salary</strong></td>
+                                    <td>${{ slip.basic_salary }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td><strong>Total Earnings</strong></td>
+                                    <td><strong>${{ slip.basic_salary }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Deductions -->
+                    <div class="table-responsive mb-4">
+                        <table class="table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Deductions</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Standard Deductions</td>
+                                    <td>${{ slip.deductions }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <td><strong>Total Deductions</strong></td>
+                                    <td><strong>${{ slip.deductions }}</strong></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- Net Salary -->
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Net Salary (After Deductions)</strong>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <strong>${{ slip.net_salary }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="d-flex gap-2 mt-4">
+                        <button class="btn btn-primary" onclick="window.print()">
+                            <i class='bx bxs-printer'></i> Print Slip
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="window.print()">
+                            <i class='bx bxs-download'></i> Download PDF
+                        </button>
+                        <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
+                            <i class='bx bxs-left-arrow'></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

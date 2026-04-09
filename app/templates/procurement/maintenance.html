@@ -1,0 +1,80 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Maintenance Schedule{% endblock %}
+{% block page_subtitle %}Equipment maintenance tracking{% endblock %}
+
+{% block main_content %}
+<!-- Maintenance Summary -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-orange-50 rounded-lg shadow-md p-6 border-l-4 border-orange-600">
+        <p class="text-orange-600 text-sm font-semibold uppercase">Due Soon (30 days)</p>
+        <p class="text-3xl font-bold text-orange-800 mt-2">{{ data.total_due }}</p>
+    </div>
+    <div class="bg-red-50 rounded-lg shadow-md p-6 border-l-4 border-red-600">
+        <p class="text-red-600 text-sm font-semibold uppercase">Overdue</p>
+        <p class="text-3xl font-bold text-red-800 mt-2">{{ data.total_overdue }}</p>
+    </div>
+</div>
+
+<!-- Due Soon -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Due Soon (Next 30 Days)</h3>
+    {% if data.due_soon %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Asset</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Code</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Due Date</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data.due_soon %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-6 py-4 text-gray-800">{{ item.description }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ item.code }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ item.maintenance_due.strftime('%m/%d/%Y') if item.maintenance_due else 'N/A' }}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold bg-orange-100 text-orange-800 rounded-full">Due Soon</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No maintenance due soon</p>
+    {% endif %}
+</div>
+
+<!-- Overdue -->
+<div class="bg-white rounded-lg shadow-md p-6">
+    <h3 class="text-lg font-semibold text-gray-800 mb-4">Overdue Maintenance</h3>
+    {% if data.overdue %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Asset</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Code</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Was Due</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in data.overdue %}
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-6 py-4 text-gray-800">{{ item.description }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ item.code }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ item.maintenance_due.strftime('%m/%d/%Y') if item.maintenance_due else 'N/A' }}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold bg-red-100 text-red-800 rounded-full">Overdue</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="text-gray-600">No overdue maintenance</p>
+    {% endif %}
+</div>
+{% endblock %}

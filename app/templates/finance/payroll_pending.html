@@ -1,0 +1,124 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'error' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Pending Payroll Records</h1>
+        <p class="text-gray-600">View all payroll records awaiting approval</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border-l-4 border-blue-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Total Basic Salary</p>
+            <p class="text-3xl font-bold text-blue-700">₦{{ "%.2f"|format(total_basic_salary) }}</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-6 border-l-4 border-red-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Total Deductions</p>
+            <p class="text-3xl font-bold text-red-700">₦{{ "%.2f"|format(total_deductions) }}</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border-l-4 border-green-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Total Net Salary</p>
+            <p class="text-3xl font-bold text-green-700">₦{{ "%.2f"|format(total_net_salary) }}</p>
+        </div>
+    </div>
+
+    <!-- Payroll Records Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Payroll #</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Month</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Basic Salary</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Deductions</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Net Salary</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Created By</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Created Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if payroll_records.items %}
+                        {% for payroll in payroll_records.items %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                <a href="#" class="text-blue-600 hover:text-blue-800">{{ payroll.payroll_number }}</a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ payroll.payroll_month }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                                ₦{{ "%.2f"|format(payroll.total_basic_salary or 0) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                                ₦{{ "%.2f"|format(payroll.total_deductions or 0) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-green-600">
+                                ₦{{ "%.2f"|format(payroll.total_net_salary or 0) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ payroll.creator.username if payroll.creator else 'Unknown' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ payroll.created_at.strftime('%d %b %Y %H:%M') if payroll.created_at else 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 text-sm">
+                            <p class="font-semibold">No pending payroll records</p>
+                            <p class="text-xs mt-1">All payroll records have been processed.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if payroll_records.pages > 1 %}
+        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div class="text-sm text-gray-600">
+                Page <span class="font-semibold">{{ payroll_records.page }}</span> of <span class="font-semibold">{{ payroll_records.pages }}</span> 
+                ({{ payroll_records.total }} records)
+            </div>
+            <div class="space-x-2">
+                {% if payroll_records.has_prev %}
+                <a href="{{ url_for('finance.payroll_pending', page=payroll_records.prev_num) }}" 
+                   class="inline-block px-4 py-2 bg-gray-300 text-gray-800 rounded text-sm hover:bg-gray-400 transition-colors">
+                    ← Previous
+                </a>
+                {% endif %}
+                {% if payroll_records.has_next %}
+                <a href="{{ url_for('finance.payroll_pending', page=payroll_records.next_num) }}" 
+                   class="inline-block px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+                    Next →
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Query Details{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.staff_queries') }}">Queries</a></li>
+    <li class="breadcrumb-item active">{{ query.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Query Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Staff Name</label>
+                            <p class="h6">{{ query.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Email</label>
+                            <p class="h6">{{ query.email }}</p>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Role</label>
+                            <p class="h6">{{ query.role }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Date Submitted</label>
+                            <p class="h6">{{ query.date_submitted }}</p>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Subject</label>
+                        <p class="h6">{{ query.subject }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Description</label>
+                        <p>{{ query.description }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted">Status</label>
+                        <p>
+                            <span class="badge bg-danger">{{ query.status }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('hr.message_staff', staff_id=query.id) }}" class="btn btn-primary w-100 mb-2">
+                        <i class='bx bxs-message'></i> Send Message
+                    </a>
+                    <a href="{{ url_for('hr.staff_queries') }}" class="btn btn-secondary w-100">
+                        <i class='bx bxs-left-arrow'></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

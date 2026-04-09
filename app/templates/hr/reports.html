@@ -1,0 +1,136 @@
+{% extends "hr/base.html" %}
+
+{% block title %}HR Reports{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active">Reports</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">
+                <i class='bx bxs-file'></i> HR Reports & Analytics
+            </h2>
+            <p class="text-muted">Comprehensive HR metrics and analysis</p>
+        </div>
+        <div>
+            <button class="btn btn-primary">
+                <i class='bx bxs-download'></i> Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p>Total Staff</p>
+                <h4>{{ report_data.total_staff }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card green">
+                <p>Monthly Payroll</p>
+                <h4>${{ report_data.total_monthly_salary }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card orange">
+                <p>Total Deductions</p>
+                <h4>${{ report_data.total_deductions }}</h4>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <p>Avg. Salary</p>
+                <h4>${{ report_data.average_salary }}</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Summary -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Staff Salary Breakdown</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Staff Name</th>
+                                    <th>Basic Salary</th>
+                                    <th>Deductions</th>
+                                    <th>Net Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in staff_list %}
+                                <tr>
+                                    <td><strong>{{ staff.name }}</strong></td>
+                                    <td>${{ "%.2f"|format(staff.basic_salary or 0) }}</td>
+                                    <td>${{ "%.2f"|format(staff.default_deductions or 0) }}</td>
+                                    <td>
+                                        <strong>${{ "%.2f"|format((staff.basic_salary or 0) - (staff.default_deductions or 0)) }}</strong>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payroll Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Monthly Salary:</span>
+                            <strong>${{ report_data.total_monthly_salary }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Deductions:</span>
+                            <strong>${{ report_data.total_deductions }}</strong>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <span class="h6">Net Payroll:</span>
+                            <strong class="h6 text-success">${{ report_data.net_payroll }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Report Options</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('hr.generate_attendance_report') }}" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                        <i class='bx bxs-bar-chart-alt-2'></i> Attendance Report
+                    </a>
+                    <a href="{{ url_for('hr.generate_leave_report') }}" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                        <i class='bx bxs-calendar-check'></i> Leave Report
+                    </a>
+                    <a href="{{ url_for('hr.generate_salary_report') }}" class="btn btn-sm btn-outline-primary w-100 mb-2">
+                        <i class='bx bxs-wallet'></i> Salary Report
+                    </a>
+                    <a href="{{ url_for('hr.generate_performance_report') }}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class='bx bxs-star'></i> Performance Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

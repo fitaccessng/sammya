@@ -1,0 +1,103 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Projects - Project Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">All Projects</h1>
+        <!-- <a href="{{ url_for('project.create_project') }}" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2">
+            <i class="fas fa-plus"></i>
+            <span>New Project</span>
+        </a> -->
+    </div>
+
+    <!-- Filters & Search -->
+    <div class="bg-white rounded-lg shadow p-4 space-y-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" placeholder="Search projects..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+            <div>
+                <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="on_hold">On Hold</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if accessible_projects %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Project Name</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Status</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Budget</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Start Date</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">End Date</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for project in accessible_projects %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <a href="{{ url_for('project.project_details', project_id=project.id) }}" class="font-medium text-blue-600 hover:text-blue-800">
+                            {{ project.name }}
+                        </a>
+                        {% if project.description %}
+                        <p class="text-sm text-gray-600">{{ project.description[:50] }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold {% if project.status == 'active' %}bg-green-100 text-green-800{% elif project.status == 'completed' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ project.status|upper }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 font-medium text-gray-900">
+                        ₦{{ "{:,.0f}".format(project.budget|float) }}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">
+                        {{ project.start_date.strftime('%d %b %Y') if project.start_date else 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">
+                        {{ project.end_date.strftime('%d %b %Y') if project.end_date else 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="{{ url_for('project.project_details', project_id=project.id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium" title="View">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium" title="QS">
+                            <i class="fas fa-calculator"></i>
+                        </a>
+                        <a href="{{ url_for('project.edit_project', project_id=project.id) }}" class="text-green-600 hover:text-green-800 text-sm font-medium" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form method="POST" action="{{ url_for('project.delete_project', project_id=project.id) }}" class="inline-block" onsubmit="return confirm('Are you sure?')">
+                            <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg mb-4">No projects found</p>
+            <a href="{{ url_for('project.create_project') }}" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Create Your First Project
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

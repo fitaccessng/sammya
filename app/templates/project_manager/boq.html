@@ -1,0 +1,103 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Bill of Quantities (BOQ) - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>BOQ</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Bill of Quantities (BOQ)</h1>
+        <div class="flex items-center space-x-2">
+            <button class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700" onclick="openImportBOQModal()">Import BOQ</button>
+            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700" onclick="openAddBOQModal()">Add Item</button>
+            <a href="{{ url_for('project.export_boq_excel', project_id=project.id) }}" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700">Export</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow p-6"><p class="text-gray-600 text-sm font-medium">Total Items</p><p class="text-3xl font-bold text-gray-900 mt-2">{{ boq_items|length }}</p></div>
+        <div class="bg-white rounded-lg shadow p-6"><p class="text-gray-600 text-sm font-medium">Total Quantity</p><p class="text-3xl font-bold text-blue-600 mt-2">{{ boq_items|sum(attribute='quantity')|round(2) }}</p></div>
+        <div class="bg-white rounded-lg shadow p-6"><p class="text-gray-600 text-sm font-medium">Total Value</p><p class="text-3xl font-bold text-green-600 mt-2">&#8358;{{ "{:,.2f}".format(boq_items|sum(attribute='amount')|float) }}</p></div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if boq_items %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Description</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Unit</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Quantity</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Unit Rate</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Amount</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in boq_items %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-bold text-gray-900">{{ item.description }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ item.unit }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">{{ "{:,.2f}".format(item.quantity) }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">&#8358;{{ "{:,.2f}".format(item.unit_rate) }}</td>
+                    <td class="px-6 py-4 font-bold text-green-600">&#8358;{{ "{:,.2f}".format(item.amount) }}</td>
+                    <td class="px-6 py-4"><button onclick="deleteBOQItem({{ project.id }}, {{ item.id }})" class="text-red-600 hover:text-red-800">Delete</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center text-gray-600">No BOQ items yet</div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="addBOQModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Add BOQ Item</h2>
+        <form method="POST" action="{{ url_for('project.add_boq_item', project_id=project.id) }}" class="space-y-4">
+            <div><label for="description" class="block text-sm font-bold text-gray-900 mb-2">Description</label><input type="text" id="description" name="description" class="w-full px-4 py-2 border border-gray-300 rounded-lg" placeholder="Optional"></div>
+            <div class="grid grid-cols-3 gap-4">
+                <div><label for="unit" class="block text-sm font-bold text-gray-900 mb-2">Unit *</label><input type="text" id="unit" name="unit" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                <div><label for="quantity" class="block text-sm font-bold text-gray-900 mb-2">Quantity *</label><input type="number" id="quantity" name="quantity" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+                <div><label for="unit_cost" class="block text-sm font-bold text-gray-900 mb-2">Unit Rate (?) *</label><input type="number" id="unit_cost" name="unit_cost" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg"></div>
+            </div>
+            <div class="flex items-center space-x-4 pt-4"><button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Add Item</button><button type="button" onclick="closeAddBOQModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button></div>
+        </form>
+    </div>
+</div>
+
+<div id="importBOQModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Import BOQ</h2>
+        <form method="POST" action="{{ url_for('project.import_boq', project_id=project.id) }}" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label for="boq_file" class="block text-sm font-bold text-gray-900 mb-2">Upload Excel File *</label>
+                <input type="file" id="boq_file" name="boq_file" accept=".xlsx,.xls" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                <p class="text-xs text-gray-600 mt-1">Description column is optional; description can be captured in DPR.</p>
+            </div>
+            <div class="flex items-center space-x-4 pt-4"><button type="submit" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">Import</button><button type="button" onclick="closeImportBOQModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button></div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddBOQModal() { document.getElementById('addBOQModal').classList.remove('hidden'); }
+function closeAddBOQModal() { document.getElementById('addBOQModal').classList.add('hidden'); }
+function openImportBOQModal() { document.getElementById('importBOQModal').classList.remove('hidden'); }
+function closeImportBOQModal() { document.getElementById('importBOQModal').classList.add('hidden'); }
+function deleteBOQItem(projectId, itemId) {
+    if (!confirm('Delete this BOQ item?')) return;
+    fetch(`/projects/${projectId}/boq/${itemId}/delete`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => { if (d.success) window.location.reload(); else alert('Error: ' + d.message); });
+}
+</script>
+{% endblock %}
+
+
+

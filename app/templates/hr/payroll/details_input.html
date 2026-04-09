@@ -1,0 +1,139 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Payroll Inputs{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+<li class="breadcrumb-item active">Payroll Inputs</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Payroll Input Management</h2>
+            <p class="text-muted mb-0">Add individual payroll data or upload all staff at once using your template columns.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('hr.payroll_generate') }}" class="btn btn-primary"><i class='bx bxs-play-circle'></i> Continue to Payroll Generation</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card mb-4">
+                <div class="card-header"><h5 class="mb-0">Add All at Once (CSV/XLSX)</h5></div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('hr.payroll_details_upload') }}" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">Payroll File</label>
+                            <input type="file" class="form-control" name="payroll_file" accept=".csv,.xlsx,.xlsm" required>
+                        </div>
+                        <div class="alert alert-info small mb-3">
+                            Use columns: <strong>Names, Basic Salary, Housing, Transport, Utility, Meal, Medical, Annual Pension Employee, Annual NHIS, NHF Annual, PAYE Annual</strong>.
+                            <br>Optional: <strong>Email</strong>.
+                        </div>
+                        <button type="submit" class="btn btn-success w-100"><i class='bx bxs-upload'></i> Upload All Staff Payroll Inputs</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">{{ 'Edit Individual Payroll Input' if selected_input else 'Add Individual Payroll Input' }}</h5>
+                    {% if selected_input %}
+                    <a href="{{ url_for('hr.payroll_details_input') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('hr.payroll_details_input') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Staff</label>
+                            <select class="form-select" name="staff_id" required>
+                                <option value="">Select Staff</option>
+                                {% for staff in staff_list %}
+                                <option value="{{ staff.id }}" {% if edit_user_id and edit_user_id == staff.id %}selected{% endif %}>{{ staff.name }} ({{ staff.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="row g-2">
+                            <div class="col-6"><label class="form-label">Basic Salary</label><input class="form-control" name="basic_salary" type="number" step="0.01" min="0" value="{{ selected_input.basic_salary if selected_input else 0 }}" required></div>
+                            <div class="col-6"><label class="form-label">Housing</label><input class="form-control" name="housing" type="number" step="0.01" min="0" value="{{ selected_input.housing if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Transport</label><input class="form-control" name="transport" type="number" step="0.01" min="0" value="{{ selected_input.transport if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Utility</label><input class="form-control" name="utility" type="number" step="0.01" min="0" value="{{ selected_input.utility if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Meal</label><input class="form-control" name="meal" type="number" step="0.01" min="0" value="{{ selected_input.meal if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Medical</label><input class="form-control" name="medical" type="number" step="0.01" min="0" value="{{ selected_input.medical if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Annual Pension Employee</label><input class="form-control" name="annual_pension_employee" type="number" step="0.01" min="0" value="{{ selected_input.annual_pension_employee if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">Annual NHIS</label><input class="form-control" name="annual_nhis" type="number" step="0.01" min="0" value="{{ selected_input.annual_nhis if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">NHF Annual</label><input class="form-control" name="nhf_annual" type="number" step="0.01" min="0" value="{{ selected_input.annual_nhf if selected_input else 0 }}"></div>
+                            <div class="col-6"><label class="form-label">PAYE Annual</label><input class="form-control" name="paye_annual" type="number" step="0.01" min="0" value="{{ selected_input.paye_annual if selected_input else 0 }}"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3 w-100"><i class='bx bxs-save'></i> {{ 'Update Staff Payroll Input' if selected_input else 'Save Staff Payroll Input' }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">Current Payroll Inputs</h5></div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Names</th>
+                                    <th class="text-end">Gross</th>
+                                    <th class="text-end">Basic</th>
+                                    <th class="text-end">Housing</th>
+                                    <th class="text-end">Transport</th>
+                                    <th class="text-end">Utility</th>
+                                    <th class="text-end">Meal</th>
+                                    <th class="text-end">Medical</th>
+                                    <th class="text-end">Annual Gross</th>
+                                    <th class="text-end">Pension Emp.</th>
+                                    <th class="text-end">Pension Staff</th>
+                                    <th class="text-end">NHIS</th>
+                                    <th class="text-end">NHF</th>
+                                    <th class="text-end">House Rent</th>
+                                    <th class="text-end">Tax Relief</th>
+                                    <th class="text-end">Consolidated Relief</th>
+                                    <th class="text-end">Taxable Annual</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in preview_rows %}
+                                <tr>
+                                    <td>{{ row.name }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.gross_monthly) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.basic_salary) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.housing) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.transport) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.utility) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.meal) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.medical) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.annual_gross) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.annual_pension_employer) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.annual_pension_employee) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.annual_nhis) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.annual_nhf) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.house_rent_annual) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.tax_relief_annual) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.consolidated_relief_annual) }}</td>
+                                    <td class="text-end">&#8358;{{ "{:,.2f}".format(row.taxable_income_annual) }}</td>
+                                    <td><a href="{{ url_for('hr.payroll_details_edit', user_id=row.id) }}" class="btn btn-sm btn-outline-primary">Edit</a></td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="18" class="text-center text-muted py-4">No payroll input records found.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

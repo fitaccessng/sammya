@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Financial Reports{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900"><i class="fas fa-chart-bar"></i> Financial Reports</h1>
+            <p class="text-slate-600 mt-1">View comprehensive financial analysis and reports</p>
+        </div>
+        <a href="{{ url_for('finance.finance_home') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Financial Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Payments</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_count }}</div>
+            <div class="text-sm text-slate-500 mt-1">₦{{ "{:,.0f}".format(total_pending|default(0)) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved Payments</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ approved_count }}</div>
+            <div class="text-sm text-slate-500 mt-1">₦{{ "{:,.0f}".format(total_approved|default(0)) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Paid</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_paid|default(0)) }}</div>
+            <div class="text-sm text-slate-500 mt-1">All processed payments</div>
+        </div>
+    </div>
+
+    <!-- Report Categories -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Payment Analysis -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4"><i class="fas fa-credit-card"></i> Payment Analysis</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Pending Approval</span>
+                    <span class="font-semibold text-amber-600">{{ pending_count }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Approved</span>
+                    <span class="font-semibold text-green-600">{{ approved_count }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Total Pending Amount</span>
+                    <span class="font-semibold text-slate-900">₦{{ "{:,.0f}".format(total_pending|default(0)) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Status -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4"><i class="fas fa-wallet"></i> Budget Status</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Total Approved</span>
+                    <span class="font-semibold text-slate-900">₦{{ "{:,.0f}".format(total_approved|default(0)) }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Amount Paid</span>
+                    <span class="font-semibold text-green-600">₦{{ "{:,.0f}".format(total_paid|default(0)) }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 bg-slate-50 rounded">
+                    <span class="text-slate-600">Outstanding</span>
+                    <span class="font-semibold text-amber-600">₦{{ "{:,.0f}".format((total_approved - total_paid)|default(0)) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Actions -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4"><i class="fas fa-download"></i> Export Reports</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="{{ url_for('finance.export_expenses', format='csv') }}" class="p-4 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center">
+                <i class="fas fa-file-csv text-2xl text-blue-600 mb-2 block"></i>
+                <span class="font-semibold text-slate-900">Export Expenses</span>
+                <p class="text-sm text-slate-600 mt-1">CSV format</p>
+            </a>
+            <a href="{{ url_for('finance.list_payments') }}" class="p-4 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center">
+                <i class="fas fa-file-invoice text-2xl text-green-600 mb-2 block"></i>
+                <span class="font-semibold text-slate-900">View Payments</span>
+                <p class="text-sm text-slate-600 mt-1">All payment records</p>
+            </a>
+            <a href="{{ url_for('finance.finance_home') }}" class="p-4 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-center">
+                <i class="fas fa-chart-line text-2xl text-purple-600 mb-2 block"></i>
+                <span class="font-semibold text-slate-900">Finance Dashboard</span>
+                <p class="text-sm text-slate-600 mt-1">Main dashboard</p>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

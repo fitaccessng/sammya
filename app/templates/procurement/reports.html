@@ -1,0 +1,39 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}Generated reports and documentation{% endblock %}
+
+{% block main_content %}
+<div class="bg-white rounded-lg shadow-md overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Filename</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Type</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Uploaded</th>
+                    <th class="px-6 py-3 text-left font-semibold text-gray-700">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reports %}
+                    {% for report in reports %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50">
+                        <td class="px-6 py-4 font-medium text-gray-800">{{ report.filename }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ report.type|title }}</td>
+                        <td class="px-6 py-4 text-gray-600">{{ report.uploaded_at }}</td>
+                        <td class="px-6 py-4">
+                            <a href="#" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Download</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">No reports available</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

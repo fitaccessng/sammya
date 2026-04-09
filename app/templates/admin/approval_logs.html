@@ -1,0 +1,155 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Approval Logs{% endblock %}
+{% block page_title %}Approval Logs{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900">Approval Logs & Audit Trail</h1>
+        <p class="text-slate-600 mt-1">View all approvals and system changes</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-slate-900 mb-2">Entity Type</label>
+                <select name="entity_type" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Entity Types</option>
+                    <option value="MaterialRequest" {% if selected_type == 'MaterialRequest' %}selected{% endif %}>Material Request</option>
+                    <option value="PurchaseOrder" {% if selected_type == 'PurchaseOrder' %}selected{% endif %}>Purchase Order</option>
+                    <option value="QCInspection" {% if selected_type == 'QCInspection' %}selected{% endif %}>QC Inspection</option>
+                    <option value="PaymentRequest" {% if selected_type == 'PaymentRequest' %}selected{% endif %}>Payment Request</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-slate-900 mb-2">Status</label>
+                <select name="status" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">All Status</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            <div class="flex gap-2 items-end">
+                <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+                <a href="{{ url_for('admin.approval_logs') }}" class="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-center">
+                    <i class="fas fa-redo mr-2"></i>Reset
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-sm text-slate-600">Total Approvals</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ logs.total }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
+            <div class="text-sm text-slate-600">Pending</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_count|default(0) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-sm text-slate-600">Approved</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ approved_count|default(0) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+            <div class="text-sm text-slate-600">Rejected</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ rejected_count|default(0) }}</div>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900">Approval History</h2>
+        </div>
+        <div class="overflow-x-auto">
+            {% if logs.items %}
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Entity</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Type</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Approved By</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Comments</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for log in logs.items %}
+                    <tr class="hover:bg-slate-50 transition-colors cursor-pointer" onclick="window.location.href='{{ url_for('admin.approval_log_detail', log_id=log.id) }}'">
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-slate-900">
+                                <a href="{{ url_for('admin.approval_log_detail', log_id=log.id) }}" class="text-blue-600 hover:text-blue-800">
+                                    {{ log.entity_id }}
+                                </a>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+                                {{ log.entity_type }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold {% if log.action == 'approved' %}bg-green-100 text-green-800{% elif log.action == 'rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ log.action.title() }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-slate-600">{{ log.actor.name if log.actor else 'System' }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-slate-600">{{ log.timestamp.strftime('%d %b %Y %H:%M') if log.timestamp else 'N/A' }}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-slate-600 line-clamp-2">
+                                {% if log.comment %}
+                                    {{ log.comment[:50] }}{% if log.comment|length > 50 %}...{% endif %}
+                                {% else %}
+                                    <span class="text-slate-400">-</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ url_for('admin.approval_log_detail', log_id=log.id) }}" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">
+                                View Details <i class="fas fa-arrow-right ml-1"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="px-6 py-8 text-center">
+                <i class="fas fa-check-circle text-4xl text-slate-300 mb-4"></i>
+                <p class="text-slate-600">No approval logs found</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pagination -->
+        {% if logs.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+            <div class="text-sm text-slate-600">
+                Page {{ logs.page }} of {{ logs.pages }}
+            </div>
+            <div class="flex gap-2">
+                {% if logs.has_prev %}
+                <a href="{{ url_for('admin.approval_logs', page=logs.prev_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Previous</a>
+                {% endif %}
+                {% if logs.has_next %}
+                <a href="{{ url_for('admin.approval_logs', page=logs.next_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

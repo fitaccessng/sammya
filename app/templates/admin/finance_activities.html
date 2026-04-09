@@ -1,0 +1,453 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Finance & Accounting Activities{% endblock %}
+{% block page_title %}Finance & Accounting{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-money-bill-wave"></i> Finance & Accounting Module</h1>
+            <p class="text-slate-600 mt-1">Monitor financial transactions, budget, and payment approvals</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Financial Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Budget</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_budget|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Across all projects</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Payments</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_payments|length }}</div>
+            <div class="text-xs text-slate-500 mt-1">₦{{ "{:,.0f}".format(total_pending_amount|default(0)) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved Payments</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ approved_payments|length }}</div>
+            <div class="text-xs text-slate-500 mt-1">₦{{ "{:,.0f}".format(total_approved_amount|default(0)) }}</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Budget Utilized</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ "%.1f"|format(budget_utilized|default(0)) }}%</div>
+            <div class="text-xs text-slate-500 mt-1">Total allocation</div>
+        </div>
+    </div>
+
+    <!-- Finance Team & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Finance Team -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-user-tie text-green-600"></i> Finance Team</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Position</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in finance_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                        {{ staff.name[0].upper() }}
+                                    </div>
+                                    {{ staff.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">{{ staff.role.replace('_', ' ').title() }}</span>
+                            </td>
+                            <td class="px-6 py-3">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-cyan-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-history text-cyan-600"></i> Recent Activities</h2>
+            </div>
+            <div class="p-6 space-y-4 max-h-96 overflow-y-auto">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="flex gap-3 pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-circle text-green-600 text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-slate-900">{{ log.entity_type }}</p>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                            </p>
+                        </div>
+                        <span class="inline-block px-2 py-1 bg-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-100 text-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-800 text-xs font-semibold rounded">
+                            {{ log.approval_state }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-600 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Payments -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-amber-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-clock text-amber-600"></i> Pending Payment Requests ({{ pending_payments|length }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Reference</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Vendor/Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date Submitted</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if pending_payments %}
+                        {% for payment in pending_payments[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-900 font-semibold">#{{ payment.id }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.description[:30] }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "%.2f"|format(payment.amount or 0) }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Project {{ payment.project_id }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.created_at.strftime('%b %d, %Y') if payment.created_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <button title="Approve" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button title="Reject" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-600">No pending payments</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Approved Payments -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-check-circle text-green-600"></i> Approved Payments ({{ approved_payments|length }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Reference</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Vendor/Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Approved Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if approved_payments %}
+                        {% for payment in approved_payments[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-900 font-semibold">#{{ payment.id }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.description[:30] }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "%.2f"|format(payment.amount or 0) }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Project {{ payment.project_id }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ payment.updated_at.strftime('%b %d, %Y') if payment.updated_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Approved</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <a href="#" title="View Details" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-600">No approved payments</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Finance Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-600 hover:shadow-lg transition-shadow cursor-pointer" onclick="openBudgetReports()">
+            <i class="fas fa-chart-pie text-4xl text-green-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Budget Reports</h3>
+            <p class="text-sm text-slate-600 mt-2">View financial analysis</p>
+            <button class="mt-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold" onclick="openBudgetReports()">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-600 hover:shadow-lg transition-shadow cursor-pointer" onclick="openInvoiceManagement()">
+            <i class="fas fa-file-invoice text-4xl text-cyan-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Invoice Management</h3>
+            <p class="text-sm text-slate-600 mt-2">Track invoices and receipts</p>
+            <button class="mt-4 px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors text-sm font-semibold" onclick="openInvoiceManagement()">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-600 hover:shadow-lg transition-shadow cursor-pointer" onclick="openBankReconciliation()">
+            <i class="fas fa-exchange-alt text-4xl text-blue-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Bank Reconciliation</h3>
+            <p class="text-sm text-slate-600 mt-2">Reconcile accounts</p>
+            <button class="mt-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold" onclick="openBankReconciliation()">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-600 hover:shadow-lg transition-shadow cursor-pointer" onclick="openCashFlow()">
+            <i class="fas fa-wallet text-4xl text-amber-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Cash Flow</h3>
+            <p class="text-sm text-slate-600 mt-2">Monitor cash positions</p>
+            <button class="mt-4 px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-semibold" onclick="openCashFlow()">View</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Budget Reports Modal -->
+<div id="budgetReportsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-green-600"></i> Budget Reports
+            </h2>
+            <button onclick="closeBudgetReports()" class="text-slate-500 hover:text-slate-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-slate-600">Access comprehensive financial reports and analysis:</p>
+            <div class="space-y-3">
+                <a href="{{ url_for('admin.budget_reports') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-green-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Budget Analysis</h3>
+                    <p class="text-sm text-slate-600 mt-1">Detailed budget utilization and project analysis</p>
+                </a>
+                <a href="{{ url_for('admin.expense_reports') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-green-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Expense Reports</h3>
+                    <p class="text-sm text-slate-600 mt-1">Review all recorded expenses and spending trends</p>
+                </a>
+                <a href="{{ url_for('admin.budget_reports') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-green-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Project Budgets</h3>
+                    <p class="text-sm text-slate-600 mt-1">Monitor individual project allocations</p>
+                </a>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-end">
+            <button onclick="closeBudgetReports()" class="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition-colors font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Management Modal -->
+<div id="invoiceManagementModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-file-invoice text-cyan-600"></i> Invoice Management
+            </h2>
+            <button onclick="closeInvoiceManagement()" class="text-slate-500 hover:text-slate-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-slate-600">Manage invoices and payment tracking:</p>
+            <div class="space-y-3">
+                <a href="{{ url_for('admin.invoice_management') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-cyan-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Invoice Dashboard</h3>
+                    <p class="text-sm text-slate-600 mt-1">Track all payment requests and execution</p>
+                </a>
+                <a href="{{ url_for('admin.view_payment_requests') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-cyan-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">View Payments</h3>
+                    <p class="text-sm text-slate-600 mt-1">Payment requests and statuses</p>
+                </a>
+                <a href="{{ url_for('admin.expense_receipts') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-cyan-50 transition-colors">
+                    <p class="text-sm text-slate-600 mt-1">Manage receipts and documentation</p>
+                </a>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-end">
+            <button onclick="closeInvoiceManagement()" class="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition-colors font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bank Reconciliation Modal -->
+<div id="bankReconciliationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-exchange-alt text-blue-600"></i> Bank Reconciliation
+            </h2>
+            <button onclick="closeBankReconciliation()" class="text-slate-500 hover:text-slate-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-slate-600">Reconcile bank accounts and transactions:</p>
+            <div class="space-y-3">
+                <a href="{{ url_for('admin.bank_reconciliation') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-blue-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Bank Accounts</h3>
+                    <p class="text-sm text-slate-600 mt-1">View and reconcile all bank accounts</p>
+                </a>
+                <a href="{{ url_for('admin.bank_reconciliation') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-blue-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Transactions</h3>
+                    <p class="text-sm text-slate-600 mt-1">Review recent bank transactions</p>
+                </a>
+                <!-- <a href="{{ url_for('finance.audit') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-blue-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Audit Trail</h3>
+                    <p class="text-sm text-slate-600 mt-1">Review transaction audit logs</p>
+                </a> -->
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-end">
+            <button onclick="closeBankReconciliation()" class="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition-colors font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Cash Flow Modal -->
+<div id="cashFlowModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-wallet text-amber-600"></i> Cash Flow
+            </h2>
+            <button onclick="closeCashFlow()" class="text-slate-500 hover:text-slate-700">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <p class="text-slate-600">Monitor cash positions and flow:</p>
+            <div class="space-y-3">
+                <a href="{{ url_for('admin.cash_flow') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-amber-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Cash Position</h3>
+                    <p class="text-sm text-slate-600 mt-1">Monitor current and projected cash</p>
+                </a>
+                <a href="{{ url_for('admin.cash_flow') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-amber-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Disbursements</h3>
+                    <p class="text-sm text-slate-600 mt-1">Track cash disbursements by period</p>
+                </a>
+                <a href="{{ url_for('admin.bank_reconciliation') }}" class="block p-4 border border-slate-200 rounded-lg hover:bg-amber-50 transition-colors">
+                    <h3 class="font-semibold text-slate-900">Account Balance</h3>
+                    <p class="text-sm text-slate-600 mt-1">View current cash across all accounts</p>
+                </a>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-end">
+            <button onclick="closeCashFlow()" class="px-4 py-2 bg-slate-200 text-slate-900 rounded hover:bg-slate-300 transition-colors font-semibold">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Budget Reports Modal Functions
+function openBudgetReports() {
+    document.getElementById('budgetReportsModal').classList.remove('hidden');
+}
+
+function closeBudgetReports() {
+    document.getElementById('budgetReportsModal').classList.add('hidden');
+}
+
+// Invoice Management Modal Functions
+function openInvoiceManagement() {
+    document.getElementById('invoiceManagementModal').classList.remove('hidden');
+}
+
+function closeInvoiceManagement() {
+    document.getElementById('invoiceManagementModal').classList.add('hidden');
+}
+
+// Bank Reconciliation Modal Functions
+function openBankReconciliation() {
+    document.getElementById('bankReconciliationModal').classList.remove('hidden');
+}
+
+function closeBankReconciliation() {
+    document.getElementById('bankReconciliationModal').classList.add('hidden');
+}
+
+// Cash Flow Modal Functions
+function openCashFlow() {
+    document.getElementById('cashFlowModal').classList.remove('hidden');
+}
+
+function closeCashFlow() {
+    document.getElementById('cashFlowModal').classList.add('hidden');
+}
+
+// Close modals when clicking outside
+document.addEventListener('click', function(event) {
+    const budgetModal = document.getElementById('budgetReportsModal');
+    const invoiceModal = document.getElementById('invoiceManagementModal');
+    const bankModal = document.getElementById('bankReconciliationModal');
+    const cashModal = document.getElementById('cashFlowModal');
+    
+    if (event.target === budgetModal) budgetModal.classList.add('hidden');
+    if (event.target === invoiceModal) invoiceModal.classList.add('hidden');
+    if (event.target === bankModal) bankModal.classList.add('hidden');
+    if (event.target === cashModal) cashModal.classList.add('hidden');
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        document.getElementById('budgetReportsModal').classList.add('hidden');
+        document.getElementById('invoiceManagementModal').classList.add('hidden');
+        document.getElementById('bankReconciliationModal').classList.add('hidden');
+        document.getElementById('cashFlowModal').classList.add('hidden');
+    }
+});
+</script>
+{% endblock %}

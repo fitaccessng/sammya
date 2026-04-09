@@ -1,0 +1,76 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Performance Review{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.performance') }}">Performance</a></li>
+    <li class="breadcrumb-item active">Review - {{ staff.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Performance Review for {{ staff.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Staff Name</label>
+                                <input type="text" class="form-control" value="{{ staff.name }}" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Position</label>
+                                <input type="text" class="form-control" value="{{ staff.role }}" disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">Performance Rating *</label>
+                            <div class="rating-selector mb-2">
+                                <div class="d-flex gap-2">
+                                    {% for i in range(1, 6) %}
+                                    <input type="radio" name="rating" value="{{ i }}" id="rating{{ i }}" class="d-none" {% if i == 3 %}checked{% endif %}>
+                                    <label for="rating{{ i }}" class="btn btn-outline-warning btn-lg" style="cursor: pointer;">
+                                        <i class='bx {% if i <= 3 %}bxs-star{% else %}bx-star{% endif %}' style="color: #ffc107;"></i> {{ i }}
+                                    </label>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <small class="text-muted">1 = Poor, 5 = Excellent</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="comments" class="form-label">Comments</label>
+                            <textarea class="form-control" id="comments" name="comments" rows="5" placeholder="Enter performance feedback..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class='bx bxs-check'></i> Submit Review
+                            </button>
+                            <a href="{{ url_for('hr.performance') }}" class="btn btn-secondary">
+                                <i class='bx bxs-left-arrow'></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('input[name="rating"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('label[for^="rating"]').forEach(label => {
+                label.classList.remove('active');
+            });
+            document.querySelector(`label[for="${this.id}"]`).classList.add('active');
+        });
+    });
+</script>
+{% endblock %}

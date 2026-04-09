@@ -1,0 +1,59 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Budget Status{% endblock %}
+{% block page_subtitle %}Detailed budget utilization by project{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('cost_control.reports') }}" class="btn btn-outline-secondary">
+    <i class='bx bxs-download'></i> Export Report
+</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Project</th>
+                        <th class="text-end">Budget</th>
+                        <th class="text-end">Committed</th>
+                        <th class="text-end">Spent</th>
+                        <th class="text-end">Remaining</th>
+                        <th class="text-center">Utilization</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in projects %}
+                    <tr>
+                        <td><strong>{{ project.project.name }}</strong></td>
+                        <td class="text-end">₦{{ "{:,.2f}".format(project.budget) }}</td>
+                        <td class="text-end" style="color: #fd7e14;">₦{{ "{:,.2f}".format(project.committed) }}</td>
+                        <td class="text-end" style="color: #198754;">₦{{ "{:,.2f}".format(project.spent) }}</td>
+                        <td class="text-end" style="color: #6f42c1;">₦{{ "{:,.2f}".format(project.remaining) }}</td>
+                        <td class="text-center">
+                            <div class="d-flex align-items-center justify-content-center gap-2">
+                                <div class="progress" style="width: 80px; height: 8px;">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ project.utilization }}%;" aria-valuenow="{{ project.utilization }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <small><strong>{{ "{:.1f}".format(project.utilization) }}%</strong></small>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if project.status == 'critical' %}
+                                <span class="badge bg-danger">Critical</span>
+                            {% elif project.status == 'warning' %}
+                                <span class="badge bg-warning">Warning</span>
+                            {% else %}
+                                <span class="badge bg-success">Healthy</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

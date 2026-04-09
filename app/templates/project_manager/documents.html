@@ -1,0 +1,126 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Documents - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Documents</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Project Documents</h1>
+        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2" onclick="openUploadDocumentModal()">
+            <i class="fas fa-upload"></i>
+            <span>Upload Document</span>
+        </button>
+    </div>
+
+    <!-- Documents List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if documents %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Title</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Type</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Uploaded By</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Uploaded</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for doc in documents %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-gray-900">{{ doc.title }}</div>
+                        {% if doc.description %}
+                        <p class="text-sm text-gray-600">{{ doc.description[:60] }}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">{{ doc.document_type or '-' }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ doc.uploaded_by.name if doc.uploaded_by else '-' }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ doc.created_at.strftime('%d %b %Y') }}</td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="{{ url_for('project.download_document', doc_id=doc.id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg mb-4">No documents uploaded yet</p>
+            <button onclick="openUploadDocumentModal()" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Upload First Document
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div id="uploadDocumentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Upload Document</h2>
+        
+        <form method="POST" action="{{ url_for('project.upload_document', project_id=project.id) }}" enctype="multipart/form-data" class="space-y-4">
+            <div>
+                <label for="title" class="block text-sm font-bold text-gray-900 mb-2">Document Title *</label>
+                <input type="text" id="title" name="title" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-bold text-gray-900 mb-2">Description</label>
+                <textarea id="description" name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div>
+                <label for="document_type" class="block text-sm font-bold text-gray-900 mb-2">Document Type</label>
+                <select id="document_type" name="document_type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select type...</option>
+                    <option value="REPORT">Report</option>
+                    <option value="PLAN">Plan</option>
+                    <option value="SPECIFICATION">Specification</option>
+                    <option value="DRAWING">Drawing</option>
+                    <option value="CONTRACT">Contract</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="file" class="block text-sm font-bold text-gray-900 mb-2">Select File *</label>
+                <input type="file" id="file" name="file" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-600 mt-1">Allowed: PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, JPEG</p>
+            </div>
+
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Upload
+                </button>
+                <button type="button" onclick="closeUploadDocumentModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUploadDocumentModal() {
+    document.getElementById('uploadDocumentModal').classList.remove('hidden');
+}
+
+function closeUploadDocumentModal() {
+    document.getElementById('uploadDocumentModal').classList.add('hidden');
+}
+
+document.getElementById('uploadDocumentModal').addEventListener('click', function(e) {
+    if (e.target === this) closeUploadDocumentModal();
+});
+</script>
+{% endblock %}

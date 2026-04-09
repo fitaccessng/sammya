@@ -1,0 +1,126 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ project.name }} - Project Details{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Project Details</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">{{ project.name }}</h1>
+            <p class="text-gray-600 mt-2">{{ project.description }}</p>
+        </div>
+        <div class="text-right">
+            <span class="px-4 py-2 rounded-lg text-sm font-bold {% if project.status == 'active' %}bg-green-100 text-green-800{% elif project.status == 'completed' %}bg-blue-100 text-blue-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                {{ project.status|upper }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Info -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Budget</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">₦{{ "{:,.0f}".format(project.budget|float) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Start Date</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ project.start_date.strftime('%d %b %Y') if project.start_date else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">End Date</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ project.end_date.strftime('%d %b %Y') if project.end_date else 'N/A' }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Duration</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ ((project.end_date - project.start_date).days if project.end_date and project.start_date else 0) }} Days</p>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Overview -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Project Overview</h2>
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Project Manager</p>
+                            <p class="text-gray-900 font-bold mt-1">{{ project.project_manager.name if project.project_manager else 'Not Assigned' }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Status</p>
+                            <p class="text-gray-900 font-bold mt-1">{{ project.status|upper }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Created</p>
+                            <p class="text-gray-900 font-bold mt-1">{{ project.created_at.strftime('%d %b %Y') }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Last Updated</p>
+                            <p class="text-gray-900 font-bold mt-1">{{ project.updated_at.strftime('%d %b %Y %H:%M') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Milestones</h3>
+                    <div class="text-3xl font-bold text-blue-600">{{ milestones|length }}</div>
+                    <p class="text-gray-600 text-sm mt-2">Total milestones</p>
+                    <a href="{{ url_for('project.timeline_index', project_id=project.id) }}" class="mt-4 inline-block text-blue-600 hover:text-blue-800 font-medium">View Milestones →</a>
+                </div>
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Team Members</h3>
+                    <div class="text-3xl font-bold text-green-600">{{ staff|length }}</div>
+                    <p class="text-gray-600 text-sm mt-2">Team assigned</p>
+                    <a href="{{ url_for('project.staff_index', project_id=project.id) }}" class="mt-4 inline-block text-blue-600 hover:text-blue-800 font-medium">Manage Team →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="space-y-6">
+            <!-- Actions -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Actions</h3>
+                <div class="space-y-3">
+                    <a href="{{ url_for('project.edit_project', project_id=project.id) }}" class="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-edit mr-2"></i> Edit Project
+                    </a>
+                    <a href="{{ url_for('project.staff_index', project_id=project.id) }}" class="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-users mr-2"></i> Manage Team
+                    </a>
+                    <a href="{{ url_for('project.timeline_index', project_id=project.id) }}" class="block w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-calendar-alt mr-2"></i> Milestones
+                    </a>
+                    <a href="{{ url_for('project.dpr_index', project_id=project.id) }}" class="block w-full bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-file-alt mr-2"></i> DPR
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Activity</h3>
+                <div class="space-y-3 text-sm">
+                    <p class="text-gray-600">Created: <span class="font-bold">{{ project.created_at.strftime('%d %b %Y') }}</span></p>
+                    <p class="text-gray-600">Last Updated: <span class="font-bold">{{ project.updated_at.strftime('%d %b %Y %H:%M') }}</span></p>
+                    <a href="{{ url_for('project.activity_log', project_id=project.id) }}" class="mt-4 inline-block text-blue-600 hover:text-blue-800 font-medium">
+                        View Full Activity Log →
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

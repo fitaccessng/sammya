@@ -1,0 +1,243 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Payroll Management{% endblock %}
+{% block page_title %}Payroll Management{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Payroll Management Dashboard</h1>
+            <p class="text-slate-600 mt-1">Approve monthly payrolls and send to Finance for processing</p>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Employees</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ total_employees }}</div>
+            <div class="text-xs text-slate-500 mt-1">Active staff members</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Processed</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ processed_payroll }}</div>
+            <div class="text-xs text-slate-500 mt-1">Approved batches</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending Approval</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_payroll }}</div>
+            <div class="text-xs text-slate-500 mt-1">Awaiting your review</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Disbursed</div>
+            <div class="text-2xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_disbursed) if total_disbursed > 0 else "0" }}</div>
+            <div class="text-xs text-slate-500 mt-1">All time</div>
+        </div>
+    </div>
+
+    <!-- SECTION 1: PENDING PAYROLLS - AWAITING ADMIN APPROVAL -->
+    <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-red-500">
+        <div class="bg-red-600 text-white px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-clock text-lg"></i> 
+                <h5 class="font-semibold m-0">PENDING PAYROLLS ({{ pending_payrolls|length }}) - Awaiting Your Approval</h5>
+            </div>
+        </div>
+        
+        {% if pending_payrolls %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Batch Name</th>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Payroll Period</th>
+                        <th class="px-6 py-3 text-center font-semibold text-slate-700">Staff Count</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Total Salary</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Deductions</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Net Pay</th>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Submitted By</th>
+                        <th class="px-6 py-3 text-center font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for batch in pending_payrolls %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ batch.batch_name }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.payroll_period }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">{{ batch.total_records }} staff</span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-semibold">₦{{ "{:,.2f}".format(batch.total_basic_salary or 0) }}</td>
+                        <td class="px-6 py-4 text-right text-red-600">₦{{ "{:,.2f}".format(batch.total_deductions or 0) }}</td>
+                        <td class="px-6 py-4 text-right font-bold text-green-600">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.created_by.name if batch.created_by else 'HR System' }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex gap-1 justify-center">
+                                <a href="{{ url_for('admin.payroll_view', batch_id=batch.id) }}" class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.payroll_approve', batch_id=batch.id) }}" style="display: inline;">
+                                    <button type="submit" class="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors" title="Approve" onclick="return confirm('Are you sure you want to approve this payroll batch?');">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.payroll_reject', batch_id=batch.id) }}" style="display: inline;">
+                                    <button type="submit" class="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors" title="Reject" onclick="return confirm('Are you sure you want to reject this payroll batch?');">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <i class="fas fa-check-circle text-4xl text-green-600 mb-3"></i>
+            <p class="text-slate-600">No pending payrolls. All batches have been approved or are being processed.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- SECTION 2: APPROVED PAYROLLS - READY TO SEND TO FINANCE -->
+    <div class="bg-white rounded-lg shadow overflow-hidden border-l-4 border-green-500">
+        <div class="bg-green-600 text-white px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-check-circle text-lg"></i> 
+                <h5 class="font-semibold m-0">APPROVED PAYROLLS ({{ approved_payrolls|length }}) - Ready to Send to Finance</h5>
+            </div>
+        </div>
+        
+        {% if approved_payrolls %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Batch Name</th>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Payroll Period</th>
+                        <th class="px-6 py-3 text-center font-semibold text-slate-700">Staff Count</th>
+                        <th class="px-6 py-3 text-right font-semibold text-slate-700">Net Pay Total</th>
+                        <th class="px-6 py-3 text-left font-semibold text-slate-700">Approved Date</th>
+                        <th class="px-6 py-3 text-center font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for batch in approved_payrolls %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ batch.batch_name }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.payroll_period }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">{{ batch.total_records }} staff</span>
+                        </td>
+                        <td class="px-6 py-4 text-right font-bold text-green-600">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.modified_at.strftime('%b %d, %Y') if batch.modified_at else 'Today' }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex gap-1 justify-center">
+                                <a href="{{ url_for('admin.payroll_view', batch_id=batch.id) }}" class="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <form method="POST" action="{{ url_for('admin.payroll_send_finance', batch_id=batch.id) }}" style="display: inline;">
+                                    <button type="submit" class="px-2 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700 transition-colors" title="Send to Finance" onclick="return confirm('Send this payroll to Finance for processing?');">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('admin.payroll_generate_payslips', batch_id=batch.id) }}" class="px-2 py-1 bg-cyan-600 text-white text-xs rounded hover:bg-cyan-700 transition-colors" title="Generate Payslips">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-8 text-center">
+            <i class="fas fa-inbox text-4xl text-slate-400 mb-3"></i>
+            <p class="text-slate-600">No approved payrolls ready for Finance yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- HR Team & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- HR Team Section -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-blue-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-users"></i> 
+                <h5 class="font-semibold m-0">Payroll Team ({{ hr_staff|length }})</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in hr_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 rounded-full {% if staff.is_active %}bg-green-100{% else %}bg-slate-100{% endif %} flex items-center justify-center">
+                                        <i class="fas fa-user text-sm {% if staff.is_active %}text-green-600{% else %}text-slate-600{% endif %}"></i>
+                                    </div>
+                                    <span class="font-medium text-slate-900">{{ staff.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities Section -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-cyan-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-history"></i> 
+                <h5 class="font-semibold m-0">Recent Payroll Activities</h5>
+            </div>
+            <div class="p-6 max-h-80 overflow-y-auto space-y-4">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:12] %}
+                    <div class="pb-3 border-b border-slate-200 last:border-0">
+                        <div class="flex gap-3">
+                            <div class="text-blue-500 text-lg"><i class="fas fa-circle text-xs mt-1"></i></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">{{ log.entity_type | upper }}</p>
+                                <p class="text-xs text-slate-500 mt-0.5">
+                                    <i class="fas fa-clock"></i> 
+                                    {% if log.timestamp %}
+                                        {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                    {% elif log.created_at %}
+                                        {{ log.created_at.strftime('%b %d, %Y %H:%M') }}
+                                    {% else %}
+                                        Recently
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

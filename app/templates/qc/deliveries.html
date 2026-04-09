@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}QC - Deliveries - FitAccess ERP{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Quality Control - Deliveries</h1>
+
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-slate-200">
+        <h2 class="text-xl font-semibold">Deliveries List</h2>
+    </div>
+    <div class="p-6">
+        {% if deliveries %}
+        <table class="w-full">
+            <thead>
+                <tr class="border-b border-slate-200">
+                    <th class="text-left py-2 px-4">GRN</th>
+                    <th class="text-left py-2 px-4">PO #</th>
+                    <th class="text-left py-2 px-4">Received</th>
+                    <th class="text-left py-2 px-4">Status</th>
+                    <th class="text-left py-2 px-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for delivery in deliveries %}
+                <tr class="border-b border-slate-100">
+                    <td class="py-3 px-4">{{ delivery.grn_number }}</td>
+                    <td class="py-3 px-4">PO-{{ delivery.po_id }}</td>
+                    <td class="py-3 px-4">{{ delivery.received_at.strftime('%Y-%m-%d') }}</td>
+                    <td class="py-3 px-4">
+                        <span class="px-2 py-1 text-xs rounded-md bg-amber-100 text-amber-800">{{ delivery.approval_state.value.upper() }}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <a href="{{ url_for('qc.view_delivery', delivery_id=delivery.id) }}" class="text-blue-600 hover:underline">View</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-slate-500">No deliveries recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

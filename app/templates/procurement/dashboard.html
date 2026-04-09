@@ -1,0 +1,213 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Dashboard Analytics{% endblock %}
+{% block page_subtitle %}Purchase Orders and Performance Metrics{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card { @apply relative overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200 hover:shadow-lg hover:scale-105 transition-all duration-300; }
+    .stat-icon { @apply absolute -right-4 -bottom-4 text-slate-100 opacity-20 text-6xl; }
+</style>
+{% endblock %}
+
+{% block main_content %}
+<!-- Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Orders -->
+    <div class="stat-card p-6">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-slate-600 text-sm font-medium">Total Orders</p>
+                <p class="text-4xl font-bold dashboard-number text-slate-900 mt-3">{{ metrics.total_po }}</p>
+                <p class="text-xs text-slate-500 mt-2">All time</p>
+            </div>
+            <div class="stat-icon"><i class='bx bx-receipt'></i></div>
+        </div>
+    </div>
+    
+    <!-- Pending Orders -->
+    <div class="stat-card p-6 border-l-4 border-l-amber-500">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-slate-600 text-sm font-medium">Pending Orders</p>
+                <p class="text-4xl font-bold dashboard-number text-amber-600 mt-3">{{ metrics.pending_po }}</p>
+                <p class="text-xs text-slate-500 mt-2">Awaiting approval</p>
+            </div>
+            <div class="stat-icon"><i class='bx bx-time'></i></div>
+        </div>
+    </div>
+    
+    <!-- Approved Orders -->
+    <div class="stat-card p-6 border-l-4 border-l-green-500">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-slate-600 text-sm font-medium">Approved Orders</p>
+                <p class="text-4xl font-bold dashboard-number text-green-600 mt-3">{{ metrics.approved_po }}</p>
+                <p class="text-xs text-slate-500 mt-2">Ready to process</p>
+            </div>
+            <div class="stat-icon"><i class='bx bx-check-circle'></i></div>
+        </div>
+    </div>
+    
+    <!-- Completed Orders -->
+    <div class="stat-card p-6 border-l-4 border-l-blue-500">
+        <div class="flex items-start justify-between">
+            <div>
+                <p class="text-slate-600 text-sm font-medium">Completed Orders</p>
+                <p class="text-4xl font-bold dashboard-number text-blue-600 mt-3">{{ metrics.completed_po }}</p>
+                <p class="text-xs text-slate-500 mt-2">Finished</p>
+            </div>
+            <div class="stat-icon"><i class='bx bx-check-double'></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- Vendor & Status Analytics -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Vendor Summary -->
+    <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-slate-900">Vendor Summary</h3>
+            <i class='bx bx-group text-2xl text-blue-500'></i>
+        </div>
+        <div class="space-y-4">
+            <div class="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span class="text-slate-700 font-medium">Total Vendors</span>
+                <span class="text-2xl font-bold dashboard-number text-slate-900">{{ metrics.total_vendors }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <span class="text-slate-700 font-medium">Active Vendors</span>
+                <span class="text-2xl font-bold dashboard-number text-green-600">{{ metrics.active_vendors }}</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200 mt-2 pt-4 border-t">
+                <span class="text-slate-700 font-medium">Avg PO Value</span>
+                <span class="text-2xl font-bold dashboard-number text-blue-600">₦{{ "{:,.0f}".format(metrics.avg_po_value) }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Distribution -->
+    <div class="rounded-xl bg-white shadow-sm border border-slate-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-bold text-slate-900">Order Status Distribution</h3>
+            <i class='bx bx-bar-chart-alt-2 text-2xl text-purple-500'></i>
+        </div>
+        <div class="space-y-4">
+            <!-- Pending -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-slate-700">Pending</span>
+                    <span class="text-sm font-bold text-amber-600">{{ "%.1f"|format(metrics.pending_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                    <div class="bg-gradient-to-r from-amber-400 to-amber-500 h-3 rounded-full shadow-sm" style="width: {{ (metrics.pending_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%"></div>
+                </div>
+            </div>
+            <!-- Approved -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-slate-700">Approved</span>
+                    <span class="text-sm font-bold text-green-600">{{ "%.1f"|format(metrics.approved_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                    <div class="bg-gradient-to-r from-green-400 to-green-500 h-3 rounded-full shadow-sm" style="width: {{ (metrics.approved_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%"></div>
+                </div>
+            </div>
+            <!-- Completed -->
+            <div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-slate-700">Completed</span>
+                    <span class="text-sm font-bold text-blue-600">{{ "%.1f"|format(metrics.completed_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                    <div class="bg-gradient-to-r from-blue-400 to-blue-500 h-3 rounded-full shadow-sm" style="width: {{ (metrics.completed_po / metrics.total_po * 100) if metrics.total_po > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders Table -->
+<div class="rounded-xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+    <div class="p-6 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <i class='bx bx-receipt text-2xl text-blue-500'></i>
+            <h3 class="text-lg font-bold text-slate-900">Recent Purchase Orders</h3>
+        </div>
+        <a href="{{ url_for('procurement.purchases') }}" class="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">View All →</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Order ID</th>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Vendor</th>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Amount</th>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Status</th>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Date</th>
+                    <th class="text-left py-3 px-6 font-semibold text-slate-700">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% if metrics.recent_po %}
+                    {% for po in metrics.recent_po %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="py-4 px-6 font-medium text-slate-900">#{{ po.id }}</td>
+                        <td class="py-4 px-6 text-slate-700">
+                            {% if po.vendor %}
+                                <a href="{{ url_for('procurement.view_vendor', vendor_id=po.vendor_id) }}" class="text-blue-600 hover:text-blue-700 font-medium">{{ po.vendor.name }}</a>
+                            {% else %}
+                                <span class="text-slate-500">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-4 px-6 font-semibold text-slate-900">₦{{ "{:,.2f}".format(po.total_amount or 0) }}</td>
+                        <td class="py-4 px-6">
+                            <span class="inline-flex items-center space-x-1 px-3 py-1 text-xs font-semibold rounded-full
+                                {% if po.approval_state.name == 'PENDING' %}bg-amber-100 text-amber-800
+                                {% elif po.approval_state.name == 'APPROVED' %}bg-green-100 text-green-800
+                                {% elif po.approval_state.name == 'DRAFT' %}bg-slate-100 text-slate-800
+                                {% else %}bg-slate-100 text-slate-800{% endif %}">
+                                <i class='bx bx-circle-full text-xs'></i>
+                                <span>{{ po.approval_state.name }}</span>
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-slate-600">
+                            {{ po.created_at.strftime('%b %d, %Y') if po.created_at else 'N/A' }}
+                        </td>
+                        <td class="py-4 px-6">
+                            <a href="{{ url_for('procurement.view_purchase_order', po_id=po.id) }}" class="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium">
+                                <span>View</span>
+                                <i class='bx bx-chevron-right'></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="py-12 px-6 text-center text-slate-500">
+                            <i class='bx bx-inbox text-4xl text-slate-300 mx-auto block mb-2'></i>
+                            <p class="font-medium">No orders found</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="rounded-xl bg-white shadow-sm border border-slate-200 p-6 mt-8">
+    <h3 class="text-lg font-bold text-slate-900 mb-4">Quick Actions</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <a href="{{ url_for('hr.leave_management') }}" class="block bg-emerald-50 hover:bg-emerald-100 p-4 rounded-lg border border-emerald-200 transition">
+            <div class="font-semibold text-emerald-900">Leave Request</div>
+            <div class="text-xs text-emerald-700 mt-1">Submit and track leave</div>
+        </a>
+        <a href="{{ url_for('main.account_settings') }}" class="block bg-slate-50 hover:bg-slate-100 p-4 rounded-lg border border-slate-200 transition">
+            <div class="font-semibold text-slate-900">Account Settings</div>
+            <div class="text-xs text-slate-700 mt-1">Update email and password</div>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+

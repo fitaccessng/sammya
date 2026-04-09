@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Payroll Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+            <div class="py-6">
+                <h1 class="text-3xl font-bold text-gray-900">My Payroll</h1>
+                <p class="text-sm text-gray-600 mt-1">View your pay stubs, salary information, and payroll history</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8">
+        <!-- Latest Pay Stub Alert -->
+        {% if latest_record %}
+        <div class="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-lg font-semibold text-blue-900">Latest Pay Stub</h3>
+                    <p class="text-sm text-blue-700 mt-1">Period: {{ latest_record.payroll_period }}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-3xl font-bold text-blue-600">₦{{ "{:,.0f}".format(latest_record.net_salary) }}</p>
+                    <p class="text-sm text-blue-700">Net Salary</p>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-3">
+                <a href="{{ url_for('employee_payroll.view_pay_stub', record_id=latest_record.id) }}" 
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+                    View Details
+                </a>
+                <a href="{{ url_for('employee_payroll.download_pay_stub', record_id=latest_record.id) }}" 
+                   class="border border-blue-600 text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium transition">
+                    📥 Download PDF
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- YTD Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-gray-600 text-sm font-medium uppercase">YTD Gross</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">₦{{ "{:,.0f}".format(ytd_summary.gross) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-gray-600 text-sm font-medium uppercase">YTD Deductions</p>
+                <p class="text-3xl font-bold text-red-600 mt-2">₦{{ "{:,.0f}".format(ytd_summary.deductions) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <p class="text-gray-600 text-sm font-medium uppercase">YTD Tax</p>
+                <p class="text-3xl font-bold text-orange-600 mt-2">₦{{ "{:,.0f}".format(ytd_summary.tax) }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6 border-2 border-blue-200">
+                <p class="text-gray-600 text-sm font-medium uppercase">YTD Net</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2">₦{{ "{:,.0f}".format(ytd_summary.net) }}</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Recent Pay Stubs -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-900">Recent Pay Stubs</h3>
+                        <a href="{{ url_for('employee_payroll.pay_stubs') }}" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                            View All
+                        </a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Basic</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gross</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+                                {% for record in recent_records[:6] %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ record.payroll_period }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₦{{ "{:,.0f}".format(record.basic_salary) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">₦{{ "{:,.0f}".format(record.gross_salary) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">₦{{ "{:,.0f}".format(record.total_deductions) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">₦{{ "{:,.0f}".format(record.net_salary) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        <a href="{{ url_for('employee_payroll.view_pay_stub', record_id=record.id) }}" 
+                                           class="text-blue-600 hover:text-blue-700">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Links</h3>
+                    <div class="space-y-3">
+                        <a href="{{ url_for('employee_payroll.view_salary') }}" 
+                           class="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
+                            View Salary
+                        </a>
+                        <a href="{{ url_for('employee_payroll.payroll_history') }}" 
+                           class="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
+                            Payroll History
+                        </a>
+                        <a href="{{ url_for('employee_payroll.tax_summary') }}" 
+                           class="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
+                            Tax Summary
+                        </a>
+                        <a href="{{ url_for('employee_payroll.deductions_breakdown') }}" 
+                           class="block w-full text-center border border-gray-300 hover:bg-gray-50 text-gray-700 py-2 rounded-lg text-sm font-medium transition">
+                            Deductions
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Current Salary Info -->
+                {% if has_salary_mapping %}
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Current Salary</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <p class="text-gray-600">Basic</p>
+                            <p class="font-medium">₦{{ "{:,.0f}".format(current_mapping.basic_salary) }}</p>
+                        </div>
+                        <div class="flex justify-between text-sm border-t pt-2">
+                            <p class="text-gray-600">Gross</p>
+                            <p class="font-medium">₦{{ "{:,.0f}".format(current_mapping.basic_salary + current_mapping.house_allowance + current_mapping.transport_allowance) }}</p>
+                        </div>
+                        <a href="{{ url_for('employee_payroll.view_salary') }}" 
+                           class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                            View Full Details →
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <p class="text-sm text-yellow-800">
+                        ⚠️ Your salary mapping has not been configured yet. Contact HR for assistance.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

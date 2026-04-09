@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Payment Request{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Create Payment Request</h1>
+    
+    <form method="POST" class="bg-white rounded-lg shadow p-6 space-y-4">
+        <div>
+            <label for="invoice_number" class="block text-sm font-medium">Invoice Number</label>
+            <input type="text" id="invoice_number" name="invoice_number" required class="mt-1 form-input">
+        </div>
+        
+        <div>
+            <label for="invoice_amount" class="block text-sm font-medium">Invoice Amount</label>
+            <input type="number" id="invoice_amount" name="invoice_amount" step="0.01" required class="mt-1 form-input">
+        </div>
+        
+        <div class="flex gap-4 pt-6 border-t">
+            <button type="submit" class="btn-primary">Create Payment Request</button>
+            <a href="{{ url_for('finance.list_payments') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

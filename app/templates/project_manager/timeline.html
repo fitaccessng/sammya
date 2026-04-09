@@ -1,0 +1,180 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Project Timeline & Milestones{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Milestones</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Project Timeline</h1>
+        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2" onclick="openAddMilestoneModal()">
+            <i class="fas fa-plus"></i>
+            <span>Add Milestone</span>
+        </button>
+    </div>
+
+    <!-- Milestone Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Milestones</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ milestone_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Completed</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ milestone_stats.completed }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">In Progress</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ milestone_stats.in_progress }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Completion</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">{{ milestone_stats.completion_percentage }}%</p>
+        </div>
+    </div>
+
+    <!-- Milestones Timeline -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if project_milestones %}
+        <div class="divide-y divide-gray-200">
+            {% for milestone in project_milestones %}
+            <div class="p-6 hover:bg-gray-50 transition border-l-4 {% if milestone.status == 'completed' %}border-green-500{% elif milestone.status == 'in_progress' %}border-blue-500{% else %}border-gray-300{% endif %}">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-gray-900">{{ milestone.name }}</h3>
+                        <p class="text-gray-600 mt-1">{{ milestone.description }}</p>
+                    </div>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold {% if milestone.status == 'completed' %}bg-green-100 text-green-800{% elif milestone.status == 'in_progress' %}bg-blue-100 text-blue-800{% elif milestone.status == 'delayed' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ milestone.status|upper }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4 text-sm my-4">
+                    <div>
+                        <p class="text-gray-600">Planned Start</p>
+                        <p class="font-bold text-gray-900">{{ milestone.planned_start_date.strftime('%d %b %Y') if milestone.planned_start_date else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600">Planned End</p>
+                        <p class="font-bold text-gray-900">{{ milestone.planned_end_date.strftime('%d %b %Y') if milestone.planned_end_date else 'N/A' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600">Completion</p>
+                        <p class="font-bold text-gray-900">{{ milestone.completion_percentage }}%</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-600">Deliverables</p>
+                        <p class="font-bold text-gray-900">{{ milestone.deliverables or 'None' }}</p>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ milestone.completion_percentage }}%"></div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="editMilestone({{ milestone.id }})" class="px-3 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-sm font-medium">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button onclick="deleteMilestone({{ project.id }}, {{ milestone.id }})" class="px-3 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-sm font-medium">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg mb-4">No milestones yet</p>
+            <button onclick="openAddMilestoneModal()" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Add First Milestone
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Milestone Modal -->
+<div id="addMilestoneModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Milestone</h2>
+        
+        <form method="POST" action="{{ url_for('project.add_milestone', project_id=project.id) }}" class="space-y-4">
+            <div>
+                <label for="name" class="block text-sm font-bold text-gray-900 mb-2">Milestone Name *</label>
+                <input type="text" id="name" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="description" class="block text-sm font-bold text-gray-900 mb-2">Description</label>
+                <textarea id="description" name="description" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="start_date" class="block text-sm font-bold text-gray-900 mb-2">Start Date *</label>
+                    <input type="date" id="start_date" name="start_date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="end_date" class="block text-sm font-bold text-gray-900 mb-2">End Date *</label>
+                    <input type="date" id="end_date" name="end_date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="deliverables" class="block text-sm font-bold text-gray-900 mb-2">Deliverables</label>
+                <input type="text" id="deliverables" name="deliverables" placeholder="e.g., Foundation completed, Walls erected" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="status" class="block text-sm font-bold text-gray-900 mb-2">Status</label>
+                <select id="status" name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="delayed">Delayed</option>
+                </select>
+            </div>
+
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Add Milestone
+                </button>
+                <button type="button" onclick="closeAddMilestoneModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddMilestoneModal() {
+    document.getElementById('addMilestoneModal').classList.remove('hidden');
+}
+
+function closeAddMilestoneModal() {
+    document.getElementById('addMilestoneModal').classList.add('hidden');
+}
+
+function deleteMilestone(projectId, milestoneId) {
+    if (!confirm('Delete this milestone?')) return;
+    fetch(`/projects/${projectId}/milestones/${milestoneId}/delete`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) window.location.reload();
+            else alert('Error: ' + d.message);
+        });
+}
+
+document.getElementById('addMilestoneModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddMilestoneModal();
+});
+</script>
+{% endblock %}

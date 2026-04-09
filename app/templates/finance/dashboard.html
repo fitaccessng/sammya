@@ -1,0 +1,167 @@
+{% extends "finance/base.html" %}
+
+{% block title %}Finance Dashboard - QuickBooks Style{% endblock %}
+
+{% block finance_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold text-gray-900">Finance Dashboard</h1>
+        <div class="space-x-2">
+            <a href="{{ url_for('finance.invoice') }}" class="btn-secondary">Invoices</a>
+            <a href="{{ url_for('finance.payment') }}" class="btn-primary">Payments</a>
+        </div>
+    </div>
+
+    <!-- Cash Summary (QuickBooks Style) -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-gradient-to-br from-green-500 to-green-700 text-white rounded-lg shadow-lg p-6">
+            <div class="text-sm font-semibold opacity-90">Cash Disbursed (YTD)</div>
+            <div class="text-3xl font-bold mt-2 dashboard-number">₦{{ "{:,.0f}".format(total_paid) }}</div>
+            <div class="text-xs opacity-75 mt-2">{{ processed_count }} payments processed</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-lg shadow-lg p-6">
+            <div class="text-sm font-semibold opacity-90">Approved Not Paid</div>
+            <div class="text-3xl font-bold mt-2 dashboard-number">₦{{ "{:,.0f}".format(approved_amount) }}</div>
+            <div class="text-xs opacity-75 mt-2">{{ approved_count }} invoices ready</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-lg shadow-lg p-6">
+            <div class="text-sm font-semibold opacity-90">Pending Approval</div>
+            <div class="text-3xl font-bold mt-2 dashboard-number">₦{{ "{:,.0f}".format(pending_amount) }}</div>
+            <div class="text-xs opacity-75 mt-2">{{ pending_count }} invoices in review</div>
+        </div>
+
+        <div class="bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-lg shadow-lg p-6">
+            <div class="text-sm font-semibold opacity-90">Total Committed</div>
+            <div class="text-3xl font-bold mt-2 dashboard-number">₦{{ "{:,.0f}".format(total_paid + approved_amount + pending_amount) }}</div>
+            <div class="text-xs opacity-75 mt-2">All outstanding payments</div>
+        </div>
+    </div>
+
+    <!-- Invoice Aging (Critical for Cash Management) -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Current (0-30 days)</div>
+            <div class="text-2xl font-bold text-green-700 mt-2 dashboard-number">{{ current_30 }}</div>
+            <div class="text-xs text-green-600 mt-1">On track</div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-yellow-500">
+            <div class="text-sm text-gray-600">31-60 Days</div>
+            <div class="text-2xl font-bold text-yellow-700 mt-2 dashboard-number">{{ overdue_30_60 }}</div>
+            <div class="text-xs text-yellow-600 mt-1">Monitor closely</div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+            <div class="text-sm text-gray-600">61-90 Days</div>
+            <div class="text-2xl font-bold text-orange-700 mt-2 dashboard-number">{{ overdue_60_90 }}</div>
+            <div class="text-xs text-orange-600 mt-1">Overdue</div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+            <div class="text-sm text-gray-600">Over 90 Days</div>
+            <div class="text-2xl font-bold text-red-700 mt-2 dashboard-number">{{ overdue_90 }}</div>
+            <div class="text-xs text-red-600 mt-1">Critical</div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions (Check Register Style) -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-900">Recent Transactions</h2>
+            <a href="{{ url_for('finance.list_payments') }}" class="text-blue-600 hover:text-blue-800 font-semibold text-sm">View All →</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900">Date</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900">Check #</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900">Payee</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900">PO</th>
+                        <th class="px-4 py-3 text-right font-semibold text-gray-900">Amount</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in recent_payments %}
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="px-4 py-3 text-gray-900">{{ payment.payment_date.strftime('%b %d, %Y') }}</td>
+                        <td class="px-4 py-3 font-semibold text-gray-900">{{ payment.reference_number if payment.reference_number else '-' }}</td>
+                        <td class="px-4 py-3 text-gray-900">
+                            {% if payment.payment_request and payment.payment_request.purchase_order and payment.payment_request.purchase_order.vendor %}
+                                {{ payment.payment_request.purchase_order.vendor.name }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-600">
+                            {% if payment.payment_request and payment.payment_request.purchase_order %}
+                                PO-{{ payment.payment_request.purchase_order.id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right font-semibold text-green-700">₦{{ "{:,.2f}".format(payment.amount_paid or 0) }}</td>
+                        <td class="px-4 py-3">
+                            <span class="approval-badge bg-green-100 text-green-800">CLEARED</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top Vendors by Spend -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Top Vendors by Spend</h2>
+        <div class="space-y-3">
+            {% for vendor_name, amount in top_vendors %}
+            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                <div class="font-semibold text-gray-900">{{ vendor_name }}</div>
+                <div class="text-right">
+                    <div class="font-bold text-gray-900 dashboard-number">₦{{ "{:,.0f}".format(amount) }}</div>
+                    <div class="text-xs text-gray-600">{{ (amount / total_paid * 100) if total_paid > 0 else 0 | round(1) }}% of total</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            <a href="{{ url_for('finance.invoice') }}" class="block bg-blue-50 hover:bg-blue-100 p-4 rounded-lg border border-blue-200 transition">
+                <div class="font-semibold text-blue-900">📄 View Invoices</div>
+                <div class="text-xs text-blue-700 mt-1">All payment requests</div>
+            </a>
+            <a href="{{ url_for('finance.list_payments') }}" class="block bg-green-50 hover:bg-green-100 p-4 rounded-lg border border-green-200 transition">
+                <div class="font-semibold text-green-900">✓ Check Register</div>
+                <div class="text-xs text-green-700 mt-1">Cleared payments</div>
+            </a>
+            <a href="{{ url_for('finance.list_payments') }}" class="block bg-purple-50 hover:bg-purple-100 p-4 rounded-lg border border-purple-200 transition">
+                <div class="font-semibold text-purple-900">📊 Financial Reports</div>
+                <div class="text-xs text-purple-700 mt-1">Income & balance</div>
+            </a>
+            <a href="{{ url_for('finance.list_payments') }}" class="block bg-orange-50 hover:bg-orange-100 p-4 rounded-lg border border-orange-200 transition">
+                <div class="font-semibold text-orange-900">📈 Cash Flow</div>
+                <div class="text-xs text-orange-700 mt-1">Last 30 days</div>
+            </a>
+            <a href="{{ url_for('hr.leave_management') }}" class="block bg-emerald-50 hover:bg-emerald-100 p-4 rounded-lg border border-emerald-200 transition">
+                <div class="font-semibold text-emerald-900">Leave Request</div>
+                <div class="text-xs text-emerald-700 mt-1">Submit and track leave</div>
+            </a>
+            <a href="{{ url_for('main.account_settings') }}" class="block bg-slate-50 hover:bg-slate-100 p-4 rounded-lg border border-slate-200 transition">
+                <div class="font-semibold text-slate-900">Account Settings</div>
+                <div class="text-xs text-slate-700 mt-1">Update email and password</div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

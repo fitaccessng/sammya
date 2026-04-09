@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Material Request #{{ pr.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <h1 class="text-3xl font-bold mb-4">Material Request #{{ pr.id }}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <p class="text-sm text-slate-600">Status</p>
+                <span class="approval-badge pending">{{ pr.approval_state.value.upper() }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">Total Value</p>
+                <p class="font-semibold">${{ "%.2f"|format(pr.total_value or 0) }}</p>
+            </div>
+        </div>
+        
+        <h3 class="font-semibold mb-2">Description</h3>
+        <p class="text-slate-700 mb-6">{{ pr.description }}</p>
+        
+        <h3 class="font-semibold mb-4">Items</h3>
+        <table class="status-table w-full">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Unit</th>
+                    <th>Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in pr.items %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.quantity }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Approval History -->
+    {% if history %}
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Approval History</h3>
+        <div class="space-y-3">
+            {% for log in history %}
+            <div class="border-l-4 border-slate-300 pl-4 py-2">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-medium">{{ log.actor.name }}</p>
+                        <p class="text-sm text-slate-600">{{ log.action.upper() }}</p>
+                    </div>
+                    <span class="text-xs text-slate-500">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                </div>
+                {% if log.comment %}
+                <p class="text-sm text-slate-600 mt-2">{{ log.comment }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

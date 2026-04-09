@@ -1,0 +1,78 @@
+{% extends "finance/base.html" %}
+
+{% block title %}Finance Dashboard - QuickBooks Style{% endblock %}
+
+{% block finance_content %}
+<h1 class="text-3xl font-bold mb-6">Finance - Payments</h1>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-2">Pending Verification</h3>
+        <p class="text-3xl font-bold text-amber-600">{{ pending|length }}</p>
+    </div>
+    <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-lg font-semibold mb-2">Approved</h3>
+        <p class="text-3xl font-bold text-green-600">{{ approved|length }}</p>
+    </div>
+</div>
+
+<div class="space-y-6">
+    {% if pending %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h2 class="text-xl font-semibold">Pending Verification</h2>
+        </div>
+        <div class="p-6">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        <th class="text-left py-2 px-4">Invoice #</th>
+                        <th class="text-left py-2 px-4">Amount</th>
+                        <th class="text-left py-2 px-4">Status</th>
+                        <th class="text-left py-2 px-4">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in pending %}
+                    <tr class="border-b border-slate-100">
+                        <td class="py-3 px-4">{{ payment.invoice_number|default('N/A', true) }}</td>
+                        <td class="py-3 px-4">₦{{ "{:.2f}".format(payment.invoice_amount|float) }}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded-md bg-amber-100 text-amber-800">DRAFT</span></td>
+                        <td class="py-3 px-4"><a href="{{ url_for('finance.view_payment_request', payment_id=payment.id) }}" class="text-blue-600 hover:underline">View</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if approved %}
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h2 class="text-xl font-semibold">Approved</h2>
+        </div>
+        <div class="p-6">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-slate-200">
+                        <th class="text-left py-2 px-4">Invoice #</th>
+                        <th class="text-left py-2 px-4">Amount</th>
+                        <th class="text-left py-2 px-4">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in approved %}
+                    <tr class="border-b border-slate-100">
+                        <td class="py-3 px-4">{{ payment.invoice_number|default('N/A', true) }}</td>
+                        <td class="py-3 px-4">₦{{ "{:.2f}".format(payment.invoice_amount|float) }}</td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded-md bg-green-100 text-green-800">APPROVED</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

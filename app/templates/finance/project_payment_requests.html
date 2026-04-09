@@ -1,0 +1,43 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="py-6 bg-white rounded-lg shadow p-6">
+    <h2 class="text-xl font-bold mb-4">Project Payment Requests</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full border border-gray-300">
+            <thead class="bg-gray-100"><tr><th class="border px-3 py-2">Project</th><th class="border px-3 py-2">Title</th><th class="border px-3 py-2 text-right">Amount</th><th class="border px-3 py-2">Requested By</th><th class="border px-3 py-2">Status</th><th class="border px-3 py-2">Actions</th></tr></thead>
+            <tbody>
+                {% for r in requests %}
+                <tr>
+                    <td class="border px-3 py-2">{{ r.project.name if r.project else '-' }}</td>
+                    <td class="border px-3 py-2">{{ r.title }}</td>
+                    <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(r.amount or 0) }}</td>
+                    <td class="border px-3 py-2">{{ r.requester.name if r.requester else '-' }}</td>
+                    <td class="border px-3 py-2">
+                        {% if r.approval_state == 'approved' %}
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Approved</span>
+                        {% elif r.approval_state == 'rejected' %}
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800">Rejected</span>
+                        {% else %}
+                        <span class="px-2 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="border px-3 py-2">
+                        {% if r.approval_state == 'pending' %}
+                        <form method="POST" action="{{ url_for('finance.approve_project_payment_request', request_id=r.id) }}" class="inline"><button class="px-2 py-1 bg-green-600 text-white rounded text-xs">Approve</button></form>
+                        <form method="POST" action="{{ url_for('finance.reject_project_payment_request', request_id=r.id) }}" class="inline"><input type="hidden" name="reason" value="Rejected by Finance"><button class="px-2 py-1 bg-red-600 text-white rounded text-xs">Reject</button></form>
+                        {% else %}
+                        <span class="text-gray-400 text-xs">Processed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td class="border px-3 py-6 text-center text-gray-500" colspan="6">No project payment requests.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+

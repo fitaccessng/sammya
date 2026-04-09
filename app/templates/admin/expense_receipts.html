@@ -1,0 +1,251 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Expense Receipts{% endblock %}
+{% block page_title %}Expense Receipts & Documentation{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-receipt"></i> Expense Receipts</h1>
+            <p class="text-slate-600 mt-1">Manage and verify all expense receipts and supporting documentation</p>
+        </div>
+        <a href="{{ url_for('admin.finance_activities') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Receipts</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ total_receipts }}</div>
+            <div class="text-xs text-slate-500 mt-1">All receipts recorded</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Amount</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_amount|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Combined receipt value</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ approved_count }}</div>
+            <div class="text-xs text-slate-500 mt-1">Verified receipts</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Pending</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_count }}</div>
+            <div class="text-xs text-slate-500 mt-1">Awaiting review</div>
+        </div>
+    </div>
+
+    <!-- Status Overview -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Approved Receipts -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-green-500">
+            <h3 class="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-check-circle text-green-600"></i> Approved
+            </h3>
+            <div class="text-4xl font-bold text-green-600">{{ approved_count }}</div>
+            <p class="text-sm text-slate-600 mt-2">Verified and approved</p>
+            <div class="mt-4">
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div class="bg-green-500 h-2 rounded-full" style="width: {{ (approved_count / total_receipts * 100) if total_receipts > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Review -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-amber-500">
+            <h3 class="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-hourglass-half text-amber-600"></i> Pending
+            </h3>
+            <div class="text-4xl font-bold text-amber-600">{{ pending_count }}</div>
+            <p class="text-sm text-slate-600 mt-2">Awaiting verification</p>
+            <div class="mt-4">
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div class="bg-amber-500 h-2 rounded-full" style="width: {{ (pending_count / total_receipts * 100) if total_receipts > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rejected -->
+        <div class="bg-white rounded-lg shadow p-6 border-t-4 border-red-500">
+            <h3 class="text-lg font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-times-circle text-red-600"></i> Rejected
+            </h3>
+            <div class="text-4xl font-bold text-red-600">{{ rejected_count }}</div>
+            <p class="text-sm text-slate-600 mt-2">Requires resubmission</p>
+            <div class="mt-4">
+                <div class="w-full bg-slate-200 rounded-full h-2">
+                    <div class="bg-red-500 h-2 rounded-full" style="width: {{ (rejected_count / total_receipts * 100) if total_receipts > 0 else 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Breakdown -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-tags text-slate-600"></i> Receipts by Category
+        </h2>
+        {% if categories %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for category, count in categories %}
+            <div class="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <h3 class="font-semibold text-slate-900 mb-2">{{ category }}</h3>
+                <div class="flex items-center justify-between">
+                    <span class="text-2xl font-bold text-slate-900">{{ count }}</span>
+                    <span class="text-xs text-slate-600">receipt{{ 's' if count != 1 else '' }}</span>
+                </div>
+                <p class="text-sm text-slate-600 mt-2">
+                    {{ "%.1f"|format((count / total_receipts * 100) if total_receipts > 0 else 0) }}% of total
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-slate-600 text-center py-8">No categories found</p>
+        {% endif %}
+    </div>
+
+    <!-- All Receipts Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-list text-slate-600"></i> All Expense Receipts ({{ receipts|length }})
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Category</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if receipts %}
+                        {% for receipt in receipts[:50] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">{{ receipt.description[:35] or 'Receipt ' + receipt.id|string }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ receipt.category }}</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-right font-semibold text-slate-900">₦{{ "{:,.2f}".format(receipt.amount) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ receipt.date.strftime('%b %d, %Y') if receipt.date else 'N/A' }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">
+                                {% if receipt.project %}
+                                {{ receipt.project.name[:20] }}
+                                {% else %}
+                                <span class="text-slate-400">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                {% if receipt.status == 'approved' %}
+                                <span class="inline-block px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Approved</span>
+                                {% elif receipt.status == 'pending' %}
+                                <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                                {% elif receipt.status == 'rejected' %}
+                                <span class="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded">Rejected</span>
+                                {% else %}
+                                <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ receipt.status|title }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <div class="flex items-center gap-2">
+                                    <button title="View Receipt" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% if receipt.status == 'pending' %}
+                                    <form method="POST" action="{{ url_for('admin.approve_expense', expense_id=receipt.id) }}" style="display:inline;">
+                                        <button type="submit" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-xs font-semibold" title="Approve" onclick="return confirm('Approve this receipt?');">
+                                            <i class="fas fa-check"></i> Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('admin.reject_expense', expense_id=receipt.id) }}" style="display:inline;">
+                                        <button type="submit" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-xs font-semibold" title="Reject" onclick="return confirm('Reject this receipt?');">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-600">No receipts recorded</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Receipt Documentation Guidelines -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-blue-50 rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-info-circle text-blue-600"></i> Receipt Requirements
+            </h3>
+            <ul class="space-y-2 text-sm text-slate-700">
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold mt-0.5">✓</span>
+                    <span>Original receipt or invoice copy</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold mt-0.5">✓</span>
+                    <span>Clear vendor name and amount</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold mt-0.5">✓</span>
+                    <span>Transaction date clearly visible</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold mt-0.5">✓</span>
+                    <span>Proper category classification</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold mt-0.5">✓</span>
+                    <span>Project reference if applicable</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-amber-50 rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-amber-600"></i> Common Issues
+            </h3>
+            <ul class="space-y-2 text-sm text-slate-700">
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold mt-0.5">!</span>
+                    <span>Illegible or faded receipts rejected</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold mt-0.5">!</span>
+                    <span>Missing vendor information</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold mt-0.5">!</span>
+                    <span>Incorrect category assignment</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold mt-0.5">!</span>
+                    <span>Amount mismatch with invoice</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold mt-0.5">!</span>
+                    <span>Missing supporting documents</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

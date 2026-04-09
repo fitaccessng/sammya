@@ -1,0 +1,50 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}PO Approvals{% endblock %}
+{% block page_subtitle %}Procurement purchase orders awaiting cost control approval{% endblock %}
+
+{% block main_content %}
+<div class="card border-secondary">
+    <div class="card-body">
+        <h5 class="fw-bold mb-3">Pending Purchase Orders</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>PO Number</th>
+                        <th>Project</th>
+                        <th>Vendor</th>
+                        <th class="text-end">Amount</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for po in pending_pos %}
+                    <tr>
+                        <td>{{ po.po_number or ('PO-' ~ po.id) }}</td>
+                        <td>{{ po.project.name if po.project else '-' }}</td>
+                        <td>{{ po.vendor.name if po.vendor else '-' }}</td>
+                        <td class="text-end">&#8358;{{ "{:,.2f}".format(po.total_amount or 0) }}</td>
+                        <td><span class="badge bg-warning text-dark">Pending</span></td>
+                        <td>{{ po.created_at.strftime('%Y-%m-%d') if po.created_at else '-' }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('cost_control.approve_po_for_finance', po_id=po.id) }}">
+                                <button type="submit" class="btn btn-sm btn-success">Approve and Send to Finance</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No purchase orders pending cost control approval.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

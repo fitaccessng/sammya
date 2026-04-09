@@ -1,0 +1,132 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Project Analytics - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Analytics</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Project Analytics</h1>
+        <div class="space-x-2">
+            <!-- Export functionality coming soon -->
+            {# <a href="{{ url_for('project.analytics_export_pdf', project_id=project.id) }}" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 inline-flex items-center space-x-2">
+                <i class="fas fa-file-pdf"></i>
+                <span>Export PDF</span>
+            </a>
+            <a href="{{ url_for('project.analytics_export_excel', project_id=project.id) }}" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 inline-flex items-center space-x-2">
+                <i class="fas fa-file-excel"></i>
+                <span>Export Excel</span>
+            </a> #}
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Project Health</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ health.overall_health }}%</p>
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div class="bg-green-600 h-2 rounded-full" style="width: {{ health.overall_health }}%"></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Schedule Performance</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ evm.schedule_performance }}%</p>
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ evm.schedule_performance }}%"></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Cost Performance</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2">{{ evm.cost_performance }}%</p>
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                <div class="bg-purple-600 h-2 rounded-full" style="width: {{ evm.cost_performance }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Schedule Analytics -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Schedule Analytics</h2>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Total Milestones</p>
+                    <p class="font-bold text-gray-900">{{ evm.total_milestones }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Completed</p>
+                    <p class="font-bold text-green-600">{{ evm.completed_milestones }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">In Progress</p>
+                    <p class="font-bold text-blue-600">{{ evm.in_progress_milestones }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Delayed</p>
+                    <p class="font-bold text-red-600">{{ evm.delayed_milestones }}</p>
+                </div>
+                <hr class="my-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Completion %</p>
+                    <p class="font-bold text-gray-900">{{ evm.completion_percentage }}%</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Analytics -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-6">Budget Analytics</h2>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Total Budget</p>
+                    <p class="font-bold text-gray-900">₦{{ "{:,.0f}".format(evm.total_budget) }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Spent</p>
+                    <p class="font-bold text-orange-600">₦{{ "{:,.0f}".format(evm.spent_amount) }}</p>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Remaining</p>
+                    <p class="font-bold text-green-600">₦{{ "{:,.0f}".format(evm.remaining_amount) }}</p>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2 my-4">
+                    <div class="bg-orange-600 h-2 rounded-full" style="width: {{ evm.budget_utilization }}%"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <p class="text-gray-600">Utilization</p>
+                    <p class="font-bold text-gray-900">{{ evm.budget_utilization }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resource Analytics -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-6">Resource Analytics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div>
+                <p class="text-gray-600 text-sm">Team Members</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ evm.total_team_members }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Materials Used</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ evm.materials_count }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Equipment</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ evm.equipment_count }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600 text-sm">Documents</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2">{{ evm.document_count }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

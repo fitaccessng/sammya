@@ -1,0 +1,186 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 p-4 rounded-lg {% if category == 'success' %}bg-green-100 text-green-800{% elif category == 'error' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Purchase Order Approvals</h1>
+        <p class="text-gray-600">Review and approve pending purchase orders</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border-l-4 border-purple-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Pending POs</p>
+            <p class="text-3xl font-bold text-purple-700">{{ total_pending_count }}</p>
+            <p class="text-sm text-gray-600 mt-2">Amount: ₦{{ "%.2f"|format(total_pending) }}</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border-l-4 border-green-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Approved POs</p>
+            <p class="text-3xl font-bold text-green-700">{{ total_approved_count }}</p>
+            <p class="text-sm text-gray-600 mt-2">Amount: ₦{{ "%.2f"|format(total_approved) }}</p>
+        </div>
+        
+        <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow p-6 border-l-4 border-indigo-600">
+            <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Total Value</p>
+            <p class="text-3xl font-bold text-indigo-700">₦{{ "%.2f"|format(total_pending + total_approved) }}</p>
+            <p class="text-sm text-gray-600 mt-2">All POs</p>
+        </div>
+    </div>
+
+    <!-- Purchase Orders Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">PO #</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Vendor</th>
+                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Created By</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% if purchase_orders.items %}
+                        {% for po in purchase_orders.items %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                <a href="#" class="text-blue-600 hover:text-blue-800">{{ po.po_number }}</a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ po.vendor or 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900">
+                                ₦{{ "%.2f"|format(po.total_amount or 0) }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                {{ po.created_at.strftime('%d %b %Y') if po.created_at else 'N/A' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                {{ po.created_by_user.username if po.created_by_user else 'Unknown' }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                {% if po.approval_state == 'PENDING' %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                {% elif po.approval_state == 'APPROVED' %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Approved</span>
+                                {% else %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">{{ po.approval_state }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                {% if po.approval_state == 'PENDING' %}
+                                    <form method="POST" action="{{ url_for('finance.approve_purchase_order', po_id=po.id) }}" style="display: inline;">
+                                        <button type="submit" class="inline-block px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">
+                                            Approve
+                                        </button>
+                                    </form>
+                                    <button type="button" class="inline-block px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 transition-colors" onclick="openRejectModal({{ po.id }})">
+                                        Reject
+                                    </button>
+                                {% else %}
+                                    <span class="text-gray-500 text-xs">{{ po.approval_state }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500 text-sm">
+                            <p class="font-semibold">No pending purchase orders</p>
+                            <p class="text-xs mt-1">All purchase orders have been processed.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if purchase_orders.pages > 1 %}
+        <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+            <div class="text-sm text-gray-600">
+                Page <span class="font-semibold">{{ purchase_orders.page }}</span> of <span class="font-semibold">{{ purchase_orders.pages }}</span> 
+                ({{ purchase_orders.total }} records)
+            </div>
+            <div class="space-x-2">
+                {% if purchase_orders.has_prev %}
+                <a href="{{ url_for('finance.purchase_order_approval', page=purchase_orders.prev_num) }}" 
+                   class="inline-block px-4 py-2 bg-gray-300 text-gray-800 rounded text-sm hover:bg-gray-400 transition-colors">
+                    ← Previous
+                </a>
+                {% endif %}
+                {% if purchase_orders.has_next %}
+                <a href="{{ url_for('finance.purchase_order_approval', page=purchase_orders.next_num) }}" 
+                   class="inline-block px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+                    Next →
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md mx-4">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Reject Purchase Order</h2>
+        <form id="rejectForm" method="POST">
+            <div class="mb-4">
+                <label for="rejection_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                    Reason for Rejection <span class="text-red-600">*</span>
+                </label>
+                <textarea id="rejection_reason" name="rejection_reason" rows="3" 
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Please provide a reason for rejecting this purchase order..."
+                          required></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeRejectModal()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
+                    Reject
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRejectModal(poId) {
+    const form = document.getElementById('rejectForm');
+    form.action = `/finance/purchase-order-approval/${poId}/reject`;
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+    document.getElementById('rejection_reason').value = '';
+}
+
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRejectModal();
+    }
+});
+</script>
+
+{% endblock %}

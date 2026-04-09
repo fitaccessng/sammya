@@ -1,0 +1,223 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Staff Queries{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Staff Queries</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Staff Queries</h2>
+            <p class="text-muted">Manage employee complaints and queries</p>
+        </div>
+        <a href="{{ url_for('hr.create_query') }}" class="btn btn-primary">
+            <i class='bx bxs-plus-circle'></i> New Query
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h4>{{ data.total_queries or 0 }}</h4>
+                <p>Total Queries</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card orange">
+                <h4>{{ data.open_queries or 0 }}</h4>
+                <p>Open</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card yellow">
+                <h4>{{ data.in_progress_queries or 0 }}</h4>
+                <p>In Progress</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card green">
+                <h4>{{ data.resolved_queries or 0 }}</h4>
+                <p>Resolved</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                All Queries
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="open-tab" data-bs-toggle="tab" data-bs-target="#open" type="button" role="tab">
+                Open <span class="badge bg-warning ms-2">{{ data.open_queries or 0 }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="progress-tab" data-bs-toggle="tab" data-bs-target="#progress" type="button" role="tab">
+                In Progress
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="resolved-tab" data-bs-toggle="tab" data-bs-target="#resolved" type="button" role="tab">
+                Resolved
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- All Queries -->
+        <div class="tab-pane fade show active" id="all" role="tabpanel">
+            <div class="row">
+                {% if data.all_queries %}
+                    {% for query in data.all_queries %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="card-title mb-0">{{ query.title }}</h6>
+                                        <span class="badge bg-{% if query.status == 'Open' %}warning{% elif query.status == 'In Progress' %}info{% elif query.status == 'Resolved' %}success{% else %}secondary{% endif %}">
+                                            {{ query.status }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <p class="card-text small">{{ query.description[:100] }}{% if query.description|length > 100 %}...{% endif %}</p>
+                                    <table class="table table-borderless small mb-0">
+                                        <tr>
+                                            <td class="text-muted">Employee:</td>
+                                            <td><strong>{{ query.employee_name }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Category:</td>
+                                            <td>{{ query.category }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Date:</td>
+                                            <td>{{ query.created_date }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Priority:</td>
+                                            <td>
+                                                <span class="badge bg-{% if query.priority == 'High' %}danger{% elif query.priority == 'Medium' %}warning{% else %}info{% endif %}">
+                                                    {{ query.priority }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="{{ url_for('hr.query_detail', query_id=query.id) }}" class="btn btn-sm btn-primary">
+                                        <i class='bx bxs-show'></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No queries found</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Open Queries -->
+        <div class="tab-pane fade" id="open" role="tabpanel">
+            <div class="row">
+                {% if data.open_queries_list %}
+                    {% for query in data.open_queries_list %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-warning bg-opacity-10">
+                                    <h6 class="card-title mb-0">{{ query.title }}</h6>
+                                </div>
+                                <div class="card-body small">
+                                    <p class="mb-2">{{ query.description[:80] }}...</p>
+                                    <p class="mb-0"><strong>From:</strong> {{ query.employee_name }}</p>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="{{ url_for('hr.query_detail', query_id=query.id) }}" class="btn btn-sm btn-primary">
+                                        Review
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No open queries</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- In Progress -->
+        <div class="tab-pane fade" id="progress" role="tabpanel">
+            <div class="row">
+                {% if data.in_progress_queries_list %}
+                    {% for query in data.in_progress_queries_list %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-info bg-opacity-10">
+                                    <h6 class="card-title mb-0">{{ query.title }}</h6>
+                                </div>
+                                <div class="card-body small">
+                                    <p class="mb-2">{{ query.description[:80] }}...</p>
+                                    <p class="mb-0"><strong>Assigned to:</strong> {{ query.assigned_to or 'Unassigned' }}</p>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="{{ url_for('hr.query_detail', query_id=query.id) }}" class="btn btn-sm btn-primary">
+                                        Update
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No in-progress queries</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Resolved -->
+        <div class="tab-pane fade" id="resolved" role="tabpanel">
+            <div class="row">
+                {% if data.resolved_queries_list %}
+                    {% for query in data.resolved_queries_list %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-header bg-success bg-opacity-10">
+                                    <h6 class="card-title mb-0">{{ query.title }}</h6>
+                                </div>
+                                <div class="card-body small">
+                                    <p class="mb-2">{{ query.resolution[:80] }}...</p>
+                                    <p class="mb-0"><strong>Resolved:</strong> {{ query.resolution_date }}</p>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <a href="{{ url_for('hr.query_detail', query_id=query.id) }}" class="btn btn-sm btn-primary">
+                                        View
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="col-12">
+                        <div class="alert alert-info">No resolved queries</div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

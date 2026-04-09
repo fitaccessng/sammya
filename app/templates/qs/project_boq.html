@@ -1,0 +1,343 @@
+{% extends "qs/base.html" %}
+
+{% block title %}BOQ - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i class="fas fa-list mr-3"></i>Bill of Quantities
+                </h1>
+                <p class="text-blue-100 text-sm mt-1">{{ project.name }}</p>
+            </div>
+            <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Items</p>
+            <p class="text-4xl font-bold text-gray-900 mt-2">{{ total_items }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total BOQ Value</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">₦{{ "{:,.0f}".format(total_boq or 0) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Project Budget</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">₦{{ "{:,.0f}".format(project.budget) }}</p>
+        </div>
+    </div>
+
+    <!-- Bill Summaries -->
+    {% if bill_summaries %}
+    <div class="space-y-4">
+        {% for bill_no, bill_data in bill_summaries.items() %}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-gray-100 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">{{ bill_no }}</h3>
+                <span class="text-lg font-bold text-green-600">₦{{ "{:,.2f}".format(bill_data.total) }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-50 border-b border-gray-200">
+                            <th class="text-left py-3 px-6 font-semibold text-gray-700">Item No</th>
+                            <th class="text-left py-3 px-6 font-semibold text-gray-700">Description</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Qty</th>
+                            <th class="text-left py-3 px-6 font-semibold text-gray-700">Unit</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Unit Rate</th>
+                            <th class="text-right py-3 px-6 font-semibold text-gray-700">Amount</th>
+                            <th class="text-center py-3 px-6 font-semibold text-gray-700">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in bill_data['items'] %}
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                            <td class="py-3 px-6 text-gray-900">{{ loop.index }}</td>
+                            <td class="py-3 px-6 text-gray-900">{{ item.description }}</td>
+                            <td class="py-3 px-6 text-right text-gray-900">{{ item.quantity }}</td>
+                            <td class="py-3 px-6 text-gray-900">{{ item.unit }}</td>
+                            <td class="py-3 px-6 text-right text-gray-900">₦{{ "{:,.2f}".format(item.unit_rate) }}</td>
+                            <td class="py-3 px-6 text-right font-semibold text-gray-900">₦{{ "{:,.2f}".format(item.amount) }}</td>
+                            <td class="py-3 px-6 text-center space-x-2 flex items-center justify-center">
+                                <button onclick="editBoqItem({{ item.id }}, '{{ item.description }}', {{ item.quantity }}, '{{ item.unit }}', {{ item.unit_rate }})" 
+                                    class="text-blue-600 hover:text-blue-800 px-3 py-1 rounded hover:bg-blue-50 transition" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="deleteBoqItem({{ item.id }})" 
+                                    class="text-red-600 hover:text-red-800 px-3 py-1 rounded hover:bg-red-50 transition" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
+        <i class="fas fa-inbox text-4xl text-blue-300 mb-3"></i>
+        <p class="text-blue-900 font-medium">No BOQ items added yet</p>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="flex justify-end gap-3">
+        <button onclick="openUploadModal()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition flex items-center">
+            <i class="fas fa-upload mr-2"></i>Upload BOQ File
+        </button>
+        <button onclick="openBOQModal()" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition flex items-center">
+            <i class="fas fa-plus mr-2"></i>Add BOQ Item
+        </button>
+    </div>
+</div>
+
+<!-- Add/Edit BOQ Item Modal -->
+<div id="addBOQModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 id="modalTitle" class="text-xl font-bold text-gray-900">Add BOQ Item</h2>
+        </div>
+        <div class="p-6">
+            <form id="addBOQForm" class="space-y-4">
+                <input type="hidden" id="boqItemId" value="">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-red-600">*</span></label>
+                    <input type="text" name="description" id="description" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Quantity <span class="text-red-600">*</span></label>
+                    <input type="number" name="quantity" id="quantity" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit <span class="text-red-600">*</span></label>
+                    <input type="text" name="unit" id="unit" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Unit Rate <span class="text-red-600">*</span></label>
+                    <input type="number" name="unit_rate" id="unitRate" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+            </form>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closeBOQModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Close</button>
+            <button onclick="submitBOQForm()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                <span id="submitBtnText">Add Item</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let isEditingBoqItem = false;
+
+function openBOQModal() {
+    isEditingBoqItem = false;
+    document.getElementById('modalTitle').textContent = 'Add BOQ Item';
+    document.getElementById('submitBtnText').textContent = 'Add Item';
+    document.getElementById('addBOQForm').reset();
+    document.getElementById('boqItemId').value = '';
+    document.getElementById('addBOQModal').classList.remove('hidden');
+}
+
+function closeBOQModal() {
+    document.getElementById('addBOQModal').classList.add('hidden');
+}
+
+function editBoqItem(itemId, description, quantity, unit, unitRate) {
+    isEditingBoqItem = true;
+    document.getElementById('modalTitle').textContent = 'Edit BOQ Item';
+    document.getElementById('submitBtnText').textContent = 'Update Item';
+    document.getElementById('boqItemId').value = itemId;
+    document.getElementById('description').value = description;
+    document.getElementById('quantity').value = quantity;
+    document.getElementById('unit').value = unit;
+    document.getElementById('unitRate').value = unitRate;
+    document.getElementById('addBOQModal').classList.remove('hidden');
+}
+
+function submitBOQForm() {
+    const form = document.getElementById('addBOQForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const itemId = document.getElementById('boqItemId').value;
+    
+    if (isEditingBoqItem && !itemId) {
+        alert('Error: Item ID not found');
+        return;
+    }
+    
+    const editUrlTemplate = '{{ url_for("qs_boq.edit_boq_item", item_id=0) }}'.replace('/0/edit', '/ITEM_ID/edit');
+    const url = isEditingBoqItem
+        ? editUrlTemplate.replace('ITEM_ID', itemId)
+        : '{{ url_for("qs_boq.add_boq_item", project_id=project.id) }}';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function deleteBoqItem(itemId) {
+    if (!confirm('Are you sure you want to delete this BOQ item?')) {
+        return;
+    }
+    
+    const deleteUrlTemplate = '{{ url_for("qs_boq.delete_boq_item", item_id=0) }}'.replace('/0/delete', '/ITEM_ID/delete');
+    fetch(deleteUrlTemplate.replace('ITEM_ID', itemId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+// Close modal when clicking outside
+document.getElementById('addBOQModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeBOQModal();
+    }
+});
+
+// Upload modal functions
+function openUploadModal() {
+    document.getElementById('uploadBOQModal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadBOQModal').classList.add('hidden');
+}
+
+function submitUploadForm() {
+    const fileInput = document.getElementById('boqFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        alert('Please select a file');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Show loading state
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading...';
+    btn.disabled = true;
+    
+    fetch('{{ url_for("qs_boq.upload_boq", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeUploadModal();
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+            if (data.errors) {
+                console.log('Errors:', data.errors);
+            }
+        }
+    })
+    .catch(error => {
+        alert('Error uploading file: ' + error);
+    })
+    .finally(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
+}
+
+document.getElementById('uploadBOQModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeUploadModal();
+    }
+});
+</script>
+
+<!-- Upload BOQ Modal -->
+<div id="uploadBOQModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-900">Upload BOQ File</h2>
+            <p class="text-sm text-gray-500 mt-1">Supported formats: Excel (.xlsx, .xls), CSV</p>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Select File</label>
+                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('boqFile').click()">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-sm text-gray-600">Click to select file or drag and drop</p>
+                        <input type="file" id="boqFile" class="hidden" accept=".xlsx,.xls,.csv" onchange="updateFileName()">
+                        <p id="fileName" class="text-xs text-gray-500 mt-2"></p>
+                    </div>
+                </div>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-blue-900 mb-2">File Requirements:</h4>
+                    <ul class="text-xs text-blue-800 space-y-1">
+                        <li>• Must have: Description, Quantity, Unit, Unit Price, Amount</li>
+                        <li>• Optional: Bill No, Item No, Category</li>
+                        <li>• Column names can be in various formats (auto-detected)</li>
+                        <li>• First row should be headers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closeUploadModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Cancel</button>
+            <button onclick="submitUploadForm()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium">Upload & Import</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateFileName() {
+    const fileInput = document.getElementById('boqFile');
+    const fileName = document.getElementById('fileName');
+    if (fileInput.files[0]) {
+        fileName.textContent = '✓ ' + fileInput.files[0].name;
+    }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h1 class="text-2xl font-bold text-slate-900">Account Settings</h1>
+        <p class="text-slate-600 mt-1">Update your email and password.</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Update Email</h2>
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="email">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Email</label>
+                <input type="email" name="email" value="{{ current_user.email }}" required class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Current Password</label>
+                <input type="password" name="password" required class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save Email</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Update Password</h2>
+        <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="password">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Current Password</label>
+                <input type="password" name="current_password" required class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">New Password</label>
+                <input type="password" name="new_password" required class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Confirm New Password</label>
+                <input type="password" name="confirm_password" required class="mt-1 w-full rounded border border-slate-300 px-3 py-2">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded hover:bg-slate-700">Save Password</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

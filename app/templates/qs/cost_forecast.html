@@ -1,0 +1,244 @@
+﻿{% extends "qs/base.html" %}
+
+{% block title %}Cost Forecast - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0"><i class="fas fa-crystal-ball"></i> Cost Forecast Report</h3>
+            <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Baseline Estimate</h6>
+                        <h4>₦{{ "{:,.0f}".format(project.budget) }}</h4>
+                        <small>Original approved budget</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Estimate at Completion (EAC)</h6>
+                        <h4>₦{{ "{:,.0f}".format(total_boq) }}</h4>
+                        <small>Projected final cost</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card {% if total_boq > project.budget %}bg-danger{% else %}bg-success{% endif %} text-white">
+                    <div class="card-body">
+                        <h6 class="card-title">Forecast Variance (ETC)</h6>
+                        <h4>
+                            {% if total_boq > project.budget %}
+                                +₦{{ "{:,.0f}".format(total_boq - project.budget) }}
+                            {% else %}
+                                -₦{{ "{:,.0f}".format(project.budget - total_boq) }}
+                            {% endif %}
+                        </h4>
+                        <small>Over/under budget</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Indices -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Performance Indices</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="metric-box">
+                            <h6 class="text-muted">Cost Performance Index (CPI)</h6>
+                            <h4>
+                                {% set cpi = project.budget / total_boq if total_boq > 0 else 1 %}
+                                {{ "%.2f"|format(cpi) }}
+                            </h4>
+                            <small class="text-muted">
+                                {% if cpi > 1 %}
+                                    <span class="text-success">✓ Under Budget</span>
+                                {% elif cpi < 1 %}
+                                    <span class="text-danger">✗ Over Budget</span>
+                                {% else %}
+                                    <span class="text-warning">= On Budget</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="metric-box">
+                            <h6 class="text-muted">Cost Variance (CV)</h6>
+                            <h4>
+                                {% if total_boq > project.budget %}
+                                    -₦{{ "{:,.0f}".format(total_boq - project.budget) }}
+                                {% else %}
+                                    +₦{{ "{:,.0f}".format(project.budget - total_boq) }}
+                                {% endif %}
+                            </h4>
+                            <small class="text-muted">Actual vs. Planned</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="metric-box">
+                            <h6 class="text-muted">Estimate to Complete (ETC)</h6>
+                            <h4>₦{{ "{:,.0f}".format(total_boq * 0.4) }}</h4>
+                            <small class="text-muted">Remaining cost at current burn rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Forecast Scenarios -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Cost Forecast Scenarios</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Scenario</th>
+                            <th class="text-end">Forecast Cost</th>
+                            <th class="text-end">Variance</th>
+                            <th class="text-center">Probability</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Optimistic Scenario -->
+                        <tr>
+                            <td><strong>Optimistic (75% completion)</strong></td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(total_boq * 0.75) }}</td>
+                            <td class="text-end text-success">-₦{{ "{:,.2f}".format(project.budget - (total_boq * 0.75)) }}</td>
+                            <td class="text-center"><span class="badge bg-success">20%</span></td>
+                            <td class="text-center">✓ Within Budget</td>
+                        </tr>
+                        <!-- Base Scenario -->
+                        <tr class="table-info">
+                            <td><strong>Base Case (100% completion)</strong></td>
+                            <td class="text-end"><strong>₦{{ "{:,.2f}".format(total_boq) }}</strong></td>
+                            <td class="text-end">
+                                {% if total_boq > project.budget %}
+                                    <span class="text-danger">+₦{{ "{:,.2f}".format(total_boq - project.budget) }}</span>
+                                {% else %}
+                                    <span class="text-success">-₦{{ "{:,.2f}".format(project.budget - total_boq) }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center"><span class="badge bg-info">60%</span></td>
+                            <td class="text-center">
+                                {% if total_boq > project.budget %}
+                                    ✗ Over Budget
+                                {% else %}
+                                    ✓ Within Budget
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <!-- Pessimistic Scenario -->
+                        <tr>
+                            <td><strong>Pessimistic (125% completion)</strong></td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(total_boq * 1.25) }}</td>
+                            <td class="text-end text-danger">+₦{{ "{:,.2f}".format((total_boq * 1.25) - project.budget) }}</td>
+                            <td class="text-center"><span class="badge bg-danger">20%</span></td>
+                            <td class="text-center">✗ Over Budget</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Risk Factors -->
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Risk Factors</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="risk-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Material Price Volatility</strong>
+                                <span class="badge bg-warning">Medium</span>
+                            </div>
+                            <small class="text-muted">Impact: ±5%</small>
+                        </div>
+                        <div class="risk-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Schedule Delays</strong>
+                                <span class="badge bg-info">Low</span>
+                            </div>
+                            <small class="text-muted">Impact: ±3%</small>
+                        </div>
+                        <div class="risk-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Scope Changes</strong>
+                                <span class="badge bg-danger">High</span>
+                            </div>
+                            <small class="text-muted">Impact: ±10%</small>
+                        </div>
+                        <div class="risk-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Labor Cost Inflation</strong>
+                                <span class="badge bg-info">Low</span>
+                            </div>
+                            <small class="text-muted">Impact: ±2%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Mitigation Strategies</h6>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-3">
+                                <h6 class="text-primary">Lock-in Material Prices</h6>
+                                <small>Secure supplier agreements early to minimize price fluctuations</small>
+                            </li>
+                            <li class="mb-3">
+                                <h6 class="text-primary">Tight Schedule Management</h6>
+                                <small>Implement weekly progress tracking and proactive schedule management</small>
+                            </li>
+                            <li class="mb-3">
+                                <h6 class="text-primary">Change Control Process</h6>
+                                <small>Establish strict scope change management with impact assessment</small>
+                            </li>
+                            <li>
+                                <h6 class="text-primary">Contingency Reserve</h6>
+                                <small>Maintain 10% budget contingency for unforeseen costs</small>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trend Analysis -->
+        <div class="alert alert-info mt-4">
+            <h6 class="alert-heading"><i class="fas fa-chart-line"></i> Trend Analysis</h6>
+            <p class="mb-0">
+                Current forecast indicates {{ "under" if total_boq <= project.budget else "over" }} budget status.
+                {% if total_boq > project.budget %}
+                    The project is currently overrunning by ₦{{ "{:,.2f}".format(total_boq - project.budget) }}.
+                    Recommend immediate cost control intervention.
+                {% else %}
+                    Maintain current cost controls and monitor for changes.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,182 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Import Batches{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.staff_list') }}">Staff Management</a></li>
+<li class="breadcrumb-item active">Import Batches</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">Staff Import Batches</h2>
+                <p class="text-muted">View and manage all staff import batches</p>
+            </div>
+            <a href="{{ url_for('hr.import_staff') }}" class="btn btn-primary">
+                <i class="bi bi-upload"></i> New Import
+            </a>
+        </div>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="mb-3">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('hr.import_batches', status='all') }}" 
+               class="btn btn-{{ 'primary' if status_filter == 'all' else 'outline-primary' }}">
+                All ({{ batches.total }})
+            </a>
+            <a href="{{ url_for('hr.import_batches', status='draft') }}" 
+               class="btn btn-{{ 'primary' if status_filter == 'draft' else 'outline-primary' }}">
+                Draft
+            </a>
+            <a href="{{ url_for('hr.import_batches', status='pending') }}" 
+               class="btn btn-{{ 'primary' if status_filter == 'pending' else 'outline-primary' }}">
+                Pending Approval
+            </a>
+            <a href="{{ url_for('hr.import_batches', status='approved') }}" 
+               class="btn btn-{{ 'primary' if status_filter == 'approved' else 'outline-primary' }}">
+                Approved
+            </a>
+            <a href="{{ url_for('hr.import_batches', status='rejected') }}" 
+               class="btn btn-{{ 'primary' if status_filter == 'rejected' else 'outline-primary' }}">
+                Rejected
+            </a>
+        </div>
+    </div>
+
+    <!-- Batches List -->
+    {% if batches.items %}
+        <div class="row">
+            {% for batch in batches.items %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="card-title mb-1">{{ batch.batch_name }}</h5>
+                                <small class="text-muted">{{ batch.file_name }}</small>
+                            </div>
+                            {% if batch.approval_state == 'draft' %}
+                                <span class="badge bg-secondary">{{ batch.approval_state.upper() }}</span>
+                            {% elif batch.approval_state == 'pending' %}
+                                <span class="badge bg-warning">{{ batch.approval_state.upper() }}</span>
+                            {% elif batch.approval_state == 'approved' %}
+                                <span class="badge bg-success">{{ batch.approval_state.upper() }}</span>
+                            {% elif batch.approval_state == 'rejected' %}
+                                <span class="badge bg-danger">{{ batch.approval_state.upper() }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <div class="row text-center mb-3">
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Total</h6>
+                                    <h4>{{ batch.total_records }}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Imported</h6>
+                                    <h4 class="text-success">{{ batch.imported_records }}</h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <h6 class="text-muted mb-1">Failed</h6>
+                                    <h4 class="text-danger">{{ batch.failed_records }}</h4>
+                                </div>
+                            </div>
+
+                            <div class="list-group list-group-sm">
+                                <div class="list-group-item">
+                                    <small class="text-muted">Created by:</small>
+                                    <span class="d-block">{{ batch.creator.name }}</span>
+                                </div>
+                                <div class="list-group-item">
+                                    <small class="text-muted">Created:</small>
+                                    <span class="d-block">{{ batch.created_at.strftime('%d-%m-%Y %H:%M') }}</span>
+                                </div>
+                                {% if batch.approved_at %}
+                                    <div class="list-group-item">
+                                        <small class="text-muted">Approved by:</small>
+                                        <span class="d-block">{{ batch.approver.name if batch.approver else 'N/A' }}</span>
+                                    </div>
+                                    <div class="list-group-item">
+                                        <small class="text-muted">Approved:</small>
+                                        <span class="d-block">{{ batch.approved_at.strftime('%d-%m-%Y %H:%M') }}</span>
+                                    </div>
+                                {% endif %}
+                                {% if batch.rejection_reason %}
+                                    <div class="list-group-item bg-danger bg-opacity-10">
+                                        <small class="text-muted">Rejection Reason:</small>
+                                        <span class="d-block text-danger">{{ batch.rejection_reason }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-light d-flex gap-2 flex-wrap">
+                            <a href="{{ url_for('hr.preview_import', batch_id=batch.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View Details
+                            </a>
+                            {% if batch.approval_state == 'draft' or batch.approval_state == 'pending' %}
+                                <form method="POST" action="{{ url_for('hr.cancel_import', batch_id=batch.id) }}" 
+                                      style="display:inline;"
+                                      onsubmit="return confirm('Cancel this import batch?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Cancel
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if batches.pages > 1 %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if batches.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('hr.import_batches', page=batches.prev_num, status=status_filter) }}">Previous</a>
+                        </li>
+                    {% endif %}
+
+                    {% for page_num in batches.iter_pages() %}
+                        {% if page_num %}
+                            {% if page_num == batches.page %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('hr.import_batches', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                </li>
+                            {% endif %}
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if batches.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('hr.import_batches', page=batches.next_num, status=status_filter) }}">Next</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            <strong>No import batches found.</strong>
+            {% if status_filter != 'all' %}
+                Try selecting a different status or 
+            {% endif %}
+            <a href="{{ url_for('hr.import_staff') }}">create a new import</a>.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

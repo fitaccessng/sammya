@@ -1,0 +1,104 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Purchase Order {{ po.po_number or ("#" ~ po.id) }}{% endblock %}
+{% block page_subtitle %}Review order details and line items{% endblock %}
+
+{% block main_content %}
+{% set po_state = po.approval_state.name if po.approval_state else 'DRAFT' %}
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div class="xl:col-span-2 space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <div class="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <p class="text-sm text-slate-500 font-medium">Purchase Order</p>
+                    <h2 class="text-2xl font-bold text-slate-900 mt-1">{{ po.po_number or ("PO-" ~ po.id) }}</h2>
+                    <p class="text-sm text-slate-500 mt-2">Created {{ po.created_at.strftime('%d %b %Y, %H:%M') if po.created_at else 'N/A' }}</p>
+                </div>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold
+                    {% if po_state == 'APPROVED' %}bg-emerald-100 text-emerald-700
+                    {% elif po_state == 'REJECTED' %}bg-red-100 text-red-700
+                    {% elif po_state == 'PENDING' %}bg-amber-100 text-amber-700
+                    {% else %}bg-slate-100 text-slate-700{% endif %}">
+                    <i class='bx bx-circle-full text-[10px]'></i>{{ po_state }}
+                </span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
+                <h3 class="text-lg font-semibold text-slate-900">Line Items</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-900 text-white">
+                        <tr>
+                            <th class="text-left px-6 py-3 font-semibold">Description</th>
+                            <th class="text-left px-6 py-3 font-semibold">Unit</th>
+                            <th class="text-right px-6 py-3 font-semibold">Qty</th>
+                            <th class="text-right px-6 py-3 font-semibold">Rate</th>
+                            <th class="text-right px-6 py-3 font-semibold">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for item in po.items %}
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-6 py-3 text-slate-900">{{ item.description }}</td>
+                            <td class="px-6 py-3 text-slate-700">{{ item.unit or '-' }}</td>
+                            <td class="px-6 py-3 text-right text-slate-700">{{ item.quantity }}</td>
+                            <td class="px-6 py-3 text-right text-slate-700">₦{{ "{:,.2f}".format(item.unit_rate or 0) }}</td>
+                            <td class="px-6 py-3 text-right font-semibold text-slate-900">₦{{ "{:,.2f}".format(item.amount or 0) }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="px-6 py-10 text-center text-slate-500">No line items on this order.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h3 class="text-lg font-semibold text-slate-900 mb-4">Order Summary</h3>
+            <div class="space-y-4 text-sm">
+                <div>
+                    <p class="text-slate-500">Vendor</p>
+                    <p class="font-semibold text-slate-900">{{ po.vendor.name if po.vendor else 'N/A' }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Project</p>
+                    <p class="font-semibold text-slate-900">{{ po.project.name if po.project else 'N/A' }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Issued By</p>
+                    <p class="font-semibold text-slate-900">{{ po.issued_by or 'N/A' }}</p>
+                </div>
+                <div class="pt-3 border-t border-slate-200">
+                    <p class="text-slate-500">Total Amount</p>
+                    <p class="text-2xl font-bold text-blue-700 mt-1">₦{{ "{:,.2f}".format(po.total_amount or 0) }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 space-y-3">
+            {% if po_state == 'PENDING' or po_state == 'DRAFT' %}
+            <form method="POST" action="{{ url_for('procurement.approve_purchase_order', po_id=po.id) }}">
+                <button type="submit" class="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition">
+                    <i class='bx bx-check'></i> Send to Cost Control
+                </button>
+            </form>
+            <form method="POST" action="{{ url_for('procurement.reject_purchase_order', po_id=po.id) }}">
+                <button type="submit" class="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition">
+                    <i class='bx bx-x'></i> Reject Order
+                </button>
+            </form>
+            {% endif %}
+            <a href="{{ url_for('procurement.purchases') }}" class="w-full inline-flex justify-center items-center gap-2 px-4 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold transition">
+                <i class='bx bx-arrow-back'></i> Back to Purchase Orders
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

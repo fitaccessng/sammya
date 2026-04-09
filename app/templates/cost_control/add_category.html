@@ -1,0 +1,52 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Add Category{% endblock %}
+{% block page_subtitle %}Create a new cost category{% endblock %}
+
+{% block main_content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-secondary">
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Category Name -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category Name *</label>
+                        <input type="text" name="name" placeholder="e.g., Labor Costs, Materials, Equipment" required class="form-control">
+                    </div>
+                    
+                    <!-- Category Type -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Type *</label>
+                        <select name="type" required class="form-select">
+                            <option value="">Select Type</option>
+                            <option value="labor">Labor</option>
+                            <option value="materials">Materials</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="subcontractors">Subcontractors</option>
+                            <option value="overhead">Overhead</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Project -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Project</label>
+                        <select name="project_id" class="form-select">
+                            <option value="">All Projects</option>
+                            {% for project in projects %}
+                            <option value="{{ project.id }}">{{ project.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Buttons -->
+                    <div class="d-flex gap-2 pt-3">
+                        <button type="submit" class="btn btn-primary">Save Category</button>
+                        <a href="{{ url_for('cost_control.categories') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

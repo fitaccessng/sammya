@@ -1,0 +1,824 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Procurement Activities{% endblock %}
+{% block page_title %}Procurement{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-shopping-cart"></i> Procurement Module</h1>
+            <p class="text-slate-600 mt-1">Monitor purchase orders, materials, vendors, and procurement activities</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Procurement Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Active POs</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ pending_pos|length }}</div>
+            <div class="text-xs text-slate-500 mt-1">Pending approval</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Approved Orders</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ approved_pos|length }}</div>
+            <div class="text-xs text-slate-500 mt-1">In process</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Material Requests</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ material_requests.total }}</div>
+            <div class="text-xs text-slate-500 mt-1">Total requests</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Active Vendors</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ vendor_count }}</div>
+            <div class="text-xs text-slate-500 mt-1">Registered suppliers</div>
+        </div>
+    </div>
+
+    <!-- Procurement Team & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Procurement Team -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-user-tie text-green-600"></i> Procurement Team</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Role</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-900">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for staff in procurement_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                        {{ staff.name[0].upper() }}
+                                    </div>
+                                    {{ staff.name }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">{{ staff.role.replace('_', ' ').title() }}</span>
+                            </td>
+                            <td class="px-6 py-3">
+                                {% if staff.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 bg-cyan-50">
+                <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-history text-cyan-600"></i> Recent Activities</h2>
+            </div>
+            <div class="p-6 space-y-4 max-h-96 overflow-y-auto">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="flex gap-3 pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex-shrink-0 mt-1">
+                            <i class="fas fa-circle text-green-600 text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-semibold text-slate-900">{{ log.entity_type }}</p>
+                            <p class="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                                <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                            </p>
+                        </div>
+                        <span class="inline-block px-2 py-1 bg-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-100 text-{% if log.approval_state == 'APPROVED' %}green{% else %}amber{% endif %}-800 text-xs font-semibold rounded">
+                            {{ log.approval_state }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-600 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Purchase Orders -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-amber-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-file-alt text-amber-600"></i> Pending Purchase Orders ({{ pending_pos|length }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">PO Number</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Vendor</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Items</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Total Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Requested Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if pending_pos %}
+                        {% for po in pending_pos[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-900 font-semibold">#PO-{{ po.id }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ (po.vendor_name|default('Vendor ' ~ (po.id|string), true))[:25] }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ po.items_count|default('N/A', true) }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "%.2f"|format(po.total_amount or 0) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ po.created_at.strftime('%b %d, %Y') if po.created_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Pending</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <button title="Approve" class="px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button title="Reject" class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-600">No pending purchase orders</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Approved Purchase Orders -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-green-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2"><i class="fas fa-check-circle text-green-600"></i> Approved Purchase Orders ({{ approved_pos|length }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">PO Number</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Vendor</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Items</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Total Amount</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Approved Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Delivery Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% if approved_pos %}
+                        {% for po in approved_pos[:10] %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4 text-sm text-slate-900 font-semibold">#PO-{{ po.id }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ (po.vendor_name|default('Vendor ' ~ (po.id|string), true))[:25] }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ po.items_count|default('N/A', true) }}</td>
+                            <td class="px-6 py-4 text-sm font-semibold text-slate-900">₦{{ "%.2f"|format(po.total_amount or 0) }}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">{{ po.updated_at.strftime('%b %d, %Y') if po.updated_at else 'N/A' }}</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">In Transit</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <a href="#" title="Track" class="px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm">
+                                    <i class="fas fa-truck"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-600">No approved purchase orders</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Material Requests -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-900 text-white">
+            <h2 class="text-lg font-semibold flex items-center gap-2"><i class="fas fa-boxes"></i> Material Requests ({{ material_requests.total }})</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Request ID</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Material Description</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Quantity</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Requested By</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for request in material_requests.items[:10] %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm text-slate-900 font-semibold">#{{ request.id }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ (request.description|default(request.material_name, true)|default('N/A', true))[:40] }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ request.quantity|default('N/A', true) }}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Project</span>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Staff Member</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">Pending</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if material_requests.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex justify-between items-center">
+            <small class="text-slate-600">Page {{ material_requests.page }} of {{ material_requests.pages }}</small>
+            <nav class="flex items-center gap-2">
+                {% if material_requests.has_prev %}
+                <a href="{{ url_for('admin.procurement_activities', page=1) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">First</a>
+                {% endif %}
+
+                {% for page_num in material_requests.iter_pages(left_edge=1, right_edge=4, left_margin=1, right_margin=1) %}
+                    {% if page_num %}
+                        {% if page_num == material_requests.page %}
+                        <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('admin.procurement_activities', page=page_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">{{ page_num }}</a>
+                        {% endif %}
+                    {% else %}
+                    <span class="px-3 py-1 border border-slate-300 text-slate-500 rounded text-sm">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if material_requests.has_next %}
+                <a href="{{ url_for('admin.procurement_activities', page=material_requests.next_num) }}" class="px-3 py-1 border border-slate-300 rounded hover:bg-slate-50 text-sm">Next</a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Procurement Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-list text-4xl text-green-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Purchase Orders</h3>
+            <p class="text-sm text-slate-600 mt-2">Manage POs</p>
+            <button onclick="openPurchaseOrdersModal()" class="mt-4 px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors text-sm font-semibold">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-handshake text-4xl text-cyan-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Vendor Management</h3>
+            <p class="text-sm text-slate-600 mt-2">Manage vendors</p>
+            <button onclick="openVendorManagementModal()" class="mt-4 px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors text-sm font-semibold">View</button>
+        </div>
+        <!-- <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-truck text-4xl text-amber-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Delivery Tracking</h3>
+            <p class="text-sm text-slate-600 mt-2">Track shipments</p>
+            <button onclick="openDeliveryTrackingModal()" class="mt-4 px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors text-sm font-semibold">View</button>
+        </div> -->
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-blue-600 hover:shadow-lg transition-shadow">
+            <i class="fas fa-chart-bar text-4xl text-blue-600 mb-3 block"></i>
+            <h3 class="font-semibold text-slate-900">Procurement Reports</h3>
+            <p class="text-sm text-slate-600 mt-2">Generate reports</p>
+            <button onclick="openProcurementReportsModal()" class="mt-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-semibold">View</button>
+        </div>
+    </div>
+</div>
+
+<!-- Purchase Orders Modal -->
+<div id="purchaseOrdersModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-green-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-list"></i> Purchase Orders
+            </h3>
+            <button onclick="closePurchaseOrdersModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="poLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading purchase orders...</p>
+            </div>
+            <div id="poContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Pending Orders</p>
+                        <p class="text-2xl font-bold text-green-600" id="poPending">0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Approved Orders</p>
+                        <p class="text-2xl font-bold text-blue-600" id="poApproved">0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Amount</p>
+                        <p class="text-2xl font-bold text-purple-600" id="poTotalAmount">₦0</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">PO Number</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Vendor</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Amount</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Status</th>
+                                <th class="text-left py-2 px-4 font-semibold text-slate-700">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="poTable" class="divide-y divide-slate-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vendor Management Modal -->
+<div id="vendorManagementModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-cyan-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-handshake"></i> Vendor Management
+            </h3>
+            <button onclick="closeVendorManagementModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="vmLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading vendor data...</p>
+            </div>
+            <div id="vmContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-cyan-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Vendors</p>
+                        <p class="text-2xl font-bold text-cyan-600" id="vmTotal">0</p>
+                    </div>
+                    <div class="bg-teal-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Active Vendors</p>
+                        <p class="text-2xl font-bold text-teal-600" id="vmActive">0</p>
+                    </div>
+                </div>
+                <div class="space-y-3" id="vendorsList">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delivery Tracking Modal -->
+<div id="deliveryTrackingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-amber-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-truck"></i> Delivery Tracking
+            </h3>
+            <button onclick="closeDeliveryTrackingModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="dtLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading delivery data...</p>
+            </div>
+            <div id="dtContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Deliveries</p>
+                        <p class="text-2xl font-bold text-amber-600" id="dtTotal">0</p>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Pending</p>
+                        <p class="text-2xl font-bold text-yellow-600" id="dtPending">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Completed</p>
+                        <p class="text-2xl font-bold text-green-600" id="dtCompleted">0</p>
+                    </div>
+                </div>
+                <div class="space-y-3" id="deliveriesList">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Procurement Reports Modal -->
+<div id="procurementReportsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i> Procurement Reports
+            </h3>
+            <button onclick="closeProcurementReportsModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="prLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading reports...</p>
+            </div>
+            <div id="prContent" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total POs</p>
+                        <p class="text-2xl font-bold text-blue-600" id="prTotalPos">0</p>
+                    </div>
+                    <div class="bg-cyan-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total Vendors</p>
+                        <p class="text-2xl font-bold text-cyan-600" id="prTotalVendors">0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total Amount</p>
+                        <p class="text-2xl font-bold text-purple-600" id="prTotalAmount">₦0</p>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Pending Approvals</p>
+                        <p class="text-2xl font-bold text-red-600" id="prPending">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                    <h4 class="font-semibold text-slate-900 mb-3">Top Vendors by Spending</h4>
+                    <div id="topVendors" class="space-y-2">
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-slate-900 mb-3">Delivery Status</h4>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-slate-900" id="prTotalDeliveries">0</p>
+                            <p class="text-sm text-slate-600">Total Deliveries</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-green-600" id="prCompletedDeliveries">0</p>
+                            <p class="text-sm text-slate-600">Completed</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-3xl font-bold text-yellow-600" id="prPendingDeliveries">0</p>
+                            <p class="text-sm text-slate-600">Pending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility function to format currency
+function formatCurrency(amount) {
+    return '₦' + new Intl.NumberFormat('en-NG', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// Purchase Orders Modal
+function openPurchaseOrdersModal() {
+    document.getElementById('purchaseOrdersModal').classList.remove('hidden');
+    loadPurchaseOrdersData();
+}
+
+function closePurchaseOrdersModal() {
+    document.getElementById('purchaseOrdersModal').classList.add('hidden');
+}
+
+function loadPurchaseOrdersData() {
+    const loading = document.getElementById('poLoading');
+    const content = document.getElementById('poContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_procurement_purchase_orders") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('poPending').textContent = data.total_pending;
+            document.getElementById('poApproved').textContent = data.total_approved;
+            document.getElementById('poTotalAmount').textContent = formatCurrency(data.total_amount);
+            
+            const table = document.getElementById('poTable');
+            table.innerHTML = '';
+            
+            if (data.purchase_orders.length === 0) {
+                table.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-500">No purchase orders found</td></tr>';
+            } else {
+                data.purchase_orders.forEach(po => {
+                    table.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-semibold text-slate-900">${po.po_number}</td>
+                            <td class="py-3 px-4 text-slate-700">${po.vendor}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(po.amount)}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-block px-2 py-1 bg-${po.status === 'APPROVED' ? 'green' : 'amber'}-100 text-${po.status === 'APPROVED' ? 'green' : 'amber'}-700 text-xs font-semibold rounded">
+                                    ${po.status}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4 text-slate-700">${po.created_date}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading purchase orders:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Vendor Management Modal
+function openVendorManagementModal() {
+    document.getElementById('vendorManagementModal').classList.remove('hidden');
+    loadVendorManagementData();
+}
+
+function closeVendorManagementModal() {
+    document.getElementById('vendorManagementModal').classList.add('hidden');
+}
+
+function loadVendorManagementData() {
+    const loading = document.getElementById('vmLoading');
+    const content = document.getElementById('vmContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_procurement_vendors") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('vmTotal').textContent = data.total_vendors;
+            document.getElementById('vmActive').textContent = data.active_vendors;
+            
+            const vendorsList = document.getElementById('vendorsList');
+            vendorsList.innerHTML = '';
+            
+            if (data.vendors.length === 0) {
+                vendorsList.innerHTML = '<p class="text-slate-500 text-center py-4">No vendors found</p>';
+            } else {
+                data.vendors.forEach(vendor => {
+                    vendorsList.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-semibold text-slate-900">${vendor.name}</p>
+                                    <p class="text-xs text-slate-500">Contact: ${vendor.contact_person}</p>
+                                </div>
+                                <span class="text-sm font-semibold text-slate-900">${vendor.po_count} POs</span>
+                            </div>
+                            <div class="text-xs text-slate-600">
+                                <p>Email: ${vendor.email}</p>
+                                <p>Phone: ${vendor.phone}</p>
+                                <p>Total Spent: ${formatCurrency(vendor.total_spent)}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading vendors:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Delivery Tracking Modal
+function openDeliveryTrackingModal() {
+    document.getElementById('deliveryTrackingModal').classList.remove('hidden');
+    loadDeliveryTrackingData();
+}
+
+function closeDeliveryTrackingModal() {
+    document.getElementById('deliveryTrackingModal').classList.add('hidden');
+}
+
+function loadDeliveryTrackingData() {
+    const loading = document.getElementById('dtLoading');
+    const content = document.getElementById('dtContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_procurement_deliveries") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('dtTotal').textContent = data.total_deliveries;
+            document.getElementById('dtPending').textContent = data.pending_deliveries;
+            document.getElementById('dtCompleted').textContent = data.completed_deliveries;
+            
+            const deliveriesList = document.getElementById('deliveriesList');
+            deliveriesList.innerHTML = '';
+            
+            if (data.deliveries.length === 0) {
+                deliveriesList.innerHTML = '<p class="text-slate-500 text-center py-4">No deliveries found</p>';
+            } else {
+                data.deliveries.forEach(delivery => {
+                    const statusColor = delivery.status === 'APPROVED' ? 'green' : 'yellow';
+                    const statusLabel = delivery.status === 'APPROVED' ? 'Completed' : 'Pending';
+                    deliveriesList.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-semibold text-slate-900">GRN: ${delivery.grn_number}</p>
+                                    <p class="text-xs text-slate-500">PO: ${delivery.po_number}</p>
+                                    <p class="text-xs text-slate-500">Date: ${delivery.received_date}</p>
+                                </div>
+                                <span class="inline-block px-2 py-1 bg-${statusColor}-100 text-${statusColor}-700 text-xs font-semibold rounded">
+                                    ${statusLabel}
+                                </span>
+                            </div>
+                            <div class="text-sm text-slate-600">
+                                <p>Quantity Received: ${delivery.quantity_received}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading deliveries:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Procurement Reports Modal
+function openProcurementReportsModal() {
+    document.getElementById('procurementReportsModal').classList.remove('hidden');
+    loadProcurementReportsData();
+}
+
+function closeProcurementReportsModal() {
+    document.getElementById('procurementReportsModal').classList.add('hidden');
+}
+
+function loadProcurementReportsData() {
+    const loading = document.getElementById('prLoading');
+    const content = document.getElementById('prContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_procurement_reports") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('prTotalPos').textContent = data.total_pos;
+            document.getElementById('prTotalVendors').textContent = data.total_vendors;
+            document.getElementById('prTotalAmount').textContent = formatCurrency(data.total_amount);
+            document.getElementById('prPending').textContent = data.pending_approvals;
+            document.getElementById('prTotalDeliveries').textContent = data.total_deliveries;
+            document.getElementById('prCompletedDeliveries').textContent = data.completed_deliveries;
+            document.getElementById('prPendingDeliveries').textContent = data.pending_deliveries;
+            
+            const topVendors = document.getElementById('topVendors');
+            topVendors.innerHTML = '';
+            
+            if (data.vendor_performance.length === 0) {
+                topVendors.innerHTML = '<p class="text-slate-500 text-center py-2">No vendor data</p>';
+            } else {
+                data.vendor_performance.forEach((vendor, index) => {
+                    topVendors.innerHTML += `
+                        <div class="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
+                            <span class="text-sm font-semibold text-slate-900">${index + 1}. ${vendor.vendor}</span>
+                            <div class="text-right">
+                                <p class="text-sm font-semibold text-slate-900">${formatCurrency(vendor.total_spent)}</p>
+                                <p class="text-xs text-slate-500">${vendor.po_count} POs</p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading reports:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Close modals when clicking on the background
+document.getElementById('purchaseOrdersModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closePurchaseOrdersModal();
+});
+
+document.getElementById('vendorManagementModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeVendorManagementModal();
+});
+
+document.getElementById('deliveryTrackingModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeDeliveryTrackingModal();
+});
+
+document.getElementById('procurementReportsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeProcurementReportsModal();
+});
+</script>
+<style>
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .activity-timeline .activity-item {
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e3e6f0;
+    }
+
+    .activity-timeline .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-marker {
+        display: flex;
+        align-items: center;
+        min-width: 30px;
+    }
+
+    .activity-marker i {
+        font-size: 0.5rem;
+    }
+</style>
+{% endblock %}

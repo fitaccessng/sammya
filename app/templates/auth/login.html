@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Sammya ERP{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen bg-slate-50">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+           <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo">
+            
+           <br><h2 class="text-2xl font-bold text-slate-900 text-center mb-6">Login</h2>
+            
+            <form method="POST" class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700">Email Address</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required 
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="your@email.com">
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required 
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="••••••••">
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <a href="{{ url_for('main.forgot_password') }}" class="text-sm text-blue-600 hover:text-blue-800">Forgot Password?</a>
+                </div>
+                
+                <button 
+                    type="submit" 
+                    class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
+                    Sign In
+                </button>
+            </form>
+            
+            <!-- <div class="mt-6 border-t border-slate-200 pt-4 text-center">
+                <p class="text-sm text-slate-600">
+                    Don't have an account? 
+                    <a href="{{ url_for('main.signup') }}" class="text-blue-600 hover:text-blue-800 font-semibold">Sign Up</a>
+                </p>
+            </div> -->
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cost Control{% endblock %} - FitAccess</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .sidebar {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar nav {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-logo {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-logo h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .sidebar-logo p {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 0.5rem;
+            margin-bottom: 0;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding-left: 2rem;
+        }
+
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-left: 3px solid white;
+        }
+
+        .sidebar .nav-link i {
+            font-size: 1.25rem;
+        }
+
+        .sidebar .nav-section {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .sidebar .nav-section:last-of-type {
+            margin-top: auto;
+        }
+
+        .sidebar .nav-section-title {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar .nav-section .nav-link {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+
+        .topbar {
+            background: white;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .topbar-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            color: #333;
+        }
+
+        .topbar-title p {
+            color: #999;
+            margin: 0.5rem 0 0 0;
+            font-size: 0.95rem;
+        }
+
+        .breadcrumb {
+            margin: 0;
+            background: transparent;
+            padding: 0;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "/";
+            padding: 0 0.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1.25rem;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-card p {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card h4 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin: 0;
+            color: #333;
+        }
+        .dashboard-number {
+            font-size: clamp(1rem, 3.5vw, 2rem);
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .stat-card.blue {
+            border-left: 4px solid #0d6efd;
+        }
+
+        .stat-card.green {
+            border-left: 4px solid #198754;
+        }
+
+        .stat-card.orange {
+            border-left: 4px solid #fd7e14;
+        }
+
+        .stat-card.red {
+            border-left: 4px solid #dc3545;
+        }
+
+        .stat-card.purple {
+            border-left: 4px solid #6f42c1;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: #0a58ca;
+            border-color: #0a58ca;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 200px;
+                padding: 1rem 0;
+            }
+
+            .sidebar-logo {
+                padding: 1rem;
+            }
+
+            .main-content {
+                margin-left: 200px;
+                padding: 1rem;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .dashboard-number {
+                font-size: clamp(0.95rem, 5.5vw, 1.35rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo" class="h-10 w-auto">
+            <h3><i class='bx bxs-building'></i> Cost Control</h3>
+            <p>Budget & Finance</p>
+        </div>
+
+        <nav>
+            <!-- Dashboard -->
+            <a href="{{ url_for('cost_control.dashboard') }}" class="nav-link {% if request.endpoint == 'cost_control.dashboard' %}active{% endif %}">
+                <i class='bx bxs-dashboard'></i>
+                <span>Dashboard</span>
+            </a>
+
+            <!-- Budget Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Budget</div>
+                <a href="{{ url_for('cost_control.budget_status') }}" class="nav-link {% if request.endpoint == 'cost_control.budget_status' %}active{% endif %}">
+                    <i class='bx bxs-chart'></i>
+                    <span>Budget Status</span>
+                </a>
+                <a href="{{ url_for('cost_control.categories') }}" class="nav-link {% if request.endpoint == 'cost_control.categories' %}active{% endif %}">
+                    <i class='bx bxs-folder'></i>
+                    <span>Categories</span>
+                </a>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Analysis</div>
+                <a href="{{ url_for('cost_control.cost_analysis') }}" class="nav-link {% if request.endpoint == 'cost_control.cost_analysis' %}active{% endif %}">
+                    <i class='bx bxs-bar-chart'></i>
+                    <span>Cost Analysis</span>
+                </a>
+                <a href="{{ url_for('cost_control.variance_analysis') }}" class="nav-link {% if request.endpoint == 'cost_control.variance_analysis' %}active{% endif %}">
+                    <i class='bx bxs-line-chart'></i>
+                    <span>Variance</span>
+                </a>
+            </div>
+
+            <!-- Operations Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Operations</div>
+                <a href="{{ url_for('cost_control.machinery') }}" class="nav-link {% if request.endpoint == 'cost_control.machinery' %}active{% endif %}">
+                    <i class='bx bxs-cog'></i>
+                    <span>Machinery</span>
+                </a>
+                <a href="{{ url_for('cost_control.maintenance') }}" class="nav-link {% if request.endpoint == 'cost_control.maintenance' %}active{% endif %}">
+                    <i class='bx bxs-wrench'></i>
+                    <span>Maintenance</span>
+                </a>
+                <a href="{{ url_for('cost_control.fuel_logs') }}" class="nav-link {% if request.endpoint == 'cost_control.fuel_logs' %}active{% endif %}">
+                    <i class='bx bxs-gas-pump'></i>
+                    <span>Fuel Logs</span>
+                </a>
+            </div>
+
+            <!-- Planning Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Planning</div>
+                <a href="{{ url_for('cost_control.boq_review') }}" class="nav-link {% if request.endpoint == 'cost_control.boq_review' %}active{% endif %}">
+                    <i class='bx bxs-file-doc'></i>
+                    <span>BOQ Review</span>
+                </a>
+                <a href="{{ url_for('cost_control.change_orders') }}" class="nav-link {% if request.endpoint == 'cost_control.change_orders' %}active{% endif %}">
+                    <i class='bx bxs-clipboard'></i>
+                    <span>Change Orders</span>
+                </a>
+                <a href="{{ url_for('cost_control.po_approvals') }}" class="nav-link {% if request.endpoint == 'cost_control.po_approvals' %}active{% endif %}">
+                    <i class='bx bxs-check-shield'></i>
+                    <span>PO Approvals</span>
+                </a>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Reports</div>
+                <a href="{{ url_for('cost_control.reports') }}" class="nav-link {% if request.endpoint == 'cost_control.reports' %}active{% endif %}">
+                    <i class='bx bxs-file-pdf'></i>
+                    <span>Reports</span>
+                </a>
+                <a href="{{ url_for('cost_control.inventory') }}" class="nav-link {% if request.endpoint == 'cost_control.inventory' %}active{% endif %}">
+                    <i class='bx bxs-package'></i>
+                    <span>Inventory</span>
+                </a>
+                <a href="{{ url_for('cost_control.assets_report') }}" class="nav-link {% if request.endpoint == 'cost_control.assets_report' %}active{% endif %}">
+                    <i class='bx bxs-report'></i>
+                    <span>Assets Report</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Account</div>
+                <a href="{{ url_for('main.account_settings') }}" class="nav-link {% if request.endpoint == 'main.account_settings' %}active{% endif %}">
+                    <i class='bx bxs-user-circle'></i>
+                    <span>Account Settings</span>
+                </a>
+                <a href="{{ url_for('hr.leave_management') }}" class="nav-link">
+                    <i class='bx bxs-calendar-check'></i>
+                    <span>Leave Request</span>
+                </a>
+            </div>
+
+            <!-- Logout Section -->
+            <div class="nav-section" style="margin-top: auto; border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 1rem;">
+                <a href="{{ url_for('auth.logout') }}" class="nav-link" style="color: rgba(255, 255, 255, 0.8);">
+                    <i class='bx bxs-log-out-circle'></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="topbar">
+            <div class="topbar-title">
+                <h1>{% block page_title %}Cost Control{% endblock %}</h1>
+                <p>{% block page_subtitle %}Managing budgets and costs{% endblock %}</p>
+            </div>
+            <div class="d-flex gap-2">
+                {% block top_actions %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{% if category == 'error' %}danger{% elif category == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Content Area -->
+        {% block main_content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

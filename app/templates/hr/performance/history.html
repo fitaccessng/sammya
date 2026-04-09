@@ -1,0 +1,80 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Performance History{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.performance') }}">Performance</a></li>
+    <li class="breadcrumb-item active">History - {{ history.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Performance Review History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4 pb-3 border-bottom">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Staff Name</label>
+                            <p class="h6">{{ history.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-muted">Email</label>
+                            <p class="h6">{{ history.email }}</p>
+                        </div>
+                    </div>
+
+                    {% if history.reviews %}
+                    <div class="timeline">
+                        {% for review in history.reviews %}
+                        <div class="timeline-item mb-4 pb-4 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">Review Date: {{ review.date }}</h6>
+                                    <p class="text-muted mb-2">Reviewed by: {{ review.reviewed_by }}</p>
+                                    <div class="mb-2">
+                                        {% for i in range(1, 6) %}
+                                            {% if i <= review.rating %}
+                                            <i class='bx bxs-star' style="color: #ffc107;"></i>
+                                            {% else %}
+                                            <i class='bx bx-star' style="color: #ddd;"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <span class="badge bg-success">{{ review.rating }}/5</span>
+                            </div>
+                            <p class="text-muted">{{ review.comments }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class='bx bxs-info-circle'></i> No performance reviews available yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <a href="{{ url_for('hr.review_performance', staff_id=history.id) }}" class="btn btn-primary w-100 mb-2">
+                        <i class='bx bxs-plus'></i> New Review
+                    </a>
+                    <a href="{{ url_for('hr.performance') }}" class="btn btn-secondary w-100">
+                        <i class='bx bxs-left-arrow'></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up - Sammya{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-center min-h-screen bg-slate-50">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+           <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo">
+           <br> 
+           <h2 class="text-2xl font-bold text-slate-900 text-center mb-6">Create Account</h2>
+
+            <form method="POST" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-slate-700">Full Name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        required
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="John Doe">
+                </div>
+
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700">Email Address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="your@email.com">
+                </div>
+
+                <div>
+                    <label for="role" class="block text-sm font-medium text-slate-700">User Role</label>
+                    <select
+                        id="role"
+                        name="role"
+                        required
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Select a Role --</option>
+                        <optgroup label="Administration">
+                            <option value="admin">Admin - Full System Access</option>
+                            <option value="super_hq">Super HQ - Super Admin</option>
+                        </optgroup>
+                        <optgroup label="Procurement">
+                            <option value="procurement_manager">Procurement Manager</option>
+                            <option value="procurement_staff">Procurement Staff</option>
+                        </optgroup>
+                        <optgroup label="Cost Control">
+                            <option value="cost_control_manager">Cost Control Manager</option>
+                            <option value="cost_control_staff">Cost Control Staff</option>
+                        </optgroup>
+                        <optgroup label="Finance">
+                            <option value="finance_manager">Finance Manager</option>
+                            <option value="accounts_payable">Accounts Payable</option>
+                        </optgroup>
+                        <optgroup label="HR">
+                            <option value="hr_manager">HR Manager</option>
+                            <option value="hr_staff">HR Staff</option>
+                        </optgroup>
+                        <optgroup label="Projects">
+                            <option value="project_manager">Project Manager</option>
+                            <option value="project_staff">Project Staff</option>
+                        </optgroup>
+                        <optgroup label="QS">
+                            <option value="qs_manager">QS Manager</option>
+                            <option value="qs_staff">QS Staff</option>
+                        </optgroup>
+                    </select>
+                    <p id="role-help" class="mt-2 text-xs text-slate-500">
+                        Select a role to view what dashboard and permissions the account will get.
+                    </p>
+                </div>
+
+                <div>
+                    <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        required
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="********">
+                    <p class="mt-1 text-xs text-slate-500">Min 6 characters</p>
+                </div>
+
+                <div>
+                    <label for="confirm_password" class="block text-sm font-medium text-slate-700">Confirm Password</label>
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        required
+                        class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="********">
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full px-4 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition">
+                    Create Account
+                </button>
+            </form>
+
+            <div class="mt-6 border-t border-slate-200 pt-4 text-center">
+                <p class="text-sm text-slate-600">
+                    Already have an account?
+                    <a href="{{ url_for('main.login') }}" class="text-blue-600 hover:text-blue-800 font-semibold">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.getElementById('role');
+    const roleHelp = document.getElementById('role-help');
+
+    const roleDescriptions = {
+        project_manager: 'Project Manager: full project coordination dashboard (planning, assignment, approvals).',
+        project_staff: 'Project Staff: dedicated staff dashboard for DPR, BOQ, material schedule, and milestones shared by manager.',
+        procurement_manager: 'Procurement Manager: procurement dashboard with purchasing oversight.',
+        procurement_staff: 'Procurement Staff: operational procurement dashboard for daily purchasing tasks.',
+        cost_control_manager: 'Cost Control Manager: budget and variance oversight dashboard.',
+        cost_control_staff: 'Cost Control Staff: cost tracking and reporting dashboard.',
+        finance_manager: 'Finance Manager: finance management dashboard and controls.',
+        accounts_payable: 'Accounts Payable: invoice and payment processing dashboard.',
+        hr_manager: 'HR Manager: HR operations and staffing dashboard.',
+        hr_staff: 'HR Staff: HR support dashboard for daily admin tasks.',
+        qs_manager: 'QS Manager: quantity surveying dashboard for BOQ and valuation control.',
+        qs_staff: 'QS Staff: quantity surveying support dashboard.',
+        admin: 'Admin: full system administration dashboard.',
+        super_hq: 'Super HQ: enterprise-wide admin dashboard.',
+        equipment_manager: 'Equipment Manager: equipment operations dashboard.',
+        legal_manager: 'Legal Manager: legal and compliance dashboard.'
+    };
+
+    const updateRoleHelp = function () {
+        const selectedRole = roleSelect.value;
+        roleHelp.textContent = roleDescriptions[selectedRole] || 'Select a role to view what dashboard and permissions the account will get.';
+    };
+
+    roleSelect.addEventListener('change', updateRoleHelp);
+    updateRoleHelp();
+});
+</script>
+{% endblock %}

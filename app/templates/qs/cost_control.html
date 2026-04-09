@@ -1,0 +1,202 @@
+﻿{% extends "qs/base.html" %}
+
+{% block title %}Cost Control - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 class="mb-0"><i class="fas fa-sliders-h"></i> Cost Control Report</h3>
+            <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Risk Assessment -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-bar fa-2x text-primary mb-2"></i>
+                        <h6 class="card-title">Budget Status</h6>
+                        {% if total_boq > project.budget %}
+                            <p class="mb-0"><span class="badge bg-danger">AT RISK</span></p>
+                            <small class="text-danger">{{ "%.1f"|format((total_boq / project.budget * 100) if project.budget else 0) }}% utilized</small>
+                        {% else %}
+                            <p class="mb-0"><span class="badge bg-success">HEALTHY</span></p>
+                            <small class="text-success">{{ "%.1f"|format((total_boq / project.budget * 100) if project.budget else 0) }}% utilized</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                        <h6 class="card-title">Schedule Risk</h6>
+                        <p class="mb-0"><span class="badge bg-warning">MEDIUM</span></p>
+                        <small class="text-muted">Monitor closely</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-layer-group fa-2x text-info mb-2"></i>
+                        <h6 class="card-title">Quality Risk</h6>
+                        <p class="mb-0"><span class="badge bg-success">LOW</span></p>
+                        <small class="text-muted">Within tolerances</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x text-secondary mb-2"></i>
+                        <h6 class="card-title">Resource Status</h6>
+                        <p class="mb-0"><span class="badge bg-info">ADEQUATE</span></p>
+                        <small class="text-muted">All assigned</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget vs Actual -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Budget vs. Actual</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Metric</th>
+                            <th class="text-end">Budget</th>
+                            <th class="text-end">Actual</th>
+                            <th class="text-end">Variance</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Total Cost</strong></td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(project.budget) }}</td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(total_boq) }}</td>
+                            <td class="text-end">
+                                {% if total_boq > project.budget %}
+                                    <span class="text-danger">+₦{{ "{:,.2f}".format(total_boq - project.budget) }}</span>
+                                {% else %}
+                                    <span class="text-success">-₦{{ "{:,.2f}".format(project.budget - total_boq) }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if total_boq > project.budget %}
+                                    <span class="badge bg-danger">Overrun</span>
+                                {% else %}
+                                    <span class="badge bg-success">Under</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cost Control Actions -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Recommended Cost Control Actions</h5>
+            </div>
+            <div class="card-body">
+                {% if total_boq > project.budget %}
+                <div class="alert alert-danger">
+                    <h6 class="alert-heading">⚠️ Budget Overrun Detected</h6>
+                    <ul class="mb-0">
+                        <li><strong>Value Engineering:</strong> Review and optimize high-cost items</li>
+                        <li><strong>Scope Adjustment:</strong> Consider phasing or deferring non-essential items</li>
+                        <li><strong>Budget Revision:</strong> Request budget increase from stakeholders</li>
+                        <li><strong>Cost Reduction:</strong> Negotiate with suppliers for better rates</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <h6 class="alert-heading">✓ Budget Within Limits</h6>
+                    <ul class="mb-0">
+                        <li><strong>Maintain Contingency:</strong> Preserve budget buffer for variations</li>
+                        <li><strong>Track Changes:</strong> Monitor BOQ updates closely</li>
+                        <li><strong>Regular Reviews:</strong> Review costs monthly</li>
+                        <li><strong>Prepare Contingency Plan:</strong> Have risk mitigation strategies ready</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Cost Categories Analysis -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Cost by Category</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-center">% of Total</th>
+                            <th>Risk Level</th>
+                            <th>Control Measure</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories[:5] %}
+                        <tr>
+                            <td><strong>{{ category.name or "Uncategorized" }}</strong></td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(category.total or 0) }}</td>
+                            <td class="text-center">{{ "%.1f"|format(((category.total or 0) / total_boq * 100) if total_boq else 0) }}%</td>
+                            <td>
+                                {% if (category.total or 0) > (total_boq * 0.3) %}
+                                    <span class="badge bg-danger">High</span>
+                                {% elif (category.total or 0) > (total_boq * 0.15) %}
+                                    <span class="badge bg-warning">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-success">Low</span>
+                                {% endif %}
+                            </td>
+                            <td><small>Monitor closely</small></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Contingency Plan -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Contingency Planning</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Contingency Reserve</h6>
+                        <p>Recommended: 10% of budget</p>
+                        <p class="text-muted">₦{{ "{:,.2f}".format(project.budget * 0.1) }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6>Current Contingency</h6>
+                        {% if total_boq < project.budget * 0.9 %}
+                            <p class="text-success">Adequate</p>
+                            <p>₦{{ "{:,.2f}".format(project.budget - total_boq) }}</p>
+                        {% else %}
+                            <p class="text-danger">Insufficient</p>
+                            <p>₦{{ "{:,.2f}".format(project.budget - total_boq) }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}QC Inspection{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6">Create QC Inspection</h1>
+    
+    <form method="POST" class="bg-white rounded-lg shadow p-6 space-y-6">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="approved_quantity" class="block text-sm font-medium">Approved Quantity</label>
+                <input type="number" id="approved_quantity" name="approved_quantity" step="0.01" required class="mt-1 form-input">
+            </div>
+            <div>
+                <label for="rejected_quantity" class="block text-sm font-medium">Rejected Quantity</label>
+                <input type="number" id="rejected_quantity" name="rejected_quantity" step="0.01" class="mt-1 form-input">
+            </div>
+        </div>
+        
+        <div>
+            <label for="rejection_reason" class="block text-sm font-medium">Rejection Reason (if any)</label>
+            <textarea id="rejection_reason" name="rejection_reason" class="mt-1 form-input" rows="3"></textarea>
+        </div>
+        
+        <div class="flex gap-4 pt-6 border-t">
+            <button type="submit" class="btn-primary">Create Inspection</button>
+            <a href="{{ url_for('qc.list_deliveries') }}" class="btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Audit Trail</h1>
+
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Date/Time</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">User</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Entity Type</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Action</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left">Details</th>
+                        <th class="border border-gray-300 px-4 py-2 text-center">Record ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if audit_logs.items %}
+                        {% for log in audit_logs.items %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="border border-gray-300 px-4 py-2 whitespace-nowrap text-sm">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm">{{ log.actor.username if log.actor else 'System' }}</td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm">
+                                <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">{{ log.entity_type|upper }}</span>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2">
+                                <span class="px-2 py-1 rounded text-sm font-medium
+                                    {% if 'approved' in log.action|lower %}bg-green-100 text-green-800
+                                    {% elif 'rejected' in log.action|lower %}bg-red-100 text-red-800
+                                    {% elif 'created' in log.action|lower or 'budget' in log.action|lower %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ log.action|upper }}
+                                </span>
+                            </td>
+                            <td class="border border-gray-300 px-4 py-2 text-sm text-gray-600">{{ log.comment or 'N/A' }}</td>
+                            <td class="border border-gray-300 px-4 py-2 font-mono text-sm text-center">{{ log.entity_id }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="border border-gray-300 px-4 py-2 text-center text-gray-500">
+                            No audit logs found
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 flex justify-between items-center">
+            {% if audit_logs.has_prev %}
+            <a href="{{ url_for('finance.audit_trail', page=audit_logs.prev_num) }}" 
+               class="px-3 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Previous</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+            <span class="text-gray-600">Page {{ audit_logs.page }} of {{ audit_logs.pages }}</span>
+            {% if audit_logs.has_next %}
+            <a href="{{ url_for('finance.audit_trail', page=audit_logs.next_num) }}" 
+               class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Next</a>
+            {% else %}
+            <span></span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

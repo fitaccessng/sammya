@@ -1,0 +1,245 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Leave Management{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Leave Management</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Leave Management</h2>
+            <p class="text-muted">Manage staff leave requests and approvals</p>
+        </div>
+        <a href="{{ url_for('hr.create_leave') }}" class="btn btn-primary">
+            <i class='bx bxs-plus-circle'></i> New Leave Request
+        </a>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h4>{{ data.total_leaves or 0 }}</h4>
+                <p>Total Requests</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card orange">
+                <h4>{{ data.pending_leaves or 0 }}</h4>
+                <p>Pending Approval</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card green">
+                <h4>{{ data.approved_leaves or 0 }}</h4>
+                <p>Approved</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card red">
+                <h4>{{ data.rejected_leaves or 0 }}</h4>
+                <p>Rejected</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab">
+                All Requests
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                Pending <span class="badge bg-warning ms-2">{{ data.pending_leaves or 0 }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                Approved
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
+                Rejected
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        <!-- All Requests -->
+        <div class="tab-pane fade show active" id="all" role="tabpanel">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Leave Type</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.all_leaves %}
+                                {% for leave in data.all_leaves %}
+                                    <tr>
+                                        <td><strong>{{ leave.employee_name }}</strong></td>
+                                        <td>{{ leave.leave_type }}</td>
+                                        <td>{{ leave.start_date }}</td>
+                                        <td>{{ leave.end_date }}</td>
+                                        <td><span class="badge bg-info">{{ leave.days_requested }}</span></td>
+                                        <td>{{ leave.reason[:50] }}{% if leave.reason|length > 50 %}...{% endif %}</td>
+                                        <td>
+                                            <span class="badge bg-{% if leave.status == 'Approved' %}success{% elif leave.status == 'Pending' %}warning{% elif leave.status == 'Rejected' %}danger{% else %}secondary{% endif %}">
+                                                {{ leave.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('hr.leave_detail', leave_id=leave.id) }}" class="btn btn-sm btn-info">
+                                                <i class='bx bxs-show'></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">No leave requests found</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Requests -->
+        <div class="tab-pane fade" id="pending" role="tabpanel">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Leave Type</th>
+                                <th>Period</th>
+                                <th>Days</th>
+                                <th>Requested Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.pending_leaves_list %}
+                                {% for leave in data.pending_leaves_list %}
+                                    <tr>
+                                        <td><strong>{{ leave.employee_name }}</strong></td>
+                                        <td>{{ leave.leave_type }}</td>
+                                        <td>{{ leave.start_date }} to {{ leave.end_date }}</td>
+                                        <td><span class="badge bg-info">{{ leave.days_requested }}</span></td>
+                                        <td>{{ leave.request_date }}</td>
+                                        <td>
+                                            <a href="{{ url_for('hr.leave_detail', leave_id=leave.id) }}" class="btn btn-sm btn-primary">
+                                                <i class='bx bxs-check'></i> Review
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No pending requests</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approved Requests -->
+        <div class="tab-pane fade" id="approved" role="tabpanel">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Leave Type</th>
+                                <th>Period</th>
+                                <th>Days</th>
+                                <th>Approved By</th>
+                                <th>Approval Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.approved_leaves_list %}
+                                {% for leave in data.approved_leaves_list %}
+                                    <tr>
+                                        <td><strong>{{ leave.employee_name }}</strong></td>
+                                        <td>{{ leave.leave_type }}</td>
+                                        <td>{{ leave.start_date }} to {{ leave.end_date }}</td>
+                                        <td><span class="badge bg-success">{{ leave.days_requested }}</span></td>
+                                        <td>{{ leave.approved_by or 'N/A' }}</td>
+                                        <td>{{ leave.approval_date or 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No approved requests</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rejected Requests -->
+        <div class="tab-pane fade" id="rejected" role="tabpanel">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Employee</th>
+                                <th>Leave Type</th>
+                                <th>Period</th>
+                                <th>Rejection Reason</th>
+                                <th>Rejected By</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if data.rejected_leaves_list %}
+                                {% for leave in data.rejected_leaves_list %}
+                                    <tr>
+                                        <td><strong>{{ leave.employee_name }}</strong></td>
+                                        <td>{{ leave.leave_type }}</td>
+                                        <td>{{ leave.start_date }} to {{ leave.end_date }}</td>
+                                        <td>{{ leave.rejection_reason or 'N/A' }}</td>
+                                        <td>{{ leave.rejected_by or 'N/A' }}</td>
+                                        <td>{{ leave.rejection_date or 'N/A' }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">No rejected requests</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

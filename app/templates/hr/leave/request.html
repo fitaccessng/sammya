@@ -1,0 +1,62 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Request Leave{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.leave_management') }}">Leave</a></li>
+    <li class="breadcrumb-item active">Request Leave - {{ staff.name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Leave Request for {{ staff.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Staff Name</label>
+                            <input type="text" class="form-control" value="{{ staff.name }}" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="leave_type" class="form-label">Leave Type *</label>
+                            <select class="form-select" id="leave_type" name="leave_type" required>
+                                <option value="casual" selected>Casual (7 days)</option>
+                                <option value="compensate">Compensate (7 days)</option>
+                                <option value="annual">Annual (21 days)</option>
+                                <option value="maternity">Maternity (16 weeks)</option>
+                                <option value="paternity">Paternity (2 weeks)</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="start_date" class="form-label">Start Date *</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="end_date" class="form-label">End Date *</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reason" class="form-label">Reason for Leave</label>
+                            <textarea class="form-control" id="reason" name="reason" rows="4" placeholder="Enter reason..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class='bx bxs-check'></i> Submit Request
+                            </button>
+                            <a href="{{ url_for('hr.leave_management') }}" class="btn btn-secondary">
+                                <i class='bx bxs-left-arrow'></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

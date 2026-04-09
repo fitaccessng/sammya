@@ -1,0 +1,66 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Settings{% endblock %}
+{% block page_subtitle %}Manage procurement settings{% endblock %}
+
+{% block main_content %}
+<div class="max-w-2xl">
+    <form method="POST" class="bg-white rounded-lg shadow-md p-8 space-y-6">
+        <!-- Notifications -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Notifications</h3>
+            <div class="space-y-3">
+                <label class="flex items-center">
+                    <input type="checkbox" name="email_alerts" {% if data.email_alerts %}checked{% endif %} class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                    <span class="ml-3 text-gray-700">Email Alerts</span>
+                </label>
+                <label class="flex items-center">
+                    <input type="checkbox" name="browser_notifications" {% if data.browser_notifications %}checked{% endif %} class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                    <span class="ml-3 text-gray-700">Browser Notifications</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Approval Settings -->
+        <div class="border-b border-gray-200 pb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Approval Workflow</h3>
+            <div class="space-y-3">
+                <label class="flex items-center">
+                    <input type="checkbox" name="require_approval" {% if data.require_approval %}checked{% endif %} class="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500">
+                    <span class="ml-3 text-gray-700">Require Approval for All Orders</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Theme Settings -->
+        <div class="pb-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Display</h3>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Theme</label>
+                <select name="theme" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="light" {% if data.theme == 'light' %}selected{% endif %}>Light</option>
+                    <option value="dark" {% if data.theme == 'dark' %}selected{% endif %}>Dark</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2">Account Profile</h3>
+            <p class="text-sm text-gray-600 mb-3">Update your login email and password.</p>
+            <a href="{{ url_for('main.account_settings') }}" class="inline-flex items-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-2 px-4 rounded-lg transition">
+                <i class="fas fa-user-cog mr-2"></i> Open Account Settings
+            </a>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex space-x-3 pt-4 border-t border-gray-200">
+            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                <i class="fas fa-save mr-2"></i> Save Settings
+            </button>
+            <a href="{{ url_for('procurement.index') }}" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition text-center">
+                <i class="fas fa-times mr-2"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

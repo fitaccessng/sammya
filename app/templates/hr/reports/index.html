@@ -1,0 +1,154 @@
+{% extends "hr/base.html" %}
+
+{% block title %}HR Reports{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Reports</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">HR Reports</h2>
+            <p class="text-muted">Generate and manage HR reports</p>
+        </div>
+    </div>
+
+    <!-- Report Categories -->
+    <div class="row mb-4">
+        <!-- Staff Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-user' style="font-size: 3rem; color: #0d6efd;"></i>
+                    <h5 class="card-title mt-3">Staff Reports</h5>
+                    <p class="card-text text-muted small">Employee details, demographics, turnover</p>
+                    <a href="{{ url_for('hr.generate_staff_report') }}" class="btn btn-outline-primary btn-sm">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payroll Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-wallet' style="font-size: 3rem; color: #28a745;"></i>
+                    <h5 class="card-title mt-3">Payroll Reports</h5>
+                    <p class="card-text text-muted small">Salary, deductions, net pay analysis</p>
+                    <a href="{{ url_for('hr.generate_payroll_report') }}" class="btn btn-outline-success btn-sm">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-check-circle' style="font-size: 3rem; color: #ffc107;"></i>
+                    <h5 class="card-title mt-3">Attendance Reports</h5>
+                    <p class="card-text text-muted small">Attendance trends, punctuality analysis</p>
+                    <a href="{{ url_for('hr.generate_attendance_report') }}" class="btn btn-outline-warning btn-sm">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-calendar' style="font-size: 3rem; color: #dc3545;"></i>
+                    <h5 class="card-title mt-3">Leave Reports</h5>
+                    <p class="card-text text-muted small">Leave usage, balances, trends</p>
+                    <a href="{{ url_for('hr.generate_leave_report') }}" class="btn btn-outline-danger btn-sm">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-bar-chart' style="font-size: 3rem; color: #17a2b8;"></i>
+                    <h5 class="card-title mt-3">Performance Reports</h5>
+                    <p class="card-text text-muted small">KPIs, ratings, evaluations</p>
+                    <a href="{{ url_for('hr.generate_performance_report') }}" class="btn btn-outline-info btn-sm">
+                        Generate Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Reports -->
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class='bx bxs-cog' style="font-size: 3rem; color: #6c757d;"></i>
+                    <h5 class="card-title mt-3">Custom Reports</h5>
+                    <p class="card-text text-muted small">Create custom reports with filters</p>
+                    <a href="{{ url_for('hr.custom_report') }}" class="btn btn-outline-secondary btn-sm">
+                        Create Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">Generated Reports</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Report Name</th>
+                        <th>Type</th>
+                        <th>Generated By</th>
+                        <th>Date Generated</th>
+                        <th>Period</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if data.generated_reports %}
+                        {% for report in data.generated_reports %}
+                            <tr>
+                                <td><strong>{{ report.name }}</strong></td>
+                                <td>
+                                    <span class="badge bg-info">{{ report.type }}</span>
+                                </td>
+                                <td>{{ report.generated_by }}</td>
+                                <td>{{ report.date_generated }}</td>
+                                <td>{{ report.period or 'N/A' }}</td>
+                                <td>
+                                    <a href="{{ url_for('hr.view_report', report_id=report.id) }}" class="btn btn-sm btn-primary">
+                                        <i class='bx bxs-show'></i> View
+                                    </a>
+                                    <a href="{{ url_for('hr.export_report', report_id=report.id) }}" class="btn btn-sm btn-success">
+                                        <i class='bx bxs-download'></i> Export
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No reports generated yet</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends "qs/base.html" %}
+
+{% block title %}Project Variations - {{ project.name }} - {{ super() }}{% endblock %}
+
+{% block qs_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-6 flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center">
+                    <i class="fas fa-code-branch mr-3"></i>Project Variations & Change Orders
+                </h1>
+                <p class="text-purple-100 text-sm mt-1">{{ project.name }}</p>
+            </div>
+            <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-medium hover:bg-purple-50 transition flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Variations</p>
+            <p class="text-4xl font-bold text-gray-900 mt-2">{{ variations|length }}</p>
+            <p class="text-xs text-gray-500 mt-1">All status</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Approved Value</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">₦{{ "{:,.0f}".format(total_approved) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ variations_by_status.get('approved', [])|length }} variations</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Pending Approval</p>
+            <p class="text-3xl font-bold text-amber-600 mt-2">₦{{ "{:,.0f}".format(total_pending) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ variations_by_status.get('pending', [])|length }} variations</p>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <p class="text-gray-600 text-sm font-medium">Rejected Value</p>
+            <p class="text-3xl font-bold text-red-600 mt-2">₦{{ "{:,.0f}".format(total_rejected) }}</p>
+            <p class="text-xs text-gray-500 mt-1">{{ variations_by_status.get('rejected', [])|length }} variations</p>
+        </div>
+    </div>
+
+    <!-- Variations by Status -->
+    {% for status, status_variations in variations_by_status.items() %}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Status Header -->
+        <div class="{% if status == 'approved' %}bg-green-50{% elif status == 'pending' %}bg-amber-50{% elif status == 'rejected' %}bg-red-50{% else %}bg-blue-50{% endif %} px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div class="flex items-center">
+                {% if status == 'approved' %}
+                <i class="fas fa-check-circle text-green-600 mr-3 text-lg"></i>
+                <h3 class="text-lg font-semibold text-gray-900">Approved</h3>
+                {% elif status == 'pending' %}
+                <i class="fas fa-hourglass-half text-amber-600 mr-3 text-lg"></i>
+                <h3 class="text-lg font-semibold text-gray-900">Pending Approval</h3>
+                {% elif status == 'rejected' %}
+                <i class="fas fa-times-circle text-red-600 mr-3 text-lg"></i>
+                <h3 class="text-lg font-semibold text-gray-900">Rejected</h3>
+                {% else %}
+                <i class="fas fa-file-invoice text-blue-600 mr-3 text-lg"></i>
+                <h3 class="text-lg font-semibold text-gray-900">Draft</h3>
+                {% endif %}
+            </div>
+            <span class="text-sm text-gray-600">
+                {{ status_variations|length }} variation{{ 's' if status_variations|length != 1 else '' }}
+            </span>
+        </div>
+
+        <!-- Variations Table -->
+        {% if status_variations %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200">
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Description</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Reason</th>
+                        <th class="text-right py-3 px-6 font-semibold text-gray-700">Amount</th>
+                        <th class="text-left py-3 px-6 font-semibold text-gray-700">Created</th>
+                        <th class="text-center py-3 px-6 font-semibold text-gray-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variation in status_variations %}
+                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
+                        <td class="py-3 px-6 text-gray-900 font-medium">{{ variation.description }}</td>
+                        <td class="py-3 px-6 text-gray-700">{{ variation.reason or '-' }}</td>
+                        <td class="py-3 px-6 text-right text-gray-900 font-semibold">₦{{ "{:,.2f}".format(variation.amount) }}</td>
+                        <td class="py-3 px-6 text-gray-600 text-xs">
+                            {{ variation.created_at.strftime('%m/%d/%Y') if variation.created_at else 'N/A' }}
+                        </td>
+                        <td class="py-3 px-6 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                {% if status == 'draft' %}
+                                <button onclick="editVariation({{ variation.id }}, '{{ variation.description }}', '{{ variation.reason or '' }}', {{ variation.amount }})" 
+                                    class="text-blue-600 hover:text-blue-800 px-2 py-1 rounded hover:bg-blue-50" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button onclick="submitVariationForApproval({{ variation.id }})" 
+                                    class="text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50" title="Submit for Approval">
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                                <button onclick="deleteVariation({{ variation.id }})" 
+                                    class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% elif status == 'pending' %}
+                                <button onclick="approveVariation({{ variation.id }})" 
+                                    class="text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 font-semibold" title="Approve">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button onclick="rejectVariationModal({{ variation.id }})" 
+                                    class="text-red-600 hover:text-red-800 px-2 py-1 rounded hover:bg-red-50 font-semibold" title="Reject">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                {% elif status == 'approved' %}
+                                <span class="text-green-600 text-sm font-semibold flex items-center">
+                                    <i class="fas fa-check-circle mr-1"></i>Approved
+                                </span>
+                                {% else %}
+                                <span class="text-red-600 text-sm font-semibold flex items-center">
+                                    <i class="fas fa-times-circle mr-1"></i>Rejected
+                                </span>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-8 text-center text-gray-500">
+            <i class="fas fa-inbox text-3xl text-gray-300 mb-2"></i>
+            <p class="text-sm">No variations in this status</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Add Variation Button -->
+    <div class="flex justify-end">
+        <button onclick="openVariationModal()" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-purple-700 transition flex items-center">
+            <i class="fas fa-plus mr-2"></i>Add New Variation
+        </button>
+    </div>
+</div>
+
+<!-- Add/Edit Variation Modal -->
+<div id="variationModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 id="variationModalTitle" class="text-xl font-bold text-gray-900">Add New Variation</h2>
+        </div>
+        <div class="p-6">
+            <form id="variationForm" class="space-y-4">
+                <input type="hidden" id="variationId" value="">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description <span class="text-red-600">*</span></label>
+                    <input type="text" name="description" id="variationDescription" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                    <textarea name="reason" id="variationReason" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" placeholder="Brief explanation for this variation"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Amount (₦) <span class="text-red-600">*</span></label>
+                    <input type="number" name="amount" id="variationAmount" step="0.01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent" required>
+                </div>
+            </form>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closeVariationModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Cancel</button>
+            <button onclick="submitVariationForm()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
+                <span id="variationSubmitBtn">Save Variation</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Variation Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-900">Reject Variation</h2>
+        </div>
+        <div class="p-6">
+            <input type="hidden" id="rejectVariationId" value="">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Rejection Reason <span class="text-red-600">*</span></label>
+                <textarea id="rejectionReason" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent" required placeholder="Explain why this variation is being rejected"></textarea>
+            </div>
+        </div>
+        <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+            <button onclick="closeRejectModal()" class="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition font-medium">Cancel</button>
+            <button onclick="submitRejectVariation()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">Reject</button>
+        </div>
+    </div>
+</div>
+
+<script>
+let isEditingVariation = false;
+
+function openVariationModal() {
+    isEditingVariation = false;
+    document.getElementById('variationModalTitle').textContent = 'Add New Variation';
+    document.getElementById('variationSubmitBtn').textContent = 'Save Variation';
+    document.getElementById('variationForm').reset();
+    document.getElementById('variationId').value = '';
+    document.getElementById('variationModal').classList.remove('hidden');
+}
+
+function closeVariationModal() {
+    document.getElementById('variationModal').classList.add('hidden');
+}
+
+function editVariation(variationId, description, reason, amount) {
+    isEditingVariation = true;
+    document.getElementById('variationModalTitle').textContent = 'Edit Variation';
+    document.getElementById('variationSubmitBtn').textContent = 'Update Variation';
+    document.getElementById('variationId').value = variationId;
+    document.getElementById('variationDescription').value = description;
+    document.getElementById('variationReason').value = reason;
+    document.getElementById('variationAmount').value = amount;
+    document.getElementById('variationModal').classList.remove('hidden');
+}
+
+function submitVariationForm() {
+    const form = document.getElementById('variationForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const variationId = document.getElementById('variationId').value;
+    
+    const url = isEditingVariation
+        ? `{{ url_for("qs_variations.edit_variation", variation_id='ID') }}`.replace('ID', variationId)
+        : '{{ url_for("qs_variations.add_variation", project_id=project.id) }}';
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function submitVariationForApproval(variationId) {
+    if (!confirm('Submit this variation for approval?')) {
+        return;
+    }
+    
+    fetch(`{{ url_for("qs_variations.submit_variation", variation_id='ID') }}`.replace('ID', variationId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function approveVariation(variationId) {
+    if (!confirm('Approve this variation?')) {
+        return;
+    }
+    
+    fetch(`{{ url_for("qs_variations.approve_variation", variation_id='ID') }}`.replace('ID', variationId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function rejectVariationModal(variationId) {
+    document.getElementById('rejectVariationId').value = variationId;
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+
+function submitRejectVariation() {
+    const variationId = document.getElementById('rejectVariationId').value;
+    const reason = document.getElementById('rejectionReason').value;
+    
+    if (!reason.trim()) {
+        alert('Please enter a rejection reason');
+        return;
+    }
+    
+    fetch(`{{ url_for("qs_variations.reject_variation", variation_id='ID') }}`.replace('ID', variationId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+function deleteVariation(variationId) {
+    if (!confirm('Delete this variation? This action cannot be undone.')) {
+        return;
+    }
+    
+    fetch(`{{ url_for("qs_variations.delete_variation", variation_id='ID') }}`.replace('ID', variationId), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        alert('Error: ' + error);
+    });
+}
+
+// Close modals when clicking outside
+document.getElementById('variationModal').addEventListener('click', function(e) {
+    if (e.target === this) closeVariationModal();
+});
+
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+</script>
+{% endblock %}
+        amountInput.placeholder = 'Enter variation amount';
+    }
+}
+
+function submitVariation() {
+    const form = document.getElementById('variationForm');
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("qs_reports.variations", project_id=project.id) }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+        }
+    });
+}
+</script>
+{% endblock %}

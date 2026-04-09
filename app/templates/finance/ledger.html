@@ -1,0 +1,53 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="py-6 space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-4">General Ledger</h2>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-7 gap-3 mb-4">
+            <select class="border rounded px-3 py-2" name="debit_account_id" required>
+                <option value="">Debit Account</option>
+                {% for acc in accounts %}<option value="{{ acc.id }}">{{ acc.account_code }} - {{ acc.account_name }}</option>{% endfor %}
+            </select>
+            <select class="border rounded px-3 py-2" name="credit_account_id" required>
+                <option value="">Credit Account</option>
+                {% for acc in accounts %}<option value="{{ acc.id }}">{{ acc.account_code }} - {{ acc.account_name }}</option>{% endfor %}
+            </select>
+            <input class="border rounded px-3 py-2 md:col-span-2" name="description" placeholder="Description" required>
+            <input class="border rounded px-3 py-2" name="category" placeholder="Category (e.g. payroll)">
+            <input class="border rounded px-3 py-2" name="reference" placeholder="Reference">
+            <input class="border rounded px-3 py-2" name="amount" type="number" step="0.01" placeholder="Amount" required>
+            <button class="bg-blue-600 text-white rounded px-4 py-2 md:col-span-7">Post Entry</button>
+        </form>
+        {% if account_filter %}
+        <div class="mb-3 text-sm">Filtered by account. <a href="{{ url_for('finance.ledger') }}" class="text-blue-600 hover:underline">Clear filter</a></div>
+        {% endif %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100"><tr><th class="border px-3 py-2">Date</th><th class="border px-3 py-2">Reference</th><th class="border px-3 py-2">Description</th><th class="border px-3 py-2">Account</th><th class="border px-3 py-2 text-right">Debit</th><th class="border px-3 py-2 text-right">Credit</th><th class="border px-3 py-2 text-center">Details</th></tr></thead>
+                <tbody>
+                    {% for e in entries %}
+                    <tr>
+                        <td class="border px-3 py-2">{{ e.entry_date.strftime('%Y-%m-%d %H:%M') if e.entry_date else '-' }}</td>
+                        <td class="border px-3 py-2">{{ e.reference or '-' }}</td>
+                        <td class="border px-3 py-2">{{ e.description }}</td>
+                        <td class="border px-3 py-2">{{ e.account.account_code if e.account else '-' }}</td>
+                        <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(e.debit or 0) }}</td>
+                        <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(e.credit or 0) }}</td>
+                        <td class="border px-3 py-2 text-center">
+                            {% if e.detail_url %}
+                            <a href="{{ e.detail_url }}" class="text-blue-600 hover:underline">View</a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

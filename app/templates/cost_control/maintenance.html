@@ -1,0 +1,63 @@
+{% extends "cost_control/base.html" %}
+
+{% block page_title %}Equipment Maintenance{% endblock %}
+{% block page_subtitle %}Monitor machinery under maintenance{% endblock %}
+
+{% block top_actions %}
+<a href="{{ url_for('cost_control.machinery') }}" class="btn btn-outline-primary">
+    <i class="bi bi-arrow-left"></i> Back to Machinery
+</a>
+{% endblock %}
+
+{% block main_content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card orange">
+            <p>Total Equipment</p>
+            <h4>{{ total_equipment }}</h4>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card red">
+            <p>In Maintenance</p>
+            <h4>{{ total_maintenance }}</h4>
+        </div>
+    </div>
+</div>
+
+<div class="card border-secondary">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light border-bottom">
+                <tr>
+                    <th class="text-start">Equipment</th>
+                    <th class="text-start">Type</th>
+                    <th class="text-start">Project</th>
+                    <th class="text-start">Description</th>
+                    <th class="text-start">Status</th>
+                </tr>
+            </thead>
+            <tbody class="table-group-divider">
+                {% for item in equipment %}
+                <tr>
+                    <td class="fw-semibold">{{ item.name }}</td>
+                    <td>{{ item.type|title }}</td>
+                    <td>{{ item.project }}</td>
+                    <td>{{ item.description }}</td>
+                    <td><span class="badge bg-warning text-dark">Maintenance</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if not equipment %}
+<div class="card border-0 bg-light mt-4">
+    <div class="card-body text-center py-5">
+        <h5 class="card-title">No equipment currently in maintenance</h5>
+        <p class="card-text text-muted">Set equipment status to maintenance from your equipment workflow.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Pending Staff Imports - Admin{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+<li class="breadcrumb-item active">Pending Staff Imports</li>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900">Pending Staff Import Batches</h1>
+        <p class="text-slate-600 mt-1">Review and approve staff import batches submitted by HR</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-sm text-slate-600">Pending Approval</div>
+            <div class="text-3xl font-bold text-amber-600 mt-2">{{ total_pending }}</div>
+            <div class="text-xs text-slate-500 mt-2">Awaiting review</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-sm text-slate-600">Approved</div>
+            <div class="text-3xl font-bold text-green-600 mt-2">{{ total_approved }}</div>
+            <div class="text-xs text-slate-500 mt-2">Already processed</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+            <div class="text-sm text-slate-600">Rejected</div>
+            <div class="text-3xl font-bold text-red-600 mt-2">{{ total_rejected }}</div>
+            <div class="text-xs text-slate-500 mt-2">Not approved</div>
+        </div>
+    </div>
+
+    <!-- Pending Imports -->
+    {% if batches.items %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200">
+            <h2 class="text-lg font-semibold text-slate-900">Pending Batches</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Batch Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Created By</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-slate-900">Records</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">File</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Submitted</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for batch in batches.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-slate-900">{{ batch.batch_name }}</div>
+                        </td>
+                        <td class="px-6 py-4 text-slate-600">{{ batch.creator.name }}</td>
+                        <td class="px-6 py-4 text-center">
+                            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">{{ batch.total_records }} records</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <code class="text-xs text-slate-600">{{ batch.file_name }}</code>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">{{ batch.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                        <td class="px-6 py-4">
+                            <a href="{{ url_for('admin.review_staff_import', batch_id=batch.id) }}" 
+                               class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors font-semibold text-sm">
+                                <i class="fas fa-eye"></i> Review
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+        <!-- Pagination -->
+        {% if batches.pages > 1 %}
+        <div class="flex justify-center items-center gap-2">
+            {% if batches.has_prev %}
+                <a href="{{ url_for('admin.pending_staff_imports', page=batches.prev_num) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Previous</a>
+            {% endif %}
+
+            {% for page_num in batches.iter_pages() %}
+                {% if page_num %}
+                    {% if page_num == batches.page %}
+                        <span class="px-3 py-2 rounded-lg bg-slate-900 text-white font-semibold">{{ page_num }}</span>
+                    {% else %}
+                        <a href="{{ url_for('admin.pending_staff_imports', page=page_num) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                    <span class="px-3 py-2">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if batches.has_next %}
+                <a href="{{ url_for('admin.pending_staff_imports', page=batches.next_num) }}" class="px-3 py-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
+            <div class="flex items-start gap-4">
+                <i class="fas fa-check-circle text-green-500 text-2xl flex-shrink-0"></i>
+                <div>
+                    <h3 class="font-semibold text-green-900">All caught up!</h3>
+                    <p class="text-sm text-green-800 mt-1">No pending staff import batches for approval.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+                <p class="text-slate-600 text-sm mb-4">Monitor approval history and system activity</p>
+                <a href="{{ url_for('admin.staff_import_history') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition-colors font-semibold text-sm w-full justify-center">
+                    <i class="fas fa-history"></i> View Complete History
+                </a>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-slate-900 mb-4">Approval Process</h3>
+                <ol class="text-slate-600 text-sm space-y-2 mb-4">
+                    <li>1. HR submits staff import with validated data</li>
+                    <li>2. Admin reviews batch and records</li>
+                    <li>3. Admin approves to create staff accounts</li>
+                    <li>4. Staff are created with default passwords</li>
+                    <li>5. Department access is assigned automatically</li>
+                </ol>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

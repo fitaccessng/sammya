@@ -1,0 +1,156 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Daily Production Reports - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>DPR</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Daily Production Reports</h1>
+        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2" onclick="openCreateDPRModal()">
+            <i class="fas fa-plus"></i>
+            <span>New DPR</span>
+        </button>
+    </div>
+
+    <!-- DPR Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total DPRs</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ dpr_summary.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Completed</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ dpr_summary.completed }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Pending</p>
+            <p class="text-3xl font-bold text-yellow-600 mt-2">{{ dpr_summary.pending }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">This Month</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ dpr_summary.monthly }}</p>
+        </div>
+    </div>
+
+    <!-- DPR List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if project_dprs %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Date</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Created By</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Weather</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Status</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for dpr in project_dprs %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium text-gray-900">
+                        {{ dpr.report_date.strftime('%d %b %Y') }}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">
+                        {{ dpr.created_by }}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600">
+                        {{ dpr.weather_conditions or 'Not recorded' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold {% if dpr.status == 'completed' %}bg-green-100 text-green-800{% elif dpr.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ dpr.status|upper }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 space-x-2">
+                        <a href="{{ url_for('project.view_dpr', dpr_id=dpr.id) }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ url_for('project.export_dpr', dpr_id=dpr.id) }}" class="text-green-600 hover:text-green-800 text-sm font-medium">
+                            <i class="fas fa-download"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg mb-4">No DPRs recorded yet</p>
+            <button onclick="openCreateDPRModal()" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Create First DPR
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create DPR Modal -->
+<div id="createDPRModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Create New DPR</h2>
+        
+        <form method="POST" action="{{ url_for('project.create_dpr', project_id=project.id) }}" class="space-y-4">
+            <div>
+                <label for="report_date" class="block text-sm font-bold text-gray-900 mb-2">Report Date *</label>
+                <input type="date" id="report_date" name="report_date" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="weather" class="block text-sm font-bold text-gray-900 mb-2">Weather Conditions</label>
+                <input type="text" id="weather" name="weather" placeholder="e.g., Sunny, Rainy, Cloudy" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="work_description" class="block text-sm font-bold text-gray-900 mb-2">Work Description</label>
+                <textarea id="work_description" name="work_description" rows="3" placeholder="PM adds BOQ work description here" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div>
+                <label for="unit" class="block text-sm font-bold text-gray-900 mb-2">Unit</label>
+                <input type="text" id="unit" name="unit" placeholder="e.g., m2, m3, nos" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div>
+                <label for="staff_report" class="block text-sm font-bold text-gray-900 mb-2">Project Staff Report</label>
+                <textarea id="staff_report" name="staff_report" rows="4" placeholder="Project staff update/report goes here" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div>
+                <label for="remarks" class="block text-sm font-bold text-gray-900 mb-2">Remarks</label>
+                <textarea id="remarks" name="remarks" rows="4" placeholder="General remarks for the day..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Create DPR
+                </button>
+                <button type="button" onclick="closeCreateDPRModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateDPRModal() {
+    document.getElementById('createDPRModal').classList.remove('hidden');
+}
+
+function closeCreateDPRModal() {
+    document.getElementById('createDPRModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('createDPRModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCreateDPRModal();
+});
+</script>
+{% endblock %}

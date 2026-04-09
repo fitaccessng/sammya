@@ -1,0 +1,82 @@
+{% extends "procurement/base.html" %}
+
+{% block page_title %}Search{% endblock %}
+{% block page_subtitle %}Find assets, orders, and vendors{% endblock %}
+
+{% block main_content %}
+<!-- Search Box -->
+<div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <form method="GET" class="flex gap-2">
+        <input type="text" name="q" value="{{ query }}" placeholder="Search assets, orders, vendors..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold">
+            <i class="fas fa-search mr-2"></i> Search
+        </button>
+    </form>
+</div>
+
+{% if query %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Assets Results -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-boxes text-blue-600 mr-2"></i> Assets ({{ results.assets|length }})
+        </h3>
+        {% if results.assets %}
+        <div class="space-y-3">
+            {% for asset in results.assets %}
+            <div class="border-l-4 border-blue-600 pl-4 py-2">
+                <p class="font-medium text-gray-800">{{ asset.item_description }}</p>
+                <p class="text-sm text-gray-600">Unit: {{ asset.unit or 'N/A' }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-600">No assets found</p>
+        {% endif %}
+    </div>
+
+    <!-- Orders Results -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-receipt text-orange-600 mr-2"></i> Orders ({{ results.orders|length }})
+        </h3>
+        {% if results.orders %}
+        <div class="space-y-3">
+            {% for order in results.orders %}
+            <div class="border-l-4 border-orange-600 pl-4 py-2">
+                <p class="font-medium text-gray-800">{{ order.po_number or ('PO-' ~ order.id) }}</p>
+                <p class="text-sm text-gray-600">₦{{ "{:,.2f}".format(order.total_amount or 0) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-600">No orders found</p>
+        {% endif %}
+    </div>
+
+    <!-- Vendors Results -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+            <i class="fas fa-users text-green-600 mr-2"></i> Vendors ({{ results.vendors|length }})
+        </h3>
+        {% if results.vendors %}
+        <div class="space-y-3">
+            {% for vendor in results.vendors %}
+            <div class="border-l-4 border-green-600 pl-4 py-2">
+                <p class="font-medium text-gray-800">{{ vendor.name }}</p>
+                <p class="text-sm text-gray-600">{{ vendor.city or 'No city set' }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-gray-600">No vendors found</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<div class="bg-blue-50 rounded-lg p-8 text-center border border-blue-200">
+    <i class="fas fa-search text-4xl text-blue-600 mb-4"></i>
+    <p class="text-gray-700 text-lg">Enter a search term to find assets, orders, and vendors</p>
+</div>
+{% endif %}
+{% endblock %}

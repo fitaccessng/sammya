@@ -1,0 +1,609 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Project Manager Activities{% endblock %}
+{% block page_title %}Project Manager{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-tasks"></i> Project Management Module</h1>
+            <p class="text-slate-600 mt-1">Monitor projects, milestones, timelines, and project delivery</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Project Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Active Projects</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ active_projects }}</div>
+            <div class="text-xs text-slate-500 mt-1">Currently running</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Projects</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ projects.total }}</div>
+            <div class="text-xs text-slate-500 mt-1">All time</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-cyan-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Completed</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ completed_projects }}</div>
+            <div class="text-xs text-slate-500 mt-1">Successfully delivered</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">At Risk</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">2</div>
+            <div class="text-xs text-slate-500 mt-1">Attention needed</div>
+        </div>
+    </div>
+
+    <!-- Project Managers & Recent Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-green-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-user-tie"></i> <h5 class="font-semibold m-0">Project Managers</h5>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Active Projects</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for pm in pm_staff %}
+                        <tr class="hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2">
+                                    <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full" alt="Avatar">
+                                    <span class="font-medium text-slate-900">{{ pm.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-slate-600"><small>3-5</small></td>
+                            <td class="px-6 py-4">
+                                {% if pm.is_active %}
+                                <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                                {% else %}
+                                <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-cyan-600 text-white px-6 py-4 flex items-center gap-2">
+                <i class="fas fa-history"></i> <h5 class="font-semibold m-0">Recent Project Updates</h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto space-y-4">
+                {% if recent_logs %}
+                    {% for log in recent_logs[:10] %}
+                    <div class="pb-4 border-b border-slate-200 last:border-0">
+                        <div class="flex gap-3">
+                            <div class="text-blue-500 text-lg"><i class="fas fa-circle text-xs"></i></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold text-slate-900">
+                                    {{ log.entity_type }}
+                                    <span class="ml-2 inline-block px-2 py-0.5 bg-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-100 text-{{ 'green' if log.approval_state == 'APPROVED' else 'amber' }}-800 text-xs font-semibold rounded">
+                                        {{ log.approval_state }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Project List -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-800 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-list"></i> <h5 class="font-semibold m-0">All Projects ({{ projects.total }})</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Project Name</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Manager</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Budget</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Progress</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Start Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">End Date</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for project in projects.items %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 font-semibold text-slate-900">{{ project.name }}</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Project Manager</td>
+                        <td class="px-6 py-4 font-semibold text-slate-900">₦{{ "%.2f"|format(project.budget or 0) }}</td>
+                        <td class="px-6 py-4 text-sm">
+                            {% if project.status == 'active' %}
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Active</span>
+                            {% elif project.status == 'planning' %}
+                            <span class="inline-block px-2 py-1 bg-cyan-100 text-cyan-800 text-xs font-semibold rounded">Planning</span>
+                            {% elif project.status == 'completed' %}
+                            <span class="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded">Completed</span>
+                            {% elif project.status == 'paused' %}
+                            <span class="inline-block px-2 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded">Paused</span>
+                            {% else %}
+                            <span class="inline-block px-2 py-1 bg-slate-100 text-slate-800 text-xs font-semibold rounded">{{ project.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="w-full bg-slate-200 rounded h-5 overflow-hidden">
+                                {% if project.status == 'completed' %}
+                                <div class="bg-green-500 h-full flex items-center justify-center text-xs font-semibold text-white" style="width: 100%;">100%</div>
+                                {% elif project.status == 'active' %}
+                                <div class="bg-cyan-500 h-full flex items-center justify-center text-xs font-semibold text-white" style="width: 62%;">62%</div>
+                                {% else %}
+                                <div class="bg-amber-500 h-full flex items-center justify-center text-xs font-semibold text-white" style="width: 25%;">25%</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Jan 15, 2025</td>
+                        <td class="px-6 py-4 text-sm text-slate-600">Dec 31, 2025</td>
+                        <td class="px-6 py-4 text-sm">
+                            <a href="{{ url_for('admin.manage_team', project_id=project.id) }}" class="inline-block px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" title="Manage Team">
+                                <i class="fas fa-users"></i>
+                            </a>
+                            <a href="{{ url_for('admin.edit_project', project_id=project.id) }}" class="inline-block px-2 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if projects.pages > 1 %}
+        <div class="px-6 py-4 border-t border-slate-200 flex items-center justify-center gap-2">
+            {% if projects.has_prev %}
+            <a href="{{ url_for('admin.project_manager_activities', page=projects.prev_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Previous</a>
+            {% endif %}
+
+            {% for page_num in projects.iter_pages(left_edge=1, right_edge=4, left_margin=1, right_margin=1) %}
+                {% if page_num %}
+                    {% if page_num == projects.page %}
+                    <span class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-semibold">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('admin.project_manager_activities', page=page_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                <span class="px-3 py-1 text-slate-500 text-sm">...</span>
+                {% endif %}
+            {% endfor %}
+
+            {% if projects.has_next %}
+            <a href="{{ url_for('admin.project_manager_activities', page=projects.next_num) }}" class="px-3 py-1 border border-slate-300 text-slate-700 rounded hover:bg-slate-50 transition-colors text-sm font-semibold">Next</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Project Management Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-green-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-plus-circle text-3xl text-green-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Create Project</h6>
+            <p class="text-slate-600 text-sm mt-1">New project</p>
+            <a href="{{ url_for('admin.create_project') }}" class="inline-block mt-3 px-3 py-1 bg-green-600 text-white rounded text-sm font-semibold hover:bg-green-700 transition-colors">Create</a>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-cyan-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-chart-gantt text-3xl text-cyan-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Gantt Chart</h6>
+            <p class="text-slate-600 text-sm mt-1">Timeline view</p>
+            <button onclick="openGanttChartModal()" class="inline-block mt-3 px-3 py-1 bg-cyan-600 text-white rounded text-sm font-semibold hover:bg-cyan-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-amber-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-flag text-3xl text-amber-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Milestones</h6>
+            <p class="text-slate-600 text-sm mt-1">Track deliverables</p>
+            <button onclick="openMilestonesModal()" class="inline-block mt-3 px-3 py-1 bg-amber-600 text-white rounded text-sm font-semibold hover:bg-amber-700 transition-colors">View</button>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 text-center border-t-4 border-red-500 hover:shadow-lg transition-shadow">
+            <i class="fas fa-file-pdf text-3xl text-red-600 mb-3"></i>
+            <h6 class="font-semibold text-slate-900">Project Reports</h6>
+            <p class="text-slate-600 text-sm mt-1">Generate reports</p>
+            <button onclick="openProjectReportsModal()" class="inline-block mt-3 px-3 py-1 bg-red-600 text-white rounded text-sm font-semibold hover:bg-red-700 transition-colors">View</button>
+        </div>
+    </div>
+</div>
+
+<!-- Gantt Chart Modal -->
+<div id="ganttChartModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-cyan-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-chart-gantt"></i> Gantt Chart - Project Timeline
+            </h3>
+            <button onclick="closeGanttChartModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="ganttLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading Gantt chart...</p>
+            </div>
+            <div id="ganttContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-cyan-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Projects</p>
+                        <p class="text-2xl font-bold text-cyan-600" id="ganttTotal">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Active</p>
+                        <p class="text-2xl font-bold text-green-600" id="ganttActive">0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Completed</p>
+                        <p class="text-2xl font-bold text-blue-600" id="ganttCompleted">0</p>
+                    </div>
+                </div>
+                <div class="space-y-3" id="ganttProjects"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Milestones Modal -->
+<div id="milestonesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-amber-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-flag"></i> Project Milestones
+            </h3>
+            <button onclick="closeMilestonesModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="milestonesLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading milestones...</p>
+            </div>
+            <div id="milestonesContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Milestones</p>
+                        <p class="text-2xl font-bold text-amber-600" id="milestonesTotal">0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Projects</p>
+                        <p class="text-2xl font-bold text-purple-600" id="milestonesProjects">0</p>
+                    </div>
+                </div>
+                <div class="space-y-4" id="milestonesList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Project Reports Modal -->
+<div id="projectReportsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-red-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Project Reports
+            </h3>
+            <button onclick="closeProjectReportsModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <div id="reportsLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading reports...</p>
+            </div>
+            <div id="reportsContent" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Total Projects</p>
+                        <p class="text-2xl font-bold text-red-600" id="reportsTotal">0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Active</p>
+                        <p class="text-2xl font-bold text-green-600" id="reportsActive">0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Completed</p>
+                        <p class="text-2xl font-bold text-blue-600" id="reportsCompleted">0</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Planning</p>
+                        <p class="text-2xl font-bold text-slate-600" id="reportsPlanning">0</p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                    <h4 class="font-semibold text-slate-900 mb-3">Budget Overview</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <p class="text-sm text-slate-600">Total Budget</p>
+                            <p class="text-2xl font-bold text-slate-900" id="reportsTotalBudget">₦0</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm text-slate-600">Average Budget</p>
+                            <p class="text-2xl font-bold text-slate-900" id="reportsAvgBudget">₦0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Projects Summary</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-100 border-b border-slate-200">
+                                <tr>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Project Name</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Budget</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Status</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Progress</th>
+                                    <th class="text-left py-2 px-4 font-semibold text-slate-700">Team</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectsTable" class="divide-y divide-slate-200">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility function to format currency
+function formatCurrency(amount) {
+    return '₦' + new Intl.NumberFormat('en-NG', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// Gantt Chart Modal
+function openGanttChartModal() {
+    document.getElementById('ganttChartModal').classList.remove('hidden');
+    loadGanttChartData();
+}
+
+function closeGanttChartModal() {
+    document.getElementById('ganttChartModal').classList.add('hidden');
+}
+
+function loadGanttChartData() {
+    const loading = document.getElementById('ganttLoading');
+    const content = document.getElementById('ganttContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_projects_gantt_chart") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('ganttTotal').textContent = data.total_projects;
+            document.getElementById('ganttActive').textContent = data.active_projects;
+            document.getElementById('ganttCompleted').textContent = data.completed_projects;
+            
+            const ganttProjects = document.getElementById('ganttProjects');
+            ganttProjects.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                ganttProjects.innerHTML = '<p class="text-slate-500 text-center py-4">No projects found</p>';
+            } else {
+                data.projects.forEach(project => {
+                    const statusColor = project.status === 'completed' ? 'green' : (project.status === 'active' ? 'cyan' : 'amber');
+                    ganttProjects.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <p class="font-semibold text-slate-900">${project.name}</p>
+                                    <p class="text-xs text-slate-500">
+                                        <i class="fas fa-calendar"></i> ${project.start_date} to ${project.end_date}
+                                    </p>
+                                </div>
+                                <span class="inline-block px-2 py-1 bg-${statusColor}-100 text-${statusColor}-700 text-xs font-semibold rounded">
+                                    ${project.status}
+                                </span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="bg-${statusColor}-500 h-2 rounded-full" style="width: ${project.progress}%;"></div>
+                            </div>
+                            <p class="text-xs text-slate-600 mt-2">Progress: ${project.progress}%</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading Gantt chart:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Milestones Modal
+function openMilestonesModal() {
+    document.getElementById('milestonesModal').classList.remove('hidden');
+    loadMilestonesData();
+}
+
+function closeMilestonesModal() {
+    document.getElementById('milestonesModal').classList.add('hidden');
+}
+
+function loadMilestonesData() {
+    const loading = document.getElementById('milestonesLoading');
+    const content = document.getElementById('milestonesContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_projects_milestones") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('milestonesTotal').textContent = data.total_milestones;
+            document.getElementById('milestonesProjects').textContent = data.projects_with_milestones;
+            
+            const milestonesList = document.getElementById('milestonesList');
+            milestonesList.innerHTML = '';
+            
+            if (data.milestones.length === 0) {
+                milestonesList.innerHTML = '<p class="text-slate-500 text-center py-4">No milestones found</p>';
+            } else {
+                Object.entries(data.grouped_milestones).forEach(([projectName, milestones]) => {
+                    milestonesList.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <h5 class="font-semibold text-slate-900 mb-3 border-b border-slate-200 pb-2">${projectName}</h5>
+                            <div class="space-y-2">
+                                ${milestones.map(m => `
+                                    <div class="flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-slate-900">${m.name}</p>
+                                            <p class="text-xs text-slate-500">${m.description}</p>
+                                            <p class="text-xs text-slate-600 mt-1">Due: ${m.due_date}</p>
+                                        </div>
+                                        <span class="inline-block px-2 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded">
+                                            ${m.status}
+                                        </span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading milestones:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Project Reports Modal
+function openProjectReportsModal() {
+    document.getElementById('projectReportsModal').classList.remove('hidden');
+    loadProjectReportsData();
+}
+
+function closeProjectReportsModal() {
+    document.getElementById('projectReportsModal').classList.add('hidden');
+}
+
+function loadProjectReportsData() {
+    const loading = document.getElementById('reportsLoading');
+    const content = document.getElementById('reportsContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_projects_reports") }}')
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            document.getElementById('reportsTotal').textContent = data.total_projects;
+            document.getElementById('reportsActive').textContent = data.active_projects;
+            document.getElementById('reportsCompleted').textContent = data.completed_projects;
+            document.getElementById('reportsPlanning').textContent = data.planning_projects;
+            document.getElementById('reportsTotalBudget').textContent = formatCurrency(data.total_budget);
+            document.getElementById('reportsAvgBudget').textContent = formatCurrency(data.average_budget);
+            
+            const projectsTable = document.getElementById('projectsTable');
+            projectsTable.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                projectsTable.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-500">No projects found</td></tr>';
+            } else {
+                data.projects.forEach(project => {
+                    const statusColor = project.status === 'completed' ? 'green' : (project.status === 'active' ? 'cyan' : 'amber');
+                    projectsTable.innerHTML += `
+                        <tr class="hover:bg-slate-50">
+                            <td class="py-3 px-4 font-semibold text-slate-900">${project.name}</td>
+                            <td class="py-3 px-4 text-slate-700">${formatCurrency(project.budget)}</td>
+                            <td class="py-3 px-4">
+                                <span class="inline-block px-2 py-1 bg-${statusColor}-100 text-${statusColor}-700 text-xs font-semibold rounded">
+                                    ${project.status}
+                                </span>
+                            </td>
+                            <td class="py-3 px-4">
+                                <div class="w-full bg-slate-200 rounded-full h-2">
+                                    <div class="bg-${statusColor}-500 h-2 rounded-full" style="width: ${project.progress}%;"></div>
+                                </div>
+                                <p class="text-xs text-slate-600 mt-1">${project.progress}%</p>
+                            </td>
+                            <td class="py-3 px-4 text-slate-700">${project.team_size}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading reports:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Close modals when clicking on the background
+document.getElementById('ganttChartModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeGanttChartModal();
+});
+
+document.getElementById('milestonesModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeMilestonesModal();
+});
+
+document.getElementById('projectReportsModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeProjectReportsModal();
+});
+</script>
+{% endblock %}

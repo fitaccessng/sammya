@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HR Management System{% endblock %} - FitAccess</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .sidebar {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            color: white;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+        }
+
+        .sidebar-logo h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding-left: 2rem;
+        }
+
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-left: 3px solid white;
+        }
+
+        .sidebar .nav-link i {
+            font-size: 1.25rem;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+        }
+
+        .topbar {
+            background: white;
+            padding: 1rem 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .breadcrumb {
+            margin: 0;
+            background: transparent;
+        }
+
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 1px solid #dee2e6;
+            padding: 1.25rem;
+            font-weight: 600;
+        }
+
+        .stat-card {
+            border-left: 4px solid var(--primary-color);
+            padding: 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.green {
+            border-left-color: var(--success-color);
+        }
+
+        .stat-card.orange {
+            border-left-color: var(--warning-color);
+        }
+
+        .stat-card.red {
+            border-left-color: var(--danger-color);
+        }
+
+        .stat-card h4 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 0.5rem 0 0 0;
+        }
+        .dashboard-number {
+            font-size: clamp(1rem, 3.8vw, 2rem);
+            line-height: 1.15;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+
+        .stat-card.green h4 {
+            color: var(--success-color);
+        }
+
+        .stat-card.orange h4 {
+            color: var(--warning-color);
+        }
+
+        .stat-card.red h4 {
+            color: var(--danger-color);
+        }
+
+        .stat-card p {
+            color: var(--secondary-color);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: #0a58ca;
+            border-color: #0a58ca;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .badge {
+            padding: 0.35rem 0.65rem;
+            font-weight: 500;
+        }
+
+        .badge.pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+
+        .badge.approved {
+            background-color: #198754;
+        }
+
+        .badge.rejected {
+            background-color: #dc3545;
+        }
+
+        .badge.active {
+            background-color: #198754;
+        }
+
+        .badge.inactive {
+            background-color: #6c757d;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 8px;
+        }
+
+        .alert-success {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #842029;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #664d03;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                min-height: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .topbar {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+             <div class="p-6 border-b border-slate-700">
+            <div class="flex items-center gap-3">
+               
+                <div class="p-4">
+                    <h1 class="text-xl font-bold">Sammya</h1>
+                    <p class="text-xs text-slate-400">HR Panel</p>
+                </div>
+            </div>
+        </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.hr_home') }}">
+                        <i class='bx bxs-dashboard'></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.staff_list') }}">
+                        <i class='bx bxs-user-detail'></i>
+                        <span>Staff Management</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.assignments') }}">
+                        <i class='bx bxs-briefcase'></i>
+                        <span>Assignments</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.payroll') }}">
+                        <i class='bx bxs-wallet'></i>
+                        <span>Payroll</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.leave_management') }}">
+                        <i class='bx bxs-calendar-check'></i>
+                        <span>Leave</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.account_settings') }}">
+                        <i class='bx bxs-user-circle'></i>
+                        <span>Account Settings</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.attendance') }}">
+                        <i class='bx bxs-check-circle'></i>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.staff_queries') }}">
+                        <i class='bx bxs-message-alt-dots'></i>
+                        <span>Queries</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.reports') }}">
+                        <i class='bx bxs-file'></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('hr.performance') }}">
+                        <i class='bx bxs-star'></i>
+                        <span>Performance</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                        <i class='bx bx-log-out'></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content w-100">
+            <!-- Alerts -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show animate__animated animate__slideInDown" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-3">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('hr.hr_home') }}">Home</a>
+                    </li>
+                    {% block breadcrumb %}{% endblock %}
+                </ol>
+            </nav>
+
+            <!-- Page Header -->
+            {% block page_header %}{% endblock %}
+
+            <!-- Content -->
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

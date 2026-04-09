@@ -1,0 +1,223 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <h1 class="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+        <a href="{{ url_for('auth.register') }}" class="btn-primary">+ Create User</a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+            <div class="text-sm text-gray-600">Total Users</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ total_users }}</div>
+            <a href="{{ url_for('admin.users') }}" class="text-blue-600 hover:text-blue-800 text-sm mt-2 inline-block">Manage Users →</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+            <div class="text-sm text-gray-600">Active Projects</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ active_projects }}/{{ total_projects }}</div>
+            <a href="{{ url_for('admin.projects') }}" class="text-green-600 hover:text-green-800 text-sm mt-2 inline-block">View Projects →</a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+            <div class="text-sm text-gray-600">Total Budget</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">₦{{ "{:,.0f}".format(total_budget) }}</div>
+            <div class="text-xs text-gray-500 mt-2">Across all projects</div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+            <div class="text-sm text-gray-600">Pending Approvals</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">{{ pending_count.pr + pending_count.po + pending_count.qc + pending_count.payment }}</div>
+            <div class="text-xs text-gray-500 mt-2">Across all types</div>
+        </div>
+    </div>
+
+    <!-- Pending Items by Type -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Pending Approvals by Type</h2>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-500">
+                <div class="text-sm font-semibold text-amber-900">Material Requests (PR)</div>
+                <div class="text-2xl font-bold text-amber-600 mt-2">{{ pending_count.pr }}</div>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                <div class="text-sm font-semibold text-blue-900">Purchase Orders (PO)</div>
+                <div class="text-2xl font-bold text-blue-600 mt-2">{{ pending_count.po }}</div>
+            </div>
+            <div class="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                <div class="text-sm font-semibold text-green-900">QC Inspections</div>
+                <div class="text-2xl font-bold text-green-600 mt-2">{{ pending_count.qc }}</div>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg border-l-4 border-red-500">
+                <div class="text-sm font-semibold text-red-900">Payments</div>
+                <div class="text-2xl font-bold text-red-600 mt-2">{{ pending_count.payment }}</div>
+            </div>
+            <div class="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                <div class="text-sm font-semibold text-purple-900">Staff Imports</div>
+                <div class="text-2xl font-bold text-purple-600 mt-2">{{ pending_count.staff_import }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Approvals (Last 7 Days)</h2>
+            <div class="space-y-2">
+                <div class="text-sm text-gray-600">
+                    <span class="font-semibold">{{ recent_approvals_count }}</span> approvals processed
+                </div>
+                <div class="text-sm text-gray-600">
+                    <span class="font-semibold">{{ active_users }}</span> new users added
+                </div>
+            </div>
+            <a href="{{ url_for('admin.approval_logs') }}" class="text-blue-600 hover:text-blue-800 text-sm mt-4 inline-block">View Full Audit Trail →</a>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+            <div class="space-y-2">
+                {% if pending_count.staff_import > 0 %}
+                <a href="{{ url_for('admin.pending_staff_imports') }}" class="block bg-purple-50 hover:bg-purple-100 p-3 rounded-lg text-purple-900 font-semibold transition">
+                    📥 Review Staff Imports ({{ pending_count.staff_import }})
+                </a>
+                {% endif %}
+                <a href="{{ url_for('auth.register') }}" class="block bg-blue-50 hover:bg-blue-100 p-3 rounded-lg text-blue-900 font-semibold transition">
+                    + Create New User
+                </a>
+                <a href="{{ url_for('admin.users') }}" class="block bg-green-50 hover:bg-green-100 p-3 rounded-lg text-green-900 font-semibold transition">
+                    Manage Users
+                </a>
+                <a href="{{ url_for('admin.projects') }}" class="block bg-orange-50 hover:bg-orange-100 p-3 rounded-lg text-orange-900 font-semibold transition">
+                    Manage Projects
+                </a>
+                <a href="{{ url_for('admin.system_settings') }}" class="block bg-purple-50 hover:bg-purple-100 p-3 rounded-lg text-purple-900 font-semibold transition">
+                    ⚙️ System Settings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Monitoring Section -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">Department Modules</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- HR Module -->
+            <a href="{{ url_for('admin.hr_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-blue-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">👥</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Human Resources</h3>
+                <p class="text-sm text-gray-600">Employee management, payroll, recruitment</p>
+                <span class="inline-block mt-3 text-blue-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- Finance Module -->
+            <a href="{{ url_for('admin.finance_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-green-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">💰</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Finance & Accounting</h3>
+                <p class="text-sm text-gray-600">Budget, invoicing, payments, reports</p>
+                <span class="inline-block mt-3 text-green-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- Cost Control Module -->
+            <a href="{{ url_for('admin.cost_control_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-orange-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">📊</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Cost Control</h3>
+                <p class="text-sm text-gray-600">Budget tracking, variance analysis</p>
+                <span class="inline-block mt-3 text-orange-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- Procurement Module -->
+            <a href="{{ url_for('admin.procurement_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-purple-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">🛒</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Procurement</h3>
+                <p class="text-sm text-gray-600">Purchase orders, vendors, materials</p>
+                <span class="inline-block mt-3 text-purple-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- Project Manager Module -->
+            <a href="{{ url_for('admin.project_manager_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-red-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">📋</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Project Management</h3>
+                <p class="text-sm text-gray-600">Projects, milestones, timelines</p>
+                <span class="inline-block mt-3 text-red-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- QS Module -->
+            <a href="{{ url_for('admin.qs_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-indigo-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">🛡️</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Quality & Safety</h3>
+                <p class="text-sm text-gray-600">QC inspections, compliance, defects</p>
+                <span class="inline-block mt-3 text-indigo-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- Project Staff Module -->
+            <a href="{{ url_for('admin.project_staff_activities') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-yellow-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">👷</div>
+                <h3 class="font-semibold text-gray-900 mb-2">Project Staff</h3>
+                <p class="text-sm text-gray-600">Attendance, timesheets, assignments</p>
+                <span class="inline-block mt-3 text-yellow-600 font-semibold text-sm">Monitor →</span>
+            </a>
+
+            <!-- System Settings -->
+            <a href="{{ url_for('admin.system_settings') }}" class="bg-white rounded-lg shadow-md p-6 border-t-4 border-gray-500 hover:shadow-lg transition cursor-pointer">
+                <div class="text-2xl mb-2">⚙️</div>
+                <h3 class="font-semibold text-gray-900 mb-2">System Settings</h3>
+                <p class="text-sm text-gray-600">Configuration, security, backups</p>
+                <span class="inline-block mt-3 text-gray-600 font-semibold text-sm">Configure →</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Approval Logs -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Recent Approval Activity</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-100 border-b">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Entity</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Action</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Approved By</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900">Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if recent_approvals %}
+                        {% for log in recent_approvals %}
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm">
+                                <span class="approval-badge {{ log.entity_type.lower() }}">
+                                    {{ log.entity_type }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="approval-badge {% if log.action == 'approve' %}bg-green-100 text-green-800{% elif log.action == 'reject' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ log.action.upper() }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ log.actor.name if log.actor else 'System' }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ log.timestamp.strftime('%b %d, %H:%M') }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ log.comment[:50] if log.comment else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-4 py-6 text-center text-gray-600">No approval logs found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{{ url_for('admin.approval_logs') }}" class="text-blue-600 hover:text-blue-800 text-sm mt-4 inline-block">View All Logs →</a>
+    </div>
+</div>
+{% endblock %}

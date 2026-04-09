@@ -1,0 +1,272 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Cash Flow{% endblock %}
+{% block page_title %}Cash Flow Analysis{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900 flex items-center gap-2"><i class="fas fa-wallet"></i> Cash Flow</h1>
+            <p class="text-slate-600 mt-1">Monitor cash positions and payment flow across the organization</p>
+        </div>
+        <a href="{{ url_for('admin.finance_activities') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <!-- Cash Position Summary -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Cash On Hand</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_cash|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Current balance</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Outstanding Payables</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(outstanding|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Pending disbursements</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Net Cash Position</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(projected_cash|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">After obligations</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div class="text-xs text-slate-600 font-semibold uppercase">Total Disbursed</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">₦{{ "{:,.0f}".format(total_outflows|default(0)) }}</div>
+            <div class="text-xs text-slate-500 mt-1">Year to date</div>
+        </div>
+    </div>
+
+    <!-- Cash Flow Health -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Cash Position Status -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-signal text-green-600"></i> Cash Position Status
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-semibold text-slate-600">Cash Available</span>
+                        <span class="text-sm font-bold text-slate-900">₦{{ "{:,.2f}".format(total_cash) }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 h-full rounded-full"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm font-semibold text-slate-600">Outstanding Obligations</span>
+                        <span class="text-sm font-bold text-slate-900">₦{{ "{:,.2f}".format(outstanding) }}</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                        <div class="bg-gradient-to-r from-amber-500 to-amber-600 h-full rounded-full" style="width: {{ (outstanding / total_cash * 100) if total_cash > 0 else 0 }}%"></div>
+                    </div>
+                </div>
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mt-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-slate-700">Projected Position</span>
+                        <span class="text-lg font-bold text-blue-600">₦{{ "{:,.2f}".format(projected_cash) }}</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mt-2">
+                        {% if projected_cash > 0 %}
+                        ✓ Positive cash position
+                        {% else %}
+                        ✗ Cash deficit - immediate action required
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Flow Analysis -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-line text-blue-600"></i> Cash Flow Analysis
+            </h2>
+            <div class="space-y-3">
+                <div class="p-4 border border-slate-200 rounded-lg">
+                    <div class="text-xs text-slate-600 font-semibold uppercase mb-2">Liquidity Ratio</div>
+                    <div class="text-2xl font-bold text-slate-900">
+                        {% if outstanding > 0 %}
+                        {{ "%.2f"|format(total_cash / outstanding) }}x
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1">
+                        {% if outstanding > 0 and total_cash / outstanding > 1 %}
+                        Healthy - Can cover all obligations
+                        {% elif outstanding > 0 and total_cash / outstanding > 0.5 %}
+                        Moderate - Monitor closely
+                        {% elif outstanding > 0 %}
+                        Critical - Immediate funding needed
+                        {% else %}
+                        No outstanding obligations
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="p-4 border border-slate-200 rounded-lg">
+                    <div class="text-xs text-slate-600 font-semibold uppercase mb-2">Cash Burn Rate</div>
+                    <div class="text-2xl font-bold text-slate-900">
+                        ₦{{ "{:,.0f}".format(total_outflows|default(0)) }}
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1">Total disbursements recorded</p>
+                </div>
+                <div class="p-4 border border-slate-200 rounded-lg bg-green-50">
+                    <div class="text-xs text-slate-600 font-semibold uppercase mb-2">Cash Coverage</div>
+                    <div class="text-2xl font-bold text-green-600">
+                        {% if total_outflows > 0 %}
+                        {{ "%.1f"|format(total_cash / (total_outflows / 12)) }} months
+                        {% else %}
+                        N/A
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-600 mt-1">Estimated runway</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Disbursements Trend -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-area text-purple-600"></i> Monthly Disbursement Trend (Last 6 Months)
+        </h2>
+        {% if monthly_data %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Month</th>
+                        <th class="px-6 py-3 text-right text-sm font-semibold text-slate-900">Amount Disbursed</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-slate-900">Trend</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for record in monthly_data|reverse %}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 text-sm font-semibold text-slate-900">{{ record[0] }}</td>
+                        <td class="px-6 py-4 text-sm text-right font-semibold text-red-600">₦{{ "{:,.2f}".format(record[1]|float) }}</td>
+                        <td class="px-6 py-4">
+                            <div class="w-32 bg-slate-200 rounded-full h-2">
+                                <div class="bg-red-500 h-2 rounded-full" style="width: {{ (record[1] / (monthly_data|map(attribute='1')|max) * 100) if monthly_data|map(attribute='1')|max > 0 else 0 }}%"></div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8 text-slate-600">
+            No monthly disbursement data available
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Payment Pipeline -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-amber-50">
+            <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-hourglass-end text-amber-600"></i> Outstanding Payment Obligations
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-3">
+                <div class="p-4 border border-amber-200 rounded-lg bg-amber-50">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-semibold text-slate-900">Total Pending Payments</h3>
+                            <p class="text-sm text-slate-600 mt-1">Awaiting approval and disbursement</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-amber-600">₦{{ "{:,.2f}".format(outstanding) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border border-slate-200 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="font-semibold text-slate-900">Impact on Cash Position</h3>
+                            <p class="text-sm text-slate-600 mt-1">Remaining after all payments</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold" style="color: {% if projected_cash > 0 %}#10b981{% else %}#ef4444{% endif %}">
+                                ₦{{ "{:,.2f}".format(projected_cash) }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cash Flow Recommendations -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-green-50 rounded-lg shadow p-6 border-l-4 border-green-500">
+            <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-check-circle text-green-600"></i> Strengths
+            </h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+                <li class="flex items-start gap-2">
+                    <span class="text-green-600 font-bold">✓</span>
+                    <span>Positive cash balance maintained</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-green-600 font-bold">✓</span>
+                    <span>Regular payment execution</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-green-600 font-bold">✓</span>
+                    <span>Diversified bank accounts</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-amber-50 rounded-lg shadow p-6 border-l-4 border-amber-500">
+            <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-amber-600"></i> Monitoring Points
+            </h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">!</span>
+                    <span>Monitor outstanding obligations</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">!</span>
+                    <span>Track monthly disbursements</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-amber-600 font-bold">!</span>
+                    <span>Forecast future cash needs</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-blue-50 rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <h3 class="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <i class="fas fa-lightbulb text-blue-600"></i> Actions
+            </h3>
+            <ul class="space-y-2 text-sm text-slate-600">
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold">→</span>
+                    <span>Review large payment requests</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold">→</span>
+                    <span>Schedule payments optimally</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-blue-600 font-bold">→</span>
+                    <span>Plan future cash inflows</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

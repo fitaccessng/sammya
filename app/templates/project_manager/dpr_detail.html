@@ -1,0 +1,197 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}DPR - {{ dpr.report_date.strftime('%d %b %Y') }}{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<a href="{{ url_for('project.dpr_index', project_id=dpr.project_id) }}" class="text-blue-600 hover:text-blue-800">DPR</a>
+<span class="mx-2">/</span>
+<span>{{ dpr.report_date.strftime('%d %b %Y') }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Daily Production Report</h1>
+            <p class="text-gray-600 mt-2">{{ dpr.report_date.strftime('%A, %d %B %Y') }}</p>
+        </div>
+        <span class="px-4 py-2 rounded-lg text-sm font-bold {% if dpr.status == 'completed' %}bg-green-100 text-green-800{% elif dpr.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+            {{ dpr.status|upper }}
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- DPR Details -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Report Details</h2>
+                
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Report Date</p>
+                            <p class="text-gray-900 font-bold mt-2">{{ dpr.report_date.strftime('%d %b %Y') }}</p>
+                        </div>
+                        <div>
+                            <p class="text-gray-600 text-sm font-medium">Created By</p>
+                            <p class="text-gray-900 font-bold mt-2">{{ dpr.created_by }}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Weather Conditions</p>
+                        <p class="text-gray-900 font-bold mt-2">{{ dpr.weather_conditions or 'Not recorded' }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Work Description</p>
+                        <p class="text-gray-900 mt-2">{{ dpr.work_description or 'No description provided' }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Unit</p>
+                        <p class="text-gray-900 font-bold mt-2">{{ dpr.unit or '-' }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Project Staff Report</p>
+                        <p class="text-gray-900 mt-2">{{ dpr.staff_report or 'No staff report yet' }}</p>
+                    </div>
+
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">General Remarks</p>
+                        <p class="text-gray-900 mt-2">{{ dpr.general_remarks or 'No remarks' }}</p>
+                    </div>
+
+                    {% if dpr.rejection_reason %}
+                    <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-gray-600 text-sm font-medium">Rejection Reason</p>
+                        <p class="text-red-800 mt-2">{{ dpr.rejection_reason }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="space-y-6">
+            <!-- Actions -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Actions</h3>
+                <div class="space-y-3">
+                    {% if dpr.status == 'draft' %}
+                    <button onclick="submitDPR({{ dpr.id }})" class="block w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit
+                    </button>
+                    {% endif %}
+                    
+                    {% if dpr.status == 'sent_to_staff' %}
+                    <button onclick="approveDPR({{ dpr.id }})" class="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-check mr-2"></i> Approve
+                    </button>
+                    <button onclick="showRejectModal()" class="block w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-times mr-2"></i> Reject
+                    </button>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('project.export_dpr', dpr_id=dpr.id) }}" class="block w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg text-center font-medium transition">
+                        <i class="fas fa-download mr-2"></i> Export
+                    </a>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Timeline</h3>
+                <div class="space-y-4 text-sm">
+                    <p class="text-gray-600">Created: <span class="font-bold">{{ dpr.created_at.strftime('%d %b %Y %H:%M') }}</span></p>
+                    <p class="text-gray-600">Last Updated: <span class="font-bold">{{ dpr.updated_at.strftime('%d %b %Y %H:%M') }}</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-md w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Reject DPR</h2>
+        
+        <textarea id="rejectReason" rows="4" placeholder="Enter rejection reason..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"></textarea>
+
+        <div class="flex items-center space-x-4">
+            <button onclick="confirmRejectDPR({{ dpr.id }})" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium">
+                Reject
+            </button>
+            <button onclick="closeRejectModal()" class="flex-1 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRejectModal() {
+    document.getElementById('rejectModal').classList.remove('hidden');
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').classList.add('hidden');
+}
+
+function submitDPR(dprId) {
+    fetch(`/projects/dpr/${dprId}/submit`, { method: 'POST' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                window.location.reload();
+            } else {
+                alert('Error: ' + d.message);
+            }
+        });
+}
+
+function approveDPR(dprId) {
+    if (confirm('Approve this DPR?')) {
+        fetch(`/projects/dpr/${dprId}/approve`, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + d.message);
+                }
+            });
+    }
+}
+
+function confirmRejectDPR(dprId) {
+    const reason = document.getElementById('rejectReason').value;
+    if (!reason.trim()) {
+        alert('Please enter a rejection reason');
+        return;
+    }
+    
+    fetch(`/projects/dpr/${dprId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: reason })
+    })
+    .then(r => r.json())
+    .then(d => {
+        if (d.success) {
+            window.location.reload();
+        } else {
+            alert('Error: ' + d.message);
+        }
+    });
+}
+
+document.getElementById('rejectModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRejectModal();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Payroll Details{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+    <li class="breadcrumb-item active">{{ payroll.payroll_number }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header with Status -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">{{ payroll.payroll_number }}</h2>
+                    <p class="text-muted">{{ payroll.payroll_month.strftime('%B %Y') }}</p>
+                </div>
+                <div>
+                    {% if payroll.approval_state == 'draft' %}
+                    <span class="badge bg-secondary" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                        <i class='bx bxs-file'></i> DRAFT
+                    </span>
+                    {% elif payroll.approval_state == 'pending' %}
+                    <span class="badge bg-warning" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                        <i class='bx bxs-time'></i> PENDING APPROVAL
+                    </span>
+                    {% elif payroll.approval_state == 'approved' %}
+                    <span class="badge bg-success" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                        <i class='bx bxs-check-circle'></i> APPROVED
+                    </span>
+                    {% elif payroll.approval_state == 'rejected' %}
+                    <span class="badge bg-danger" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                        <i class='bx bxs-x-circle'></i> REJECTED
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted mb-2">Total Staff</p>
+                    <h4>{{ payroll.items|length }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted mb-2">Total Basic Salary</p>
+                    <h4>₦{{ "{:,.2f}".format(payroll.total_basic_salary) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted mb-2">Total Deductions</p>
+                    <h4 style="color: #dc3545;">₦{{ "{:,.2f}".format(payroll.total_deductions) }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <p class="text-muted mb-2">Total Net Salary</p>
+                    <h4 style="color: #28a745;">₦{{ "{:,.2f}".format(payroll.total_net_salary) }}</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Payroll Items -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payroll Items</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Staff Name</th>
+                                    <th>Email</th>
+                                    <th>Basic Salary</th>
+                                    <th>Deductions</th>
+                                    <th>Net Salary</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in payroll.items %}
+                                <tr>
+                                    <td><strong>{{ item.staff.name }}</strong></td>
+                                    <td>{{ item.staff.email }}</td>
+                                    <td>₦{{ "{:,.2f}".format(item.basic_salary) }}</td>
+                                    <td>₦{{ "{:,.2f}".format(item.deductions) }}</td>
+                                    <td><strong>₦{{ "{:,.2f}".format(item.net_salary) }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Status Sidebar -->
+        <div class="col-lg-4">
+            <!-- Status Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Approval Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted small mb-1">Current Status</p>
+                        <p class="mb-0">
+                            {% if payroll.approval_state == 'draft' %}
+                            <span class="badge bg-secondary">DRAFT</span> - Not yet submitted
+                            {% elif payroll.approval_state == 'pending' %}
+                            <span class="badge bg-warning">PENDING</span> - Awaiting admin approval
+                            {% elif payroll.approval_state == 'approved' %}
+                            <span class="badge bg-success">APPROVED</span> - Ready for payment
+                            {% elif payroll.approval_state == 'rejected' %}
+                            <span class="badge bg-danger">REJECTED</span>
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    {% if payroll.approval_state == 'pending' and current_user.role == 'admin' %}
+                    <hr>
+                    <p class="small text-muted mb-3">As an admin, you can approve or reject this payroll:</p>
+                    
+                    <form method="POST" action="{{ url_for('hr.payroll_approve', payroll_id=payroll.id) }}" class="mb-2">
+                        <button type="submit" class="btn btn-success btn-sm w-100">
+                            <i class='bx bxs-check-circle'></i> Approve
+                        </button>
+                    </form>
+
+                    <button class="btn btn-danger btn-sm w-100" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                        <i class='bx bxs-x-circle'></i> Reject
+                    </button>
+                    {% endif %}
+
+                    {% if payroll.approval_state == 'approved' %}
+                    <hr>
+                    <div class="alert alert-success mb-0">
+                        <p class="small mb-1"><strong>Approved by:</strong></p>
+                        <p class="small mb-1">{{ payroll.approver.name if payroll.approver else 'N/A' }}</p>
+                        <p class="small mb-0"><strong>Date:</strong> {{ payroll.approved_at.strftime('%d %b %Y %H:%M') if payroll.approved_at else 'N/A' }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if payroll.approval_state == 'rejected' %}
+                    <hr>
+                    <div class="alert alert-danger mb-0">
+                        <p class="small mb-2"><strong>Rejection Reason:</strong></p>
+                        <p class="small mb-0">{{ payroll.rejection_reason }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Audit Trail -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Approval History</h5>
+                </div>
+                <div class="card-body">
+                    {% if approval_history %}
+                    <div class="timeline-simple">
+                        {% for log in approval_history %}
+                        <div class="timeline-item mb-3 pb-3 border-bottom">
+                            <p class="small mb-1">
+                                <strong>{{ log.action|upper }}</strong> by 
+                                <strong>{{ log.actor.name }}</strong>
+                            </p>
+                            <p class="text-muted small mb-1">{{ log.timestamp.strftime('%d %b %Y %H:%M') }}</p>
+                            {% if log.notes %}
+                            <p class="small mb-0">{{ log.notes }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">No approval history yet</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Back Button -->
+    <div class="mt-4">
+        <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
+            <i class='bx bxs-left-arrow'></i> Back to Payroll
+        </a>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reject Payroll</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('hr.payroll_reject', payroll_id=payroll.id) }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="rejection_reason">Rejection Reason <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="4" required 
+                                  placeholder="Please provide a reason for rejecting this payroll..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Payroll</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

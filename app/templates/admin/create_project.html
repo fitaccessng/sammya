@@ -1,0 +1,171 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Create New Project - Admin{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-slate-900">Create New Construction Project</h2>
+            <a href="{{ url_for('admin.projects') }}" class="flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                <i class="fas fa-arrow-left"></i> Back to Projects
+            </a>
+        </div>
+
+        <div class="p-6">
+            <form method="POST" action="{{ url_for('admin.create_project') }}" class="space-y-6">
+                <!-- Basic Information Section -->
+                <div class="border-b border-slate-200 pb-6">
+                    <h3 class="text-md font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-blue-600"></i> Basic Information
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Project Name -->
+                        <div class="md:col-span-2">
+                            <label for="name" class="block text-sm font-semibold text-slate-900 mb-2">Project Name *</label>
+                            <input type="text" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   id="name" name="name" value="{{ form_data.get('name', '') }}" placeholder="Enter project name" required>
+                            <p class="text-xs text-slate-500 mt-1">Unique name for the construction project</p>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="md:col-span-2">
+                            <label for="description" class="block text-sm font-semibold text-slate-900 mb-2">Description</label>
+                            <textarea class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                      id="description" name="description" rows="3" placeholder="Project scope and objectives">{{ form_data.get('description', '') }}</textarea>
+                            <p class="text-xs text-slate-500 mt-1">Detailed description of the project scope and objectives</p>
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label for="status" class="block text-sm font-semibold text-slate-900 mb-2">Status</label>
+                            <select class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                    id="status" name="status">
+                                <option value="planning" {% if form_data.get('status') == 'planning' %}selected{% endif %}>📋 Planning</option>
+                                <option value="active" {% if form_data.get('status') == 'active' %}selected{% endif %}>▶️ Active</option>
+                                <option value="paused" {% if form_data.get('status') == 'paused' %}selected{% endif %}>⏸️ Paused</option>
+                                <option value="completed" {% if form_data.get('status') == 'completed' %}selected{% endif %}>✓ Completed</option>
+                            </select>
+                            <p class="text-xs text-slate-500 mt-1">Current project status</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Section -->
+                <div class="border-b border-slate-200 pb-6">
+                    <h3 class="text-md font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-calendar text-blue-600"></i> Timeline
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Start Date -->
+                        <div>
+                            <label for="start_date" class="block text-sm font-semibold text-slate-900 mb-2">Start Date</label>
+                            <input type="date" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   id="start_date" name="start_date" value="{{ form_data.get('start_date', '') }}">
+                            <p class="text-xs text-slate-500 mt-1">Project start date</p>
+                        </div>
+
+                        <!-- End Date -->
+                        <div>
+                            <label for="end_date" class="block text-sm font-semibold text-slate-900 mb-2">End Date</label>
+                            <input type="date" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                   id="end_date" name="end_date" value="{{ form_data.get('end_date', '') }}">
+                            <p class="text-xs text-slate-500 mt-1">Expected project completion date</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Section -->
+                <div class="border-b border-slate-200 pb-6">
+                    <h3 class="text-md font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-money-bill text-blue-600"></i> Budget
+                    </h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Main Budget -->
+                        <div>
+                            <label for="budget" class="block text-sm font-semibold text-slate-900 mb-2">Project Budget (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-slate-600 font-semibold">₦</span>
+                                <input type="number" class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       id="budget" name="budget" placeholder="0.00" step="0.01" value="{{ form_data.get('budget', '') }}">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Total project budget allocation</p>
+                        </div>
+
+                        <!-- Contingency Budget -->
+                        <div>
+                            <label for="contingency_budget" class="block text-sm font-semibold text-slate-900 mb-2">Contingency Budget (₦)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-slate-600 font-semibold">₦</span>
+                                <input type="number" class="w-full pl-8 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                       id="contingency_budget" name="contingency_budget" placeholder="0.00" step="0.01" value="{{ form_data.get('contingency_budget', '') }}">
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1">Reserve budget for contingencies (10-15% typical)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center gap-2">
+                        <i class="fas fa-plus"></i> Create Project
+                    </button>
+                    <button type="reset" class="flex-1 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-semibold">
+                        <i class="fas fa-undo mr-2"></i>Reset
+                    </button>
+                    <a href="{{ url_for('admin.projects') }}" class="flex-1 px-6 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-center font-semibold">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 class="text-sm font-semibold text-blue-900 mb-2 flex items-center gap-2">
+            <i class="fas fa-lightbulb"></i> Tips for Project Creation
+        </h3>
+        <ul class="text-sm text-blue-800 space-y-1 ml-6 list-disc">
+            <li>Provide a clear, descriptive project name for easy identification</li>
+            <li>Include key dates for project timeline tracking</li>
+            <li>Set realistic budget estimates based on project scope</li>
+            <li>Add contingency budget (10-15% of total) for unexpected costs</li>
+            <li>You can assign team members and manage budget details after creation</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Validate that end date is not before start date
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+
+    [startDateInput, endDateInput].forEach(input => {
+        input.addEventListener('change', function() {
+            if (startDateInput.value && endDateInput.value) {
+                if (new Date(endDateInput.value) < new Date(startDateInput.value)) {
+                    endDateInput.classList.add('ring-2', 'ring-red-500');
+                    alert('End date cannot be before start date');
+                } else {
+                    endDateInput.classList.remove('ring-2', 'ring-red-500');
+                }
+            }
+        });
+    });
+
+    // Validate budget is not negative
+    const budgetInput = document.getElementById('budget');
+    budgetInput.addEventListener('change', function() {
+        if (parseFloat(this.value) < 0) {
+            this.classList.add('ring-2', 'ring-red-500');
+            alert('Budget cannot be negative');
+        } else {
+            this.classList.remove('ring-2', 'ring-red-500');
+        }
+    });
+</script>
+{% endblock %}

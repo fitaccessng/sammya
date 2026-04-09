@@ -1,0 +1,159 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Record Attendance{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.attendance') }}">Attendance</a></li>
+<li class="breadcrumb-item active">Record</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h2 class="mb-1">Record Attendance</h2>
+        <p class="text-muted">Record employee attendance for today</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <button class="btn btn-success w-100" id="markAllPresent">
+                                <i class='bx bxs-check-circle'></i> Mark All Present
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-warning w-100" id="markAllLate">
+                                <i class='bx bxs-time'></i> Mark All Late
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-info w-100" id="clearAll">
+                                <i class='bx bxs-trash'></i> Clear All
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary w-100" id="submitAttendance">
+                                <i class='bx bxs-send'></i> Submit Attendance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Form -->
+    <form method="POST" action="{{ url_for('hr.record_attendance') }}" id="attendanceForm">
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">Employee Attendance</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%;">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            <th>Employee ID</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for employee in data.employees %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input employee-select" data-emp-id="{{ employee.id }}">
+                                </td>
+                                <td>{{ employee.employee_id }}</td>
+                                <td><strong>{{ employee.name }}</strong></td>
+                                <td>{{ employee.department }}</td>
+                                <td>
+                                    <select name="status_{{ employee.id }}" class="form-select form-select-sm status-select">
+                                        <option value="Present">Present</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Late">Late</option>
+                                        <option value="On Leave">On Leave</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="time" name="time_in_{{ employee.id }}" class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <input type="time" name="time_out_{{ employee.id }}" class="form-control form-control-sm">
+                                </td>
+                                <td>
+                                    <input type="text" name="remarks_{{ employee.id }}" class="form-control form-control-sm" placeholder="Optional notes">
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer bg-light d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('hr.attendance') }}" class="btn btn-secondary">
+                    <i class='bx bxs-x-circle'></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class='bx bxs-save'></i> Save Attendance
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Select All checkbox
+    document.getElementById('selectAll').addEventListener('change', function() {
+        document.querySelectorAll('.employee-select').forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // Mark All Present
+    document.getElementById('markAllPresent').addEventListener('click', function() {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.value = 'Present';
+        });
+    });
+
+    // Mark All Late
+    document.getElementById('markAllLate').addEventListener('click', function() {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.value = 'Late';
+        });
+    });
+
+    // Clear All
+    document.getElementById('clearAll').addEventListener('click', function() {
+        if (confirm('Clear all attendance records?')) {
+            document.querySelectorAll('.status-select').forEach(select => {
+                select.value = 'Present';
+            });
+            document.querySelectorAll('input[type="time"]').forEach(input => {
+                input.value = '';
+            });
+            document.querySelectorAll('input[type="text"]').forEach(input => {
+                input.value = '';
+            });
+        }
+    });
+
+    // Submit Attendance
+    document.getElementById('submitAttendance').addEventListener('click', function(e) {
+        if (!confirm('Submit attendance for all marked employees?')) {
+            e.preventDefault();
+        }
+    });
+</script>
+{% endblock %}

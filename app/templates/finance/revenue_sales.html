@@ -1,0 +1,122 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="py-6 space-y-6">
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-2">Revenue / Sales</h2>
+        <p class="text-sm text-gray-600 mb-4">
+            Revenue is recognized when delivery/service is complete and invoice is issued.
+        </p>
+        <p class="text-sm text-gray-600 mb-5">Total Revenue: <strong>&#8358;{{ "{:,.2f}".format(total_revenue) }}</strong></p>
+
+        <form method="POST" enctype="multipart/form-data" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
+            <input class="border rounded px-3 py-2" name="customer_name" placeholder="Customer Name" required>
+            <input class="border rounded px-3 py-2" name="invoice_number" placeholder="Invoice Number (optional)">
+            <input class="border rounded px-3 py-2" name="sale_date" type="date">
+
+            <select class="border rounded px-3 py-2" name="project_id">
+                <option value="">Project (optional)</option>
+                {% for p in projects %}
+                <option value="{{ p.id }}">{{ p.name }}</option>
+                {% endfor %}
+            </select>
+            <input class="border rounded px-3 py-2" name="amount" type="number" step="0.01" placeholder="Amount" required>
+            <select class="border rounded px-3 py-2" name="payment_timing">
+                <option value="later">Pay Later (Credit Sale)</option>
+                <option value="immediate">Immediate Payment</option>
+            </select>
+
+            <select class="border rounded px-3 py-2" name="collection_status">
+                <option value="not_paid">Payment Not Yet Received</option>
+                <option value="paid_deposited">Payment Received and Deposited</option>
+                <option value="paid_not_deposited">Cheque Received, Not Yet Deposited</option>
+            </select>
+            <select class="border rounded px-3 py-2" name="bank_account_id">
+                <option value="">Bank Account (required if deposited)</option>
+                {% for account in bank_accounts %}
+                <option value="{{ account.id }}">{{ account.account_name }} - {{ account.bank_name }}</option>
+                {% endfor %}
+            </select>
+            <select class="border rounded px-3 py-2" name="revenue_account_id">
+                <option value="">Revenue Account (default auto)</option>
+                {% for account in revenue_accounts %}
+                <option value="{{ account.id }}">{{ account.account_code }} - {{ account.account_name }}</option>
+                {% endfor %}
+            </select>
+
+            <input class="border rounded px-3 py-2 md:col-span-2" name="description" placeholder="Description">
+            <input class="border rounded px-3 py-2" name="tags" placeholder="Tags (comma separated)">
+            <input class="border rounded px-3 py-2 md:col-span-3" name="invoice_file" type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+
+            <label class="text-sm flex items-center gap-2 md:col-span-1">
+                <input type="checkbox" name="item_service_delivered" required>
+                Item/Service Delivered
+            </label>
+            <label class="text-sm flex items-center gap-2 md:col-span-1">
+                <input type="checkbox" name="invoice_issued" required>
+                Invoice Issued
+            </label>
+            <button class="bg-blue-600 text-white rounded px-4 py-2 md:col-span-1">Record Revenue</button>
+        </form>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full border border-gray-300">
+                <thead class="bg-gray-100">
+                    <tr>
+                        <th class="border px-3 py-2 text-left">Date</th>
+                        <th class="border px-3 py-2 text-left">Invoice</th>
+                        <th class="border px-3 py-2 text-left">Customer</th>
+                        <th class="border px-3 py-2 text-left">Payment Timing</th>
+                        <th class="border px-3 py-2 text-left">Collection Status</th>
+                        <th class="border px-3 py-2 text-left">Project</th>
+                        <th class="border px-3 py-2 text-right">Amount</th>
+                        <th class="border px-3 py-2 text-left">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in records %}
+                    {% set timing = r.meta.get('payment_timing', 'later') if r.meta else 'later' %}
+                    {% set collection = r.meta.get('collection_status', 'not_paid') if r.meta else 'not_paid' %}
+                    <tr>
+                        <td class="border px-3 py-2">{{ r.sale_date.strftime('%Y-%m-%d') if r.sale_date else '-' }}</td>
+                        <td class="border px-3 py-2">{{ r.meta.get('invoice_number', '-') if r.meta else '-' }}</td>
+                        <td class="border px-3 py-2">{{ r.customer_name }}</td>
+                        <td class="border px-3 py-2">
+                            {% if timing == 'immediate' %}Immediate{% else %}Pay Later{% endif %}
+                        </td>
+                        <td class="border px-3 py-2">
+                            {% if collection == 'paid_deposited' %}
+                            <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">Deposited</span>
+                            {% elif collection == 'paid_not_deposited' %}
+                            <span class="px-2 py-1 rounded text-xs bg-amber-100 text-amber-800">Undeposited Cheque</span>
+                            {% else %}
+                            <span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">Not Yet Paid</span>
+                            {% endif %}
+                        </td>
+                        <td class="border px-3 py-2">{{ r.project.name if r.project else '-' }}</td>
+                        <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(r.amount or 0) }}</td>
+                        <td class="border px-3 py-2">
+                            {% if collection == 'paid_not_deposited' %}
+                            <form method="POST" action="{{ url_for('finance.deposit_revenue_cheque', revenue_id=r.id) }}" class="grid grid-cols-1 gap-2">
+                                <select name="bank_account_id" class="border rounded px-2 py-1 text-xs" required>
+                                    <option value="">Deposit To Bank</option>
+                                    {% for account in bank_accounts %}
+                                    <option value="{{ account.id }}">{{ account.account_name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="text" name="deposit_reference" class="border rounded px-2 py-1 text-xs" placeholder="Deposit ref (optional)">
+                                <input type="date" name="deposit_date" class="border rounded px-2 py-1 text-xs">
+                                <button class="bg-green-600 text-white rounded px-2 py-1 text-xs">Deposit Cheque</button>
+                            </form>
+                            {% else %}
+                            <span class="text-xs text-gray-400">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Review Staff Import - {{ batch.batch_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Admin</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('admin.pending_staff_imports') }}">Pending Imports</a></li>
+<li class="breadcrumb-item active">{{ batch.batch_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-3xl font-bold text-slate-900">Review Import Batch</h1>
+        <p class="text-slate-600 mt-1">{{ batch.batch_name }} - {{ batch.file_name }}</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
+            <div class="text-sm text-slate-600">Total Records</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ batch.total_records }}</div>
+            <div class="text-xs text-slate-500 mt-2">In this batch</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
+            <div class="text-sm text-slate-600">Valid Records</div>
+            <div class="text-3xl font-bold text-green-600 mt-2">{{ valid_items|length }}</div>
+            <div class="text-xs text-slate-500 mt-2">Ready to import</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
+            <div class="text-sm text-slate-600">With Errors</div>
+            <div class="text-3xl font-bold text-red-600 mt-2">{{ invalid_items|length }}</div>
+            <div class="text-xs text-slate-500 mt-2">Need correction</div>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6 border-l-4 border-purple-500">
+            <div class="text-sm text-slate-600">Created By</div>
+            <div class="text-lg font-bold text-slate-900 mt-2">{{ batch.creator.name }}</div>
+            <div class="text-xs text-slate-500 mt-2">Submitted batch</div>
+        </div>
+    </div>
+
+    <!-- Batch Info -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-slate-900 mb-4">Batch Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">Batch Name</p>
+                    <p class="text-slate-900 font-medium">{{ batch.batch_name }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">File Name</p>
+                    <p class="text-slate-900 font-medium"><code class="text-sm">{{ batch.file_name }}</code></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">Created By</p>
+                    <p class="text-slate-900 font-medium">{{ batch.creator.name }}<br><span class="text-xs text-slate-600">{{ batch.creator.email }}</span></p>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">Status</p>
+                    <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">{{ batch.approval_state.upper() }}</span>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">Submitted</p>
+                    <p class="text-slate-900 font-medium">{{ batch.created_at.strftime('%d-%m-%Y %H:%M') }}</p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-600 font-semibold uppercase">Total Records</p>
+                    <p class="text-slate-900 font-medium">{{ batch.total_records }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    {% if invalid_items %}
+        <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-exclamation-triangle text-amber-500 text-2xl flex-shrink-0"></i>
+                <div>
+                    <p class="font-semibold text-amber-900"><strong>{{ invalid_items|length }} record(s) have validation errors</strong></p>
+                    <p class="text-sm text-amber-800 mt-1">These records will not be imported. Please review the errors below.</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Valid Records -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-green-50 border-b border-slate-200 px-6 py-4">
+            <h2 class="text-lg font-semibold text-green-900 flex items-center gap-2">
+                <i class="fas fa-check-circle"></i> Valid Records ({{ valid_items|length }})
+            </h2>
+        </div>
+        <div class="p-6">
+            {% if valid_items %}
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">#</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Department</th>
+                                <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Position</th>
+                                <th class="px-4 py-3 text-right text-sm font-semibold text-slate-900">Basic Salary</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% for item in valid_items %}
+                            <tr class="hover:bg-slate-50 transition-colors">
+                                <td class="px-4 py-3 text-sm text-slate-600">{{ loop.index }}</td>
+                                <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ item.first_name }} {{ item.last_name }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600"><code>{{ item.email }}</code></td>
+                                <td class="px-4 py-3 text-sm text-slate-600">{{ item.department or 'General' }}</td>
+                                <td class="px-4 py-3 text-sm text-slate-600">{{ item.position or 'N/A' }}</td>
+                                <td class="px-4 py-3 text-sm text-right text-slate-900 font-medium">{{ "%.2f"|format(item.basic_salary or 0) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                    <p class="text-blue-900 text-sm">No valid records to import</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Invalid Records -->
+    {% if invalid_items %}
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-red-50 border-b border-slate-200 px-6 py-4">
+            <h2 class="text-lg font-semibold text-red-900 flex items-center gap-2">
+                <i class="fas fa-times-circle"></i> Records with Errors ({{ invalid_items|length }})
+            </h2>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
+                            <th class="px-4 py-3 text-left text-sm font-semibold text-slate-900">Error Message</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200">
+                        {% for item in invalid_items %}
+                        <tr class="bg-red-50 hover:bg-red-100 transition-colors">
+                            <td class="px-4 py-3 text-sm font-semibold text-slate-900">{{ item.first_name }} {{ item.last_name }}</td>
+                            <td class="px-4 py-3 text-sm text-slate-600"><code>{{ item.email or 'N/A' }}</code></td>
+                            <td class="px-4 py-3 text-sm text-red-800">{{ item.error_message }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form method="POST" action="{{ url_for('admin.approve_staff_import', batch_id=batch.id) }}">
+            <button type="submit" class="w-full px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold flex items-center justify-center gap-2 {% if not valid_items %}opacity-50 cursor-not-allowed{% endif %}" 
+                    {% if not valid_items %}disabled{% endif %}>
+                <i class="fas fa-check-circle"></i> Approve & Process Import
+            </button>
+            {% if not valid_items %}
+                <p class="text-red-600 text-sm mt-2">No valid records to import</p>
+            {% endif %}
+        </form>
+        <button type="button" class="w-full px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold flex items-center justify-center gap-2" data-toggle="modal" data-target="#rejectModal">
+            <i class="fas fa-times-circle"></i> Reject Import
+        </button>
+    </div>
+
+    <div class="text-center">
+        <a href="{{ url_for('admin.pending_staff_imports') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition-colors font-semibold text-sm">
+            <i class="fas fa-arrow-left"></i> Back to Pending
+        </a>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden" id="rejectModal">
+    <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+        <div class="border-b border-slate-200 px-6 py-4">
+            <h3 class="text-lg font-semibold text-slate-900">Reject Import Batch</h3>
+        </div>
+        <form method="POST" action="{{ url_for('admin.reject_staff_import', batch_id=batch.id) }}">
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-900 mb-2">Rejection Reason *</label>
+                    <textarea name="rejection_reason" class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" rows="4" required 
+                              placeholder="Please provide a reason for rejecting this import batch..."></textarea>
+                </div>
+                
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg">
+                    <p class="text-sm text-amber-800">
+                        <i class="fas fa-exclamation-triangle"></i> The HR staff who submitted this batch will be notified of the rejection and can make corrections.
+                    </p>
+                </div>
+            </div>
+            <div class="border-t border-slate-200 px-6 py-3 flex gap-2 justify-end">
+                <button type="button" class="px-4 py-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-slate-200 transition-colors font-semibold" onclick="closeModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-semibold flex items-center gap-2">
+                    <i class="fas fa-times-circle"></i> Reject Batch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function closeModal() {
+        document.getElementById('rejectModal').classList.add('hidden');
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('rejectModal');
+        document.querySelectorAll('[data-target="#rejectModal"]').forEach(btn => {
+            btn.addEventListener('click', () => modal.classList.remove('hidden'));
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    });
+</script>
+{% endblock %}

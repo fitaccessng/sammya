@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Delivery #{{ delivery.id }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl">
+    <h1 class="text-3xl font-bold mb-4">Delivery {{ delivery.grn_number }}</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-slate-600">Status</p>
+                <span class="approval-badge pending">{{ delivery.approval_state.value.upper() }}</span>
+            </div>
+            <div>
+                <p class="text-sm text-slate-600">PO #</p>
+                <p class="font-semibold">{{ delivery.po_id }}</p>
+            </div>
+        </div>
+        
+        <h3 class="text-lg font-semibold mb-4">Received Items</h3>
+        <table class="status-table w-full">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Unit</th>
+                    <th>Quantity Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in delivery.items %}
+                <tr>
+                    <td>{{ item.description }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td>{{ item.quantity_received }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

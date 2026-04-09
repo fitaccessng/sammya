@@ -1,0 +1,193 @@
+{% extends 'finance/base.html' %}
+
+{% block finance_content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Finance Documents</h1>
+        <button onclick="showUploadModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">📤 Upload Document</button>
+    </div>
+
+    <!-- Filter by Project -->
+    <div class="mb-6 bg-white rounded-lg shadow-sm p-4">
+        <form method="GET" class="flex gap-4 items-center">
+            <div class="flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Filter by Project</label>
+                <select name="project_id" onchange="this.form.submit()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if selected_project == project.id|string %}selected{% endif %}>
+                        {{ project.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <!-- Documents Table -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse">
+                <thead class="bg-gray-100 border-b border-gray-300">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Title</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">File</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Uploaded By</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                        <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if uploads.items %}
+                        {% for upload in uploads.items %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                <div class="max-w-xs">
+                                    <p class="font-semibold">{{ upload.title }}</p>
+                                    <p class="text-xs text-gray-500 mt-1">{{ upload.description or '—' }}</p>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-gray-600">{{ upload.file_name }}</td>
+                            <td class="px-6 py-4 text-sm">
+                                <span class="inline-block px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800">
+                                    {{ upload.document_type.upper() if upload.document_type else 'FILE' }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {% if upload.project %}
+                                    <a href="?project_id={{ upload.project.id }}" class="text-blue-600 hover:underline">
+                                        {{ upload.project.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-gray-400">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">
+                                {{ upload.uploaded_by.email if upload.uploaded_by else '—' }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ upload.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <a href="{{ upload.file_path }}" download class="text-blue-600 hover:text-blue-800 text-sm font-semibold">📥 Download</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                            No documents found. 
+                            <button onclick="showUploadModal()" class="text-blue-600 hover:underline">Upload one now</button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if uploads.pages > 1 %}
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-center gap-2">
+            {% if uploads.has_prev %}
+            <a href="?page={{ uploads.prev_num }}{% if selected_project %}&project_id={{ selected_project }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-200">← Previous</a>
+            {% endif %}
+            
+            <span class="px-3 py-1 text-sm text-gray-600">Page {{ uploads.page }} of {{ uploads.pages }}</span>
+            
+            {% if uploads.has_next %}
+            <a href="?page={{ uploads.next_num }}{% if selected_project %}&project_id={{ selected_project }}{% endif %}" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-200">Next →</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Upload Document</h2>
+        <form id="uploadForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Document Title *</label>
+                <input type="text" name="title" placeholder="E.g., Q1 Financial Report" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Select File *</label>
+                <input type="file" name="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
+                <p class="text-xs text-gray-500 mt-1">Allowed: PDF, Images, Documents (Max 20MB)</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
+                <textarea name="description" placeholder="Add details about this document..." rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Link to Project *</label>
+                <select name="project_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
+                    <option value="">Select a Project</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}">{{ project.name }}</option>
+                    {% endfor %}
+                </select>
+                <p class="text-xs text-gray-500 mt-1">Project is required for document organization</p>
+            </div>
+            <div class="flex gap-2">
+                <button type="button" onclick="submitUpload()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">📤 Upload</button>
+                <button type="button" onclick="closeUploadModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function showUploadModal() {
+    document.getElementById('uploadModal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.add('hidden');
+    document.getElementById('uploadForm').reset();
+}
+
+function submitUpload() {
+    const form = document.getElementById('uploadForm');
+    const fileInput = document.getElementById('fileInput');
+    const projectInput = form.querySelector('[name="project_id"]');
+    
+    if (!fileInput.files.length) {
+        showNotification('Error', 'Please select a file');
+        return;
+    }
+    
+    if (!projectInput.value) {
+        showNotification('Error', 'Please select a project');
+        return;
+    }
+    
+    const formData = new FormData(form);
+    
+    fetch('{{ url_for("finance.upload_document") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            showNotification('Success', 'Document uploaded successfully!');
+            closeUploadModal();
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('Error', data.message || 'Upload failed');
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showNotification('Error', 'Upload failed: ' + error.message);
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "project_manager/base.html" %}
+
+{% block title %}Materials - Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Materials</span>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900">Project Materials</h1>
+        <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-flex items-center space-x-2" onclick="openAddMaterialModal()">
+            <i class="fas fa-plus"></i>
+            <span>Add Material</span>
+        </button>
+    </div>
+
+    <!-- Material Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Materials</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ material_stats.total }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">In Stock</p>
+            <p class="text-3xl font-bold text-green-600 mt-2">{{ material_stats.in_stock }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Used</p>
+            <p class="text-3xl font-bold text-blue-600 mt-2">{{ "{:,.2f}".format(material_stats.used) }}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-6">
+            <p class="text-gray-600 text-sm font-medium">Total Cost</p>
+            <p class="text-3xl font-bold text-orange-600 mt-2">₦{{ "{:,.0f}".format(material_stats.total_cost) }}</p>
+        </div>
+    </div>
+
+    <!-- Materials Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        {% if project_materials %}
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Description</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Category</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Unit</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Allocated</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Used</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Unit Cost</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Total</th>
+                    <th class="px-6 py-3 text-left text-sm font-bold text-gray-900">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for material in project_materials %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 font-medium text-gray-900">{{ material.description }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ material.category or '-' }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ material.unit }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">{{ "{:,.2f}".format(material.quantity_allocated) }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">{{ "{:,.2f}".format(material.quantity_used or 0) }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">₦{{ "{:,.2f}".format(material.unit_cost) }}</td>
+                    <td class="px-6 py-4 font-bold text-gray-900">₦{{ "{:,.2f}".format(material.unit_cost * material.quantity_allocated) }}</td>
+                    <td class="px-6 py-4 space-x-2">
+                        <button onclick="deleteMaterial({{ project.id }}, {{ material.id }})" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fas fa-inbox text-6xl text-gray-300 mb-4"></i>
+            <p class="text-gray-600 text-lg mb-4">No materials recorded yet</p>
+            <button onclick="openAddMaterialModal()" class="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Add First Material
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Material Modal -->
+<div id="addMaterialModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Add Material</h2>
+        
+        <form method="POST" action="{{ url_for('project.add_material', project_id=project.id) }}" class="space-y-4">
+            <div>
+                <label for="description" class="block text-sm font-bold text-gray-900 mb-2">Description *</label>
+                <input type="text" id="description" name="description" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="category" class="block text-sm font-bold text-gray-900 mb-2">Category</label>
+                    <input type="text" id="category" name="category" placeholder="e.g., Steel, Cement, Sand" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="unit" class="block text-sm font-bold text-gray-900 mb-2">Unit *</label>
+                    <input type="text" id="unit" name="unit" placeholder="e.g., Kg, Ton, Liter" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="quantity" class="block text-sm font-bold text-gray-900 mb-2">Quantity *</label>
+                    <input type="number" id="quantity" name="quantity" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="unit_cost" class="block text-sm font-bold text-gray-900 mb-2">Unit Cost (₦) *</label>
+                    <input type="number" id="unit_cost" name="unit_cost" step="0.01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label for="specification" class="block text-sm font-bold text-gray-900 mb-2">Specification</label>
+                <textarea id="specification" name="specification" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <div class="flex items-center space-x-4 pt-4">
+                <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-medium">
+                    Add Material
+                </button>
+                <button type="button" onclick="closeAddMaterialModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium text-gray-900">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openAddMaterialModal() {
+    document.getElementById('addMaterialModal').classList.remove('hidden');
+}
+
+function closeAddMaterialModal() {
+    document.getElementById('addMaterialModal').classList.add('hidden');
+}
+
+function deleteMaterial(projectId, materialId) {
+    if (!confirm('Delete this material?')) return;
+    fetch(`/projects/${projectId}/materials/${materialId}/delete`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) window.location.reload();
+            else alert('Error: ' + d.message);
+        });
+}
+
+document.getElementById('addMaterialModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddMaterialModal();
+});
+</script>
+{% endblock %}

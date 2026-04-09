@@ -1,0 +1,775 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Cost Control Activities{% endblock %}
+{% block page_title %}Cost Control{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-4xl font-bold text-slate-900 flex items-center gap-3">
+                <i class="fas fa-chart-line text-blue-600"></i> Cost Control Module
+            </h1>
+            <p class="text-slate-600 mt-2">Monitor project costs, budget variance, and cost tracking</p>
+        </div>
+        <a href="{{ url_for('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Cost Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Total Project Cost -->
+        <div class="bg-white rounded-lg shadow border-l-4 border-blue-500 p-6">
+            <div class="text-sm font-semibold text-blue-600 uppercase tracking-wide">Total Project Cost</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2" id="totalBudgetDisplay">₦0</div>
+            <p class="text-slate-500 text-sm mt-2">All projects combined</p>
+        </div>
+
+        <!-- Total Spent -->
+        <div class="bg-white rounded-lg shadow border-l-4 border-green-500 p-6">
+            <div class="text-sm font-semibold text-green-600 uppercase tracking-wide">Total Spent</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2" id="totalSpentDisplay">₦0</div>
+            <p class="text-green-600 text-sm mt-2">All expenses combined</p>
+        </div>
+
+        <!-- Pending Cost Items -->
+        <div class="bg-white rounded-lg shadow border-l-4 border-amber-500 p-6">
+            <div class="text-sm font-semibold text-amber-600 uppercase tracking-wide">Pending Cost Items</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2">{{ material_requests|length }}</div>
+            <p class="text-slate-500 text-sm mt-2">Awaiting approval</p>
+        </div>
+
+        <!-- Remaining Budget -->
+        <div class="bg-white rounded-lg shadow border-l-4 border-cyan-500 p-6">
+            <div class="text-sm font-semibold text-cyan-600 uppercase tracking-wide">Remaining Budget</div>
+            <div class="text-3xl font-bold text-slate-900 mt-2" id="remainingBudgetDisplay">₦0</div>
+            <p class="text-slate-500 text-sm mt-2">Available balance</p>
+        </div>
+    </div>
+
+    <!-- Cost Control Team & Activities -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Cost Control Team -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-blue-600 text-white px-6 py-4">
+                <h5 class="font-semibold flex items-center gap-2">
+                    <i class="fas fa-user-tie"></i> Cost Control Team
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200 bg-slate-50">
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Role</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for staff in cc_staff %}
+                            <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <img src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full" alt="Avatar">
+                                        <span class="font-medium text-slate-900">{{ staff.name }}</span>
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-block px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">{{ staff.role.replace('_', ' ').title() }}</span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if staff.is_active %}
+                                    <span class="inline-block px-2.5 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded">Active</span>
+                                    {% else %}
+                                    <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-green-600 text-white px-6 py-4">
+                <h5 class="font-semibold flex items-center gap-2">
+                    <i class="fas fa-history"></i> Recent Activities
+                </h5>
+            </div>
+            <div class="p-6 max-h-96 overflow-y-auto">
+                {% if recent_logs %}
+                <div class="space-y-4">
+                    {% for log in recent_logs[:10] %}
+                    <div class="pb-4 border-b border-slate-200 last:border-b-0 last:pb-0">
+                        <div class="flex gap-3">
+                            <div class="flex-shrink-0 pt-1">
+                                <i class="fas fa-circle text-blue-500 text-xs"></i>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-slate-900">
+                                    {{ log.entity_type }}
+                                    <span class="ml-2 inline-block px-2 py-1 bg-{{ 'green-100' if log.approval_state == 'APPROVED' else 'amber-100' }} text-{{ 'green-700' if log.approval_state == 'APPROVED' else 'amber-700' }} text-xs font-semibold rounded">
+                                        {{ log.approval_state }}
+                                    </span>
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    <i class="fas fa-clock"></i> {{ log.timestamp.strftime('%b %d, %Y %H:%M') }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-slate-500 text-center py-8">No recent activities</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Budget Overview -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-slate-900 text-white px-6 py-4">
+            <h5 class="font-semibold flex items-center gap-2">
+                <i class="fas fa-building"></i> Project Budget Status ({{ projects.total }})
+            </h5>
+        </div>
+        <div class="p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 bg-slate-50">
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Project Name</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Allocated Budget</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Spent</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Remaining</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Utilization</th>
+                            <th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects.items %}
+                        <tr class="border-b border-slate-200 hover:bg-slate-50 transition-colors">
+                            <td class="px-6 py-3">
+                                <strong class="text-slate-900">{{ project.name }}</strong>
+                            </td>
+                            <td class="px-6 py-3 font-medium text-slate-900">
+                                ₦{{ "%.2f"|format(project.budget or 0) }}</td>
+                            <td class="px-6 py-3 font-medium text-slate-900">
+                                {% set spent = ((project.budget or 0)|float) * 0.62 %}
+                                ₦{{ "%.2f"|format(spent) }}
+                            </td>
+                            <td class="px-6 py-3 font-medium text-slate-900">₦{{ "%.2f"|format(((project.budget or 0)|float) * 0.38) }}</td>
+                            <td class="px-6 py-3">
+                                <div class="w-full bg-slate-200 rounded-full h-6 overflow-hidden">
+                                    <div class="bg-gradient-to-r from-cyan-400 to-cyan-500 h-full flex items-center justify-center text-xs font-semibold text-white" style="width: 62%;">62%</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-3">
+                                <span class="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">On Track</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if projects.pages > 1 %}
+            <nav class="mt-6 flex justify-center gap-2">
+                {% if projects.has_prev %}
+                <a href="{{ url_for('admin.cost_control_activities', page=projects.prev_num) }}" 
+                   class="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700">
+                    Previous
+                </a>
+                {% endif %}
+
+                {% for page_num in projects.iter_pages(left_edge=1, right_edge=4, left_margin=1, right_margin=1) %}
+                    {% if page_num %}
+                        {% if page_num == projects.page %}
+                        <span class="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('admin.cost_control_activities', page=page_num) }}" 
+                           class="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700">
+                            {{ page_num }}
+                        </a>
+                        {% endif %}
+                    {% else %}
+                    <span class="px-3 py-2 text-slate-500 text-sm">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if projects.has_next %}
+                <a href="{{ url_for('admin.cost_control_activities', page=projects.next_num) }}" 
+                   class="px-3 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium text-slate-700">
+                    Next
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cost Control Functions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Cost Analysis -->
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-blue-100 text-blue-600 rounded-lg mb-4">
+                    <i class="fas fa-chart-bar text-2xl"></i>
+                </div>
+                <h6 class="font-semibold text-slate-900 mb-2">Cost Analysis</h6>
+                <p class="text-sm text-slate-600 mb-4">Project expense breakdown</p>
+                <button onclick="openCostAnalysisModal()" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    View
+                </button>
+            </div>
+        </div>
+
+        <!-- Variance Reports -->
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-amber-100 text-amber-600 rounded-lg mb-4">
+                    <i class="fas fa-exclamation-triangle text-2xl"></i>
+                </div>
+                <h6 class="font-semibold text-slate-900 mb-2">Variance Reports</h6>
+                <p class="text-sm text-slate-600 mb-4">Budget variance analysis</p>
+                <button onclick="openVarianceReportModal()" class="w-full px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors">
+                    View
+                </button>
+            </div>
+        </div>
+
+        <!-- Forecasting -->
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-cyan-100 text-cyan-600 rounded-lg mb-4">
+                    <i class="fas fa-hourglass-end text-2xl"></i>
+                </div>
+                <h6 class="font-semibold text-slate-900 mb-2">Forecasting</h6>
+                <p class="text-sm text-slate-600 mb-4">Cost projections</p>
+                <button onclick="openForecastingModal()" class="w-full px-4 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-lg hover:bg-cyan-700 transition-colors">
+                    View
+                </button>
+            </div>
+        </div>
+
+        <!-- Cost Reports -->
+        <div class="bg-white rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
+            <div class="p-6 text-center">
+                <div class="inline-flex items-center justify-center w-14 h-14 bg-red-100 text-red-600 rounded-lg mb-4">
+                    <i class="fas fa-file-pdf text-2xl"></i>
+                </div>
+                <h6 class="font-semibold text-slate-900 mb-2">Cost Reports</h6>
+                <p class="text-sm text-slate-600 mb-4">Financial summary reports</p>
+                <button onclick="openCostReportModal()" class="w-full px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                    View
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Analysis Modal -->
+<div id="costAnalysisModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-blue-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i> Cost Analysis
+            </h3>
+            <button onclick="closeCostAnalysisModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="costAnalysisLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading cost analysis...</p>
+            </div>
+            <div id="costAnalysisContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Project Cost</p>
+                        <p class="text-2xl font-bold text-blue-600" id="caaTotalBudget">₦0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Spent</p>
+                        <p class="text-2xl font-bold text-green-600" id="caaTotalSpent">₦0</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Expense Breakdown by Project</h4>
+                    <div id="costAnalysisProjects" class="space-y-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Variance Report Modal -->
+<div id="varianceReportModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-amber-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i> Variance Reports
+            </h3>
+            <button onclick="closeVarianceReportModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="varianceLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading variance report...</p>
+            </div>
+            <div id="varianceContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-amber-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Budgeted Amount</p>
+                        <p class="text-2xl font-bold text-amber-600" id="vrTotalBudget">₦0</p>
+                    </div>
+                    <div class="bg-green-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Remaining Budget</p>
+                        <p class="text-2xl font-bold text-green-600" id="vrRemaining">₦0</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Budget Variance by Project</h4>
+                    <div id="varianceProjects" class="space-y-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Forecasting Modal -->
+<div id="forecastingModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-cyan-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-hourglass-end"></i> Cost Forecasting
+            </h3>
+            <button onclick="closeForecastingModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="forecastingLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading forecasting data...</p>
+            </div>
+            <div id="forecastingContent" class="hidden">
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-cyan-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Current Budget</p>
+                        <p class="text-xl font-bold text-cyan-600" id="fcTotalBudget">₦0</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Projected Cost</p>
+                        <p class="text-xl font-bold text-blue-600" id="fcProjectedCost">₦0</p>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded-lg">
+                        <p class="text-xs text-slate-600 mb-1">Cost Increase</p>
+                        <p class="text-xl font-bold text-orange-600" id="fcGrowthRate">8.0%</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Project Cost Forecast</h4>
+                    <div id="forecastingProjects" class="space-y-3">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cost Report Modal -->
+<div id="costReportModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-red-600 text-white px-6 py-4 flex justify-between items-center">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <i class="fas fa-file-pdf"></i> Cost Reports
+            </h3>
+            <button onclick="closeCostReportModal()" class="text-white hover:text-gray-200">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        <div class="p-6 space-y-4">
+            <div id="reportLoading" class="text-center py-8">
+                <div class="inline-block">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                </div>
+                <p class="mt-2 text-slate-600">Loading cost report...</p>
+            </div>
+            <div id="reportContent" class="hidden">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-red-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Budget</p>
+                        <p class="text-2xl font-bold text-red-600" id="crTotalBudget">₦0</p>
+                    </div>
+                    <div class="bg-purple-50 p-4 rounded-lg">
+                        <p class="text-sm text-slate-600 mb-1">Total Expenses</p>
+                        <p class="text-2xl font-bold text-purple-600" id="crTotalSpent">₦0</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-slate-900 mb-3">Financial Summary</h4>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-slate-200">
+                                <th class="text-left py-2 font-semibold text-slate-700">Project</th>
+                                <th class="text-right py-2 font-semibold text-slate-700">Budget</th>
+                                <th class="text-right py-2 font-semibold text-slate-700">Spent</th>
+                                <th class="text-right py-2 font-semibold text-slate-700">Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reportProjectsTable">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="border-t border-slate-200 pt-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-700 font-medium">Export Report:</span>
+                        <div class="flex gap-2">
+                            <button class="flex items-center gap-2 px-3 py-2 bg-gray-200 text-slate-700 rounded-lg hover:bg-gray-300 transition-colors text-sm">
+                                <i class="fas fa-file-csv"></i> CSV
+                            </button>
+                            <button class="flex items-center gap-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility function to format currency
+function formatCurrency(amount) {
+    return '₦' + new Intl.NumberFormat('en-NG', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+// Load initial dashboard stats
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardStats();
+});
+
+// Load dashboard statistics
+function loadDashboardStats() {
+    fetch('{{ url_for("admin.api_cost_analysis") }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                console.error('API Error:', data.error);
+                return;
+            }
+            document.getElementById('totalBudgetDisplay').textContent = formatCurrency(data.total_budget);
+            document.getElementById('totalSpentDisplay').textContent = formatCurrency(data.total_spent);
+            document.getElementById('remainingBudgetDisplay').textContent = formatCurrency(data.remaining);
+        })
+        .catch(error => {
+            console.error('Error loading stats:', error);
+        });
+}
+
+// Cost Analysis Modal
+function openCostAnalysisModal() {
+    document.getElementById('costAnalysisModal').classList.remove('hidden');
+    loadCostAnalysisData();
+}
+
+function closeCostAnalysisModal() {
+    document.getElementById('costAnalysisModal').classList.add('hidden');
+}
+
+function loadCostAnalysisData() {
+    const loading = document.getElementById('costAnalysisLoading');
+    const content = document.getElementById('costAnalysisContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_cost_analysis") }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            document.getElementById('caaTotalBudget').textContent = formatCurrency(data.total_budget);
+            document.getElementById('caaTotalSpent').textContent = formatCurrency(data.total_spent);
+            
+            const projectsDiv = document.getElementById('costAnalysisProjects');
+            projectsDiv.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                projectsDiv.innerHTML = '<p class="text-slate-500 text-center py-4">No projects available</p>';
+            } else {
+                data.projects.forEach(project => {
+                    projectsDiv.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-medium text-slate-900">${project.name}</p>
+                                    <p class="text-xs text-slate-500">Budget: ${formatCurrency(project.budget)}</p>
+                                </div>
+                                <span class="text-sm font-semibold text-slate-900">${formatCurrency(project.spent)}</span>
+                            </div>
+                            <div class="w-full bg-slate-200 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.min(project.percentage, 100)}%;"></div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading cost analysis:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Variance Report Modal
+function openVarianceReportModal() {
+    document.getElementById('varianceReportModal').classList.remove('hidden');
+    loadVarianceReportData();
+}
+
+function closeVarianceReportModal() {
+    document.getElementById('varianceReportModal').classList.add('hidden');
+}
+
+function loadVarianceReportData() {
+    const loading = document.getElementById('varianceLoading');
+    const content = document.getElementById('varianceContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_variance_report") }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            document.getElementById('vrTotalBudget').textContent = formatCurrency(data.total_budget);
+            document.getElementById('vrRemaining').textContent = formatCurrency(data.remaining);
+            
+            const projectsDiv = document.getElementById('varianceProjects');
+            projectsDiv.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                projectsDiv.innerHTML = '<p class="text-slate-500 text-center py-4">No projects available</p>';
+            } else {
+                data.projects.forEach(project => {
+                    const statusClass = project.status === 'Under Budget' ? 'green' : 'red';
+                    projectsDiv.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-medium text-slate-900">${project.name}</p>
+                                    <p class="text-xs text-slate-500">Variance: ${formatCurrency(project.variance)}</p>
+                                </div>
+                                <span class="inline-block px-2.5 py-1 bg-${statusClass}-100 text-${statusClass}-700 text-xs font-semibold rounded">
+                                    ${project.status}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading variance report:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Forecasting Modal
+function openForecastingModal() {
+    document.getElementById('forecastingModal').classList.remove('hidden');
+    loadForecastingData();
+}
+
+function closeForecastingModal() {
+    document.getElementById('forecastingModal').classList.add('hidden');
+}
+
+function loadForecastingData() {
+    const loading = document.getElementById('forecastingLoading');
+    const content = document.getElementById('forecastingContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_forecasting") }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            document.getElementById('fcTotalBudget').textContent = formatCurrency(data.total_budget);
+            document.getElementById('fcProjectedCost').textContent = formatCurrency(data.projected_cost);
+            document.getElementById('fcGrowthRate').textContent = (data.growth_rate * 100).toFixed(1) + '%';
+            
+            const projectsDiv = document.getElementById('forecastingProjects');
+            projectsDiv.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                projectsDiv.innerHTML = '<p class="text-slate-500 text-center py-4">No projects available</p>';
+            } else {
+                data.projects.forEach(project => {
+                    projectsDiv.innerHTML += `
+                        <div class="border border-slate-200 rounded-lg p-4">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <p class="font-medium text-slate-900">${project.name}</p>
+                                    <p class="text-xs text-slate-500">Current: ${formatCurrency(project.current)}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm font-semibold text-slate-900">Projected: ${formatCurrency(project.projected)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading forecasting:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Cost Report Modal
+function openCostReportModal() {
+    document.getElementById('costReportModal').classList.remove('hidden');
+    loadCostReportData();
+}
+
+function closeCostReportModal() {
+    document.getElementById('costReportModal').classList.add('hidden');
+}
+
+function loadCostReportData() {
+    const loading = document.getElementById('reportLoading');
+    const content = document.getElementById('reportContent');
+    
+    loading.classList.remove('hidden');
+    content.classList.add('hidden');
+    
+    fetch('{{ url_for("admin.api_cost_reports") }}')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            document.getElementById('crTotalBudget').textContent = formatCurrency(data.total_budget);
+            document.getElementById('crTotalSpent').textContent = formatCurrency(data.total_spent);
+            
+            const tableBody = document.getElementById('reportProjectsTable');
+            tableBody.innerHTML = '';
+            
+            if (data.projects.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">No projects available</td></tr>';
+            } else {
+                data.projects.forEach(project => {
+                    tableBody.innerHTML += `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50">
+                            <td class="py-2 text-slate-900 font-medium">${project.name}</td>
+                            <td class="text-right py-2 text-slate-700">${formatCurrency(project.budget)}</td>
+                            <td class="text-right py-2 text-slate-700">${formatCurrency(project.spent)}</td>
+                            <td class="text-right py-2 text-green-600 font-semibold">${formatCurrency(project.remaining)}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            loading.classList.add('hidden');
+            content.classList.remove('hidden');
+        })
+        .catch(error => {
+            console.error('Error loading cost report:', error);
+            loading.innerHTML = `<p class="text-red-600 text-center py-4">Error: ${error.message}</p>`;
+        });
+}
+
+// Close modals when clicking on the background
+document.getElementById('costAnalysisModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeCostAnalysisModal();
+});
+
+document.getElementById('varianceReportModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeVarianceReportModal();
+});
+
+document.getElementById('forecastingModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeForecastingModal();
+});
+
+document.getElementById('costReportModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeCostReportModal();
+});
+</script>
+{% endblock %}

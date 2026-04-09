@@ -1,0 +1,173 @@
+{% extends "qs/base.html" %}
+
+{% block title %}QS Dashboard - Sammya{% endblock %}
+
+{% block breadcrumb %}
+<span class="mx-2">/</span>
+<span>Dashboard</span>
+{% endblock %}
+
+{% block qs_content %}
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+    <p class="text-gray-600 mt-2">Welcome to the Quantity Surveyor portal. Manage BOQs, track costs, and monitor projects.</p>
+</div>
+
+<!-- Key Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <!-- Total Projects -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Total Projects</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2 dashboard-number">{{ projects|length }}</p>
+            </div>
+            <i class="fas fa-folder text-4xl text-blue-100"></i>
+        </div>
+    </div>
+
+    <!-- Contract Value -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Total Contract Value</p>
+                <p class="text-2xl font-bold text-gray-900 mt-2 dashboard-number">₦{{ "{:,.0f}".format(total_contract_value) }}</p>
+            </div>
+            <i class="fas fa-money-bill-wave text-4xl text-green-100"></i>
+        </div>
+    </div>
+
+    <!-- BOQ Value -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Total BOQ Value</p>
+                <p class="text-2xl font-bold text-gray-900 mt-2 dashboard-number">₦{{ "{:,.0f}".format(total_boq or 0) }}</p>
+            </div>
+            <i class="fas fa-chart-pie text-4xl text-orange-100"></i>
+        </div>
+    </div>
+
+    <!-- Projects Over Budget -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-gray-600 text-sm">Over Budget</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2 dashboard-number">{{ projects_over_budget|length }}</p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-4xl text-red-100"></i>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <a href="{{ url_for('hr.leave_management') }}" class="block bg-emerald-50 hover:bg-emerald-100 p-4 rounded-lg border border-emerald-200 transition">
+        <div class="font-semibold text-emerald-900">Leave Request</div>
+        <div class="text-xs text-emerald-700 mt-1">Submit and track leave</div>
+    </a>
+    <a href="{{ url_for('main.account_settings') }}" class="block bg-slate-50 hover:bg-slate-100 p-4 rounded-lg border border-slate-200 transition">
+        <div class="font-semibold text-slate-900">Account Settings</div>
+        <div class="text-xs text-slate-700 mt-1">Update email and password</div>
+    </a>
+</div>
+
+<!-- Projects Overview -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- On Track Projects -->
+    <div class="bg-white rounded-lg shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+            <h2 class="text-lg font-semibold text-gray-900">On Track</h2>
+            <span class="ml-auto text-sm text-gray-500">{{ projects_on_track|length }} projects</span>
+        </div>
+        <div class="divide-y">
+            {% for project in projects_on_track %}
+            <div class="px-6 py-4 hover:bg-gray-50 cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-medium text-gray-900">{{ project.name }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">Budget: ₦{{ "{:,.0f}".format(project.budget or 0) }}</p>
+                    </div>
+                    <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not projects_on_track %}
+            <div class="px-6 py-8 text-center text-gray-500">
+                <p>No projects on track</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Over Budget Projects -->
+    <div class="bg-white rounded-lg shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center">
+            <i class="fas fa-exclamation-circle text-red-500 mr-3"></i>
+            <h2 class="text-lg font-semibold text-gray-900">Over Budget</h2>
+            <span class="ml-auto text-sm text-gray-500">{{ projects_over_budget|length }} projects</span>
+        </div>
+        <div class="divide-y">
+            {% for project in projects_over_budget %}
+            <div class="px-6 py-4 hover:bg-red-50 cursor-pointer">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-medium text-gray-900">{{ project.name }}</h3>
+                        <p class="text-sm text-red-600 mt-1">
+                            Overrun: ₦{{ "{:,.0f}".format(project.spent or 0) }}
+                        </p>
+                    </div>
+                    <a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not projects_over_budget %}
+            <div class="px-6 py-8 text-center text-gray-500">
+                <p>No projects over budget</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent BOQ Updates -->
+<div class="mt-8 bg-white rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Recent BOQ Updates</h2>
+    </div>
+    {% if recent_boq_updates %}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Project</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Description</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Amount</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Date</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for item in recent_boq_updates %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.project.name if item.project else '-' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ item.description or '-' }}</td>
+                    <td class="px-6 py-4 text-sm text-right font-medium text-gray-900">₦{{ "{:,.2f}".format(item.amount or 0) }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ item.updated_at.strftime('%d %b %Y') if item.updated_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="px-6 py-8 text-center text-gray-500">
+        <p>No recent BOQ updates</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

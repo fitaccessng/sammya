@@ -1,0 +1,303 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Preview Import - {{ batch.batch_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.staff_list') }}">Staff Management</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('hr.import_staff') }}">Import Staff</a></li>
+<li class="breadcrumb-item active">Preview</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">Import Preview</h2>
+                <p class="text-muted">{{ batch.batch_name }} - {{ batch.file_name }}</p>
+            </div>
+            <span class="badge bg-{{ 'secondary' if batch.approval_state == 'draft' else 'warning' if batch.approval_state == 'pending' else 'success' }}">
+                {{ batch.approval_state.upper() }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total Records</h6>
+                    <h3>{{ batch.total_records }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Valid Records</h6>
+                    <h3 class="text-success">{{ valid_items|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Records with Errors</h6>
+                    <h3 class="text-danger">{{ invalid_items|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Ready for Import</h6>
+                    <h3 class="text-info">{{ batch.total_records - invalid_items|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    {% if invalid_items %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>{{ invalid_items|length }} record(s) have validation errors</strong> and will not be imported. 
+            Please review the errors below and upload a corrected file.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endif %}
+
+    <!-- Valid Records -->
+    <div class="card mb-4">
+        <div class="card-header bg-success bg-opacity-10">
+            <h5 class="mb-0">
+                <i class="bi bi-check-circle text-success"></i> 
+                Valid Records ({{ valid_items|length }})
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if valid_items %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Basic Salary</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in valid_items %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td><strong>{{ item.first_name }} {{ item.last_name }}</strong></td>
+                                    <td><code>{{ item.email }}</code></td>
+                                    <td>
+                                        <span class="badge bg-light text-dark">{{ item.department or 'General' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ item.role or 'staff' }}</span>
+                                    </td>
+                                    <td>{{ "%.2f"|format(item.basic_salary or 0) }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#detailsModal{{ item.id }}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Details Modal -->
+                                <div class="modal fade" id="detailsModal{{ item.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-lg">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">{{ item.first_name }} {{ item.last_name }} - Details</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div class="row mb-3">
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-muted">Personal Information</h6>
+                                                        <dl class="row mb-0">
+                                                            <dt class="col-sm-5">Email:</dt>
+                                                            <dd class="col-sm-7">{{ item.email }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Phone:</dt>
+                                                            <dd class="col-sm-7">{{ item.phone or 'N/A' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Gender:</dt>
+                                                            <dd class="col-sm-7">{{ item.gender or 'N/A' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">DOB:</dt>
+                                                            <dd class="col-sm-7">{{ item.date_of_birth.strftime('%d-%m-%Y') if item.date_of_birth else 'N/A' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Address:</dt>
+                                                            <dd class="col-sm-7">{{ item.address or 'N/A' }}</dd>
+                                                        </dl>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-muted">Employment Information</h6>
+                                                        <dl class="row mb-0">
+                                                            <dt class="col-sm-5">Employee ID:</dt>
+                                                            <dd class="col-sm-7">{{ item.employee_id or 'Auto-generated' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Department:</dt>
+                                                            <dd class="col-sm-7">{{ item.department or 'General' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Position:</dt>
+                                                            <dd class="col-sm-7">{{ item.position or 'N/A' }}</dd>
+                                                            
+                                                            <dt class="col-sm-5">Role:</dt>
+                                                            <dd class="col-sm-7"><code>{{ item.role }}</code></dd>
+                                                            
+                                                            <dt class="col-sm-5">DOE:</dt>
+                                                            <dd class="col-sm-7">{{ item.date_of_employment.strftime('%d-%m-%Y') if item.date_of_employment else 'N/A' }}</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+
+                                                <hr>
+
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6 class="text-muted">Compensation</h6>
+                                                        <dl class="row mb-0">
+                                                            <dt class="col-sm-6">Basic Salary:</dt>
+                                                            <dd class="col-sm-6">{{ "%.2f"|format(item.basic_salary or 0) }}</dd>
+                                                            
+                                                            <dt class="col-sm-6">Allowances:</dt>
+                                                            <dd class="col-sm-6">{{ "%.2f"|format(item.allowances or 0) }}</dd>
+                                                            
+                                                            <dt class="col-sm-6">Gross Salary:</dt>
+                                                            <dd class="col-sm-6 fw-bold">{{ "%.2f"|format((item.basic_salary or 0) + (item.allowances or 0)) }}</dd>
+                                                        </dl>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        {% if item.nok_full_name %}
+                                                            <h6 class="text-muted">Next of Kin</h6>
+                                                            <dl class="row mb-0">
+                                                                <dt class="col-sm-5">Name:</dt>
+                                                                <dd class="col-sm-7">{{ item.nok_full_name }}</dd>
+                                                                
+                                                                <dt class="col-sm-5">Relationship:</dt>
+                                                                <dd class="col-sm-7">{{ item.nok_relationship }}</dd>
+                                                                
+                                                                <dt class="col-sm-5">Phone:</dt>
+                                                                <dd class="col-sm-7">{{ item.nok_phone or 'N/A' }}</dd>
+                                                                
+                                                                <dt class="col-sm-5">Email:</dt>
+                                                                <dd class="col-sm-7">{{ item.nok_email or 'N/A' }}</dd>
+                                                            </dl>
+                                                        {% else %}
+                                                            <div class="alert alert-light">
+                                                                <small>No next of kin information provided</small>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle"></i> No valid records to import
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Invalid Records -->
+    {% if invalid_items %}
+        <div class="card mb-4">
+            <div class="card-header bg-danger bg-opacity-10">
+                <h5 class="mb-0">
+                    <i class="bi bi-x-circle text-danger"></i>
+                    Records with Errors ({{ invalid_items|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Row</th>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in invalid_items %}
+                                <tr class="table-danger">
+                                    <td><strong>{{ item.row }}</strong></td>
+                                    <td>
+                                        {% if item.data.first_name and item.data.last_name %}
+                                            {{ item.data.first_name }} {{ item.data.last_name }}
+                                        {% else %}
+                                            <em class="text-muted">Incomplete</em>
+                                        {% endif %}
+                                    </td>
+                                    <td><code>{{ item.data.email or 'N/A' }}</code></td>
+                                    <td>
+                                        <span class="text-danger">
+                                            <i class="bi bi-exclamation-triangle"></i>
+                                            {{ item.error }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 justify-content-between">
+        <div>
+            {% if batch.approval_state == 'draft' or batch.approval_state == 'pending' %}
+                <form method="POST" action="{{ url_for('hr.cancel_import', batch_id=batch.id) }}" 
+                      style="display:inline;" 
+                      onsubmit="return confirm('Are you sure you want to cancel this import batch?');">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="bi bi-trash"></i> Cancel Import
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+        <div>
+            <a href="{{ url_for('hr.import_staff') }}" class="btn btn-secondary">
+                Back to Import
+            </a>
+            
+            {% if valid_items and (batch.approval_state == 'draft' or batch.approval_state == 'pending') %}
+                <form method="POST" action="{{ url_for('hr.submit_import_approval', batch_id=batch.id) }}" 
+                      style="display:inline;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Submit for Admin Approval
+                    </button>
+                </form>
+            {% elif batch.approval_state == 'approved' %}
+                <span class="badge bg-success">Import Completed</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
