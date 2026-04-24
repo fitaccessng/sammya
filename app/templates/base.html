@@ -49,7 +49,7 @@
 
                         <!-- HR -->
                         {% if 'hr' in current_user.role %}
-                            <a href="{{ url_for('hr.dashboard') }}" class="text-slate-600 hover:text-blue-600 font-semibold">HR</a>
+                            <a href="{{ url_for('hr.hr_home') }}" class="text-slate-600 hover:text-blue-600 font-semibold">HR</a>
                         {% endif %}
 
                         <!-- Project Manager -->
@@ -76,7 +76,10 @@
                             </div>
                         </div>
                     {% else %}
-                        <a href="{{ url_for('auth.login') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Login</a>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ url_for('main.signup') }}" class="text-blue-600 hover:text-blue-700 font-semibold">Sign Up</a>
+                            <a href="{{ url_for('main.login') }}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Login</a>
+                        </div>
                     {% endif %}
                 </div>
             </div>

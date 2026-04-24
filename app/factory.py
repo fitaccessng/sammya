@@ -10,22 +10,51 @@ from flask_mail import Mail
 from app.models import db, User
 
 
+def _env_flag(name, default=False):
+    """Parse common truthy environment flag values."""
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {'1', 'true', 'yes', 'on'}
+
+
+def resolve_database_url(config_name='development'):
+    """Return the configured database URL with a safe local fallback."""
+    database_url = os.environ.get('DATABASE_URL')
+
+    if database_url:
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        return database_url
+
+    if config_name == 'production':
+        return 'sqlite:///sammya_prod.db'
+
+    return 'sqlite:///fitaccess_dev.db'
+
+
+def should_auto_create_tables(config_name='development'):
+    """Only create tables automatically outside production unless explicitly enabled."""
+    return config_name != 'production' or _env_flag('AUTO_CREATE_TABLES', default=False)
+
+
 def create_app(config_name='development'):
     """Application factory."""
     app = Flask(__name__)
     
     # Configuration
     if config_name == 'production':
-        database_url = os.environ.get('DATABASE_URL', 'sqlite:///fitaccess.db')
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        app.config['SQLALCHEMY_DATABASE_URI'] = resolve_database_url(config_name)
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-me-in-production')
     else:
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///fitaccess_dev.db'
+        app.config['SQLALCHEMY_DATABASE_URI'] = resolve_database_url(config_name)
         app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
         app.config['SECRET_KEY'] = 'dev-secret-key'
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+    }
     
     # Initialize extensions
     db.init_app(app)
@@ -81,7 +110,7 @@ def create_app(config_name='development'):
     app.register_blueprint(employee_payroll_bp)  # Employee self-service
 
     # Register all model modules before create_all() so every table is created.
-    import app.payroll_models  # noqa: F401
+    from app import payroll_models  # noqa: F401
     
     # Error handlers
     @app.errorhandler(404)
@@ -97,8 +126,16 @@ def create_app(config_name='development'):
         db.session.rollback()
         return render_template('errors/500.html'), 500
     
-    # Create tables and return app
-    with app.app_context():
-        db.create_all()
+    # Create tables only when explicitly allowed for this environment.
+    if should_auto_create_tables(config_name):
+        with app.app_context():
+            try:
+                db.create_all()
+            except Exception:
+                app.logger.exception('Database initialization failed during startup.')
+    elif not os.environ.get('DATABASE_URL'):
+        app.logger.warning(
+            'DATABASE_URL is not set in production; falling back to local SQLite.'
+        )
     
     return app
