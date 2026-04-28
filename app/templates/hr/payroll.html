@@ -54,6 +54,55 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Generated Payroll Batches</span>
+            <small class="text-muted">Edit draft or submitted batches before final approval</small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Batch</th>
+                            <th>Period</th>
+                            <th>Staff</th>
+                            <th>Net Total</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for batch in payroll_batches %}
+                        <tr>
+                            <td><strong>{{ batch.batch_name }}</strong></td>
+                            <td>{{ batch.payroll_period }}</td>
+                            <td>{{ batch.total_records or 0 }}</td>
+                            <td>₦{{ "{:,.2f}".format(batch.total_net or 0) }}</td>
+                            <td>
+                                <span class="badge bg-{% if batch.status.value == 'draft' %}secondary{% elif batch.status.value == 'hr_approved' %}warning{% elif batch.status.value == 'admin_approved' %}success{% elif batch.status.value == 'paid' %}info{% else %}dark{% endif %}">
+                                    {{ batch.status.value.replace('_', ' ')|title }}
+                                </span>
+                            </td>
+                            <td>{{ batch.created_at.strftime('%d %b %Y') if batch.created_at else 'N/A' }}</td>
+                            <td>
+                                <a href="{{ url_for('hr.payroll_batch_detail', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class='bx bxs-edit'></i> Open
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No generated payroll batches yet</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Payroll Table -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">

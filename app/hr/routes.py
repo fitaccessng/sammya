@@ -301,6 +301,46 @@ def _build_payroll_summary(staff_members):
     return summary
 
 
+def _refresh_batch_totals(batch):
+    """Recalculate stored totals after a batch is edited."""
+    records = batch.records.all()
+
+    total_basic = Decimal('0')
+    total_allowances = Decimal('0')
+    total_gross = Decimal('0')
+    total_deductions = Decimal('0')
+    total_adjustments = Decimal('0')
+    total_net = Decimal('0')
+
+    for record in records:
+        total_basic += _d(record.basic_salary)
+        total_allowances += _d(record.total_allowances)
+        total_gross += _d(record.gross_salary)
+        total_deductions += _d(record.total_deductions)
+        total_adjustments += _d(record.total_adjustments)
+        total_net += _d(record.net_salary)
+
+    batch.total_records = len(records)
+    batch.successfully_processed = len(records)
+    batch.failed_records = 0
+    batch.total_basic_salary = _money(total_basic)
+    batch.total_allowances = _money(total_allowances)
+    batch.total_gross = _money(total_gross)
+    batch.total_deductions = _money(total_deductions)
+    batch.total_adjustments = _money(total_adjustments)
+    batch.total_net = _money(total_net)
+    batch.control_count = len(records)
+    batch.control_amount = _money(total_net)
+    return batch
+
+
+def _batch_can_be_edited(batch):
+    """HR can still revise draft or submitted batches before admin processing."""
+    from app.payroll_models import PayrollStatus
+
+    return batch.status in [PayrollStatus.DRAFT, PayrollStatus.HR_APPROVED]
+
+
 def _parse_decimal_input(value):
     if value is None:
         return Decimal('0')
@@ -852,7 +892,10 @@ def get_payroll_details():
 def payroll():
     """Payroll management dashboard"""
     try:
+        from app.payroll_models import PayrollBatch
+
         staff_list = User.query.filter_by(is_active=True).all()
+        payroll_batches = PayrollBatch.query.order_by(PayrollBatch.created_at.desc()).limit(12).all()
         
         payroll_records = []
         total_salary = 0
@@ -878,6 +921,7 @@ def payroll():
         
         return render_template('hr/payroll.html', 
                              payroll_records=payroll_records,
+                             payroll_batches=payroll_batches,
                              total_salary=f"{total_salary:,.2f}",
                              total_deductions=f"{total_deductions:,.2f}",
                              total_net=f"{(total_salary - total_deductions):,.2f}")
@@ -1119,10 +1163,13 @@ def payroll_generate():
             # Update batch totals with correct field names
             batch.total_records = payroll_summary['staff_count']
             batch.successfully_processed = payroll_summary['staff_count']
+            batch.control_count = payroll_summary['staff_count']
             batch.total_basic_salary = payroll_summary['total_basic_salary']
+            batch.total_allowances = _money(payroll_summary['total_gross'] - payroll_summary['total_basic_salary'])
             batch.total_gross = payroll_summary['total_gross']
             batch.total_deductions = payroll_summary['total_deductions']
             batch.total_net = payroll_summary['total_net_salary']
+            batch.control_amount = payroll_summary['total_net_salary']
             
             db.session.commit()
             
@@ -1210,6 +1257,82 @@ def payroll_send_approval():
         current_app.logger.error(f"Payroll Send Approval Error: {str(e)}")
         flash(f"Error sending payroll: {str(e)}", "error")
         return redirect(url_for('hr.payroll_generate'))
+
+
+@bp.route('/payroll/batch/<int:batch_id>')
+@login_required
+@hr_required
+def payroll_batch_detail(batch_id):
+    """View and manage a generated payroll batch."""
+    try:
+        from app.payroll_models import PayrollBatch, PayrollRecord
+
+        batch = PayrollBatch.query.get_or_404(batch_id)
+        records = PayrollRecord.query.filter_by(batch_id=batch.id).join(User, PayrollRecord.user_id == User.id).order_by(User.name.asc()).all()
+
+        approval_history = ApprovalLog.query.filter_by(
+            entity_type='payroll',
+            entity_id=batch.id
+        ).order_by(ApprovalLog.timestamp.desc()).all()
+
+        return render_template(
+            'hr/payroll/batch_detail.html',
+            batch=batch,
+            records=records,
+            approval_history=approval_history,
+            can_edit=_batch_can_be_edited(batch)
+        )
+    except Exception as e:
+        current_app.logger.error(f"Payroll Batch Detail Error: {str(e)}", exc_info=True)
+        flash("Error loading payroll batch.", "error")
+        return redirect(url_for('hr.payroll'))
+
+
+@bp.route('/payroll/batch/<int:batch_id>/remove-staff/<int:record_id>', methods=['POST'])
+@login_required
+@hr_required
+def payroll_batch_remove_staff(batch_id, record_id):
+    """Remove a staff member from a generated payroll batch."""
+    try:
+        from app.payroll_models import PayrollBatch, PayrollRecord, PayrollStatus
+
+        batch = PayrollBatch.query.get_or_404(batch_id)
+        record = PayrollRecord.query.filter_by(id=record_id, batch_id=batch.id).first_or_404()
+
+        if not _batch_can_be_edited(batch):
+            flash("This payroll can no longer be edited.", "error")
+            return redirect(url_for('hr.payroll_batch_detail', batch_id=batch.id))
+
+        removed_name = record.user.name if record.user else f"Staff #{record.user_id}"
+        previous_status = batch.status
+
+        db.session.delete(record)
+        db.session.flush()
+        _refresh_batch_totals(batch)
+
+        if previous_status == PayrollStatus.HR_APPROVED:
+            batch.status = PayrollStatus.DRAFT
+
+        action_note = f"{removed_name} removed from payroll batch {batch.batch_name}"
+        if previous_status == PayrollStatus.HR_APPROVED:
+            action_note += "; batch returned to draft for re-submission"
+
+        db.session.add(ApprovalLog(
+            entity_type='payroll',
+            entity_id=batch.id,
+            action='staff_removed',
+            actor_id=current_user.id,
+            comment=action_note
+        ))
+        db.session.commit()
+
+        flash(f"{removed_name} removed from {batch.batch_name}.", "success")
+        return redirect(url_for('hr.payroll_batch_detail', batch_id=batch.id))
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Payroll Batch Remove Staff Error: {str(e)}", exc_info=True)
+        flash("Error removing staff from payroll.", "error")
+        return redirect(url_for('hr.payroll'))
 
 
 @bp.route('/payroll/export/excel', methods=['GET'])

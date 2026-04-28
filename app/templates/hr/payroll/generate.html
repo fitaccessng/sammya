@@ -105,6 +105,9 @@
             </div>
 
             <div class="d-flex gap-2">
+                <a href="{{ url_for('hr.payroll_batch_detail', batch_id=generated_payroll.id) }}" class="btn btn-outline-primary btn-lg">
+                    <i class='bx bxs-edit'></i> Review or Remove Staff
+                </a>
                 <form method="POST" action="{{ url_for('hr.payroll_send_approval') }}" style="flex-grow: 1;">
                     <input type="hidden" name="payroll_id" value="{{ generated_payroll.id }}">
                     <button type="submit" class="btn btn-success btn-lg w-100"><i class='bx bxs-send'></i> Send to Admin for Approval</button>

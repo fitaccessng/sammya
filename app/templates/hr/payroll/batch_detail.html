@@ -1,0 +1,113 @@
+{% extends "hr/base.html" %}
+
+{% block title %}Payroll Batch{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('hr.payroll') }}">Payroll</a></li>
+<li class="breadcrumb-item active">{{ batch.batch_name }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-1">{{ batch.batch_name }}</h2>
+            <p class="text-muted mb-0">Period {{ batch.payroll_period }}{% if batch.created_at %} • Created {{ batch.created_at.strftime('%d %b %Y %H:%M') }}{% endif %}</p>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-{% if batch.status.value == 'draft' %}secondary{% elif batch.status.value == 'hr_approved' %}warning{% elif batch.status.value == 'admin_approved' %}success{% elif batch.status.value == 'paid' %}info{% else %}dark{% endif %}">
+                {{ batch.status.value.replace('_', ' ')|title }}
+            </span>
+            {% if can_edit %}
+            <p class="small text-muted mb-0 mt-2">This batch can still be edited.</p>
+            {% else %}
+            <p class="small text-muted mb-0 mt-2">This batch is locked from HR edits.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Staff Count</small><strong>{{ batch.total_records or 0 }}</strong></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Gross</small><strong>₦{{ "{:,.2f}".format(batch.total_gross or 0) }}</strong></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Deductions</small><strong class="text-danger">₦{{ "{:,.2f}".format(batch.total_deductions or 0) }}</strong></div></div>
+        <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Net</small><strong class="text-success">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</strong></div></div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Staff in This Payroll</h5>
+            {% if can_edit and batch.status.value == 'draft' and records %}
+            <form method="POST" action="{{ url_for('hr.payroll_send_approval') }}">
+                <input type="hidden" name="payroll_id" value="{{ batch.id }}">
+                <button type="submit" class="btn btn-success btn-sm">
+                    <i class='bx bxs-send'></i> Send to Admin
+                </button>
+            </form>
+            {% endif %}
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Staff Name</th>
+                            <th>Email</th>
+                            <th class="text-end">Basic</th>
+                            <th class="text-end">Allowances</th>
+                            <th class="text-end">Deductions</th>
+                            <th class="text-end">Net</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td><strong>{{ record.user.name if record.user else 'Unknown staff' }}</strong></td>
+                            <td>{{ record.user.email if record.user else 'N/A' }}</td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(record.basic_salary or 0) }}</td>
+                            <td class="text-end">₦{{ "{:,.2f}".format(record.total_allowances or 0) }}</td>
+                            <td class="text-end text-danger">₦{{ "{:,.2f}".format(record.total_deductions or 0) }}</td>
+                            <td class="text-end text-success"><strong>₦{{ "{:,.2f}".format(record.net_salary or 0) }}</strong></td>
+                            <td>
+                                {% if can_edit %}
+                                <form method="POST" action="{{ url_for('hr.payroll_batch_remove_staff', batch_id=batch.id, record_id=record.id) }}" onsubmit="return confirm('Remove this staff member from this payroll?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        <i class='bx bxs-user-x'></i> Remove
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">Locked</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">No staff records remain in this payroll batch</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Activity</h5>
+        </div>
+        <div class="card-body">
+            {% for log in approval_history %}
+            <div class="border-bottom pb-2 mb-2">
+                <div><strong>{{ log.action.replace('_', ' ')|title }}</strong> by {{ log.actor.name if log.actor else 'Unknown' }}</div>
+                <div class="small text-muted">{{ log.timestamp.strftime('%d %b %Y %H:%M') if log.timestamp else '' }}</div>
+                {% if log.comment or log.notes %}
+                <div class="small">{{ log.comment or log.notes }}</div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No activity recorded yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
