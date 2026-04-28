@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 from app.models import (
     db, User, Project, ApprovalLog, user_projects, PaymentRecord,
     StaffImportBatch, StaffImportItem, ApprovalState, ApprovalMessage,
-    PasswordResetRequest
+    PasswordResetRequest, ensure_password_reset_request_table
 )
 from app.auth.decorators import role_required
 from app.excel_import import StaffImportManager
@@ -92,6 +92,7 @@ def reset_db():
 def users():
     """List all users."""
     from flask import get_flashed_messages
+    ensure_password_reset_request_table()
     
     page = request.args.get('page', 1, type=int)
     users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=20)
@@ -179,6 +180,7 @@ def delete_user(user_id):
 @role_required(['admin'])
 def reset_user_password(user_id):
     """Allow admin to set a new password after a reset request."""
+    ensure_password_reset_request_table()
     user = User.query.get_or_404(user_id)
     new_password = request.form.get('new_password', '').strip()
     admin_note = request.form.get('admin_note', '').strip()

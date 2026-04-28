@@ -4,7 +4,7 @@ Main application routes - Home, Login, Signup, Password reset, etc.
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
-from app.models import User, PasswordResetRequest, db
+from app.models import User, PasswordResetRequest, db, ensure_password_reset_request_table
 from app.utils import Roles
 from werkzeug.routing import BuildError
 import logging
@@ -183,6 +183,7 @@ def forgot_password():
     
     try:
         if request.method == "POST":
+            ensure_password_reset_request_table()
             email = request.form.get("email", "").strip()
             
             if not email:

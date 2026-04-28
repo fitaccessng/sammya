@@ -99,6 +99,11 @@ class PasswordResetRequest(db.Model):
         return f'<PasswordResetRequest user={self.user_id} status={self.status}>'
 
 
+def ensure_password_reset_request_table():
+    """Create the password reset request table if it is missing."""
+    PasswordResetRequest.__table__.create(bind=db.engine, checkfirst=True)
+
+
 class NextOfKin(db.Model):
     """Employee emergency contact and next of kin information."""
     __tablename__ = 'next_of_kin'
