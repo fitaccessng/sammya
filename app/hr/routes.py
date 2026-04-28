@@ -253,6 +253,22 @@ def _build_staff_payroll_row(staff):
     }
 
 
+def _get_payroll_eligible_staff():
+    """Return active staff who have usable payroll inputs."""
+    active_staff = User.query.filter_by(is_active=True).order_by(User.name.asc()).all()
+    eligible = []
+
+    for staff in active_staff:
+        row = _build_staff_payroll_row(staff)
+        if _d(row['gross_monthly']) > 0 or _d(row['basic_salary']) > 0:
+            eligible.append({
+                'staff': staff,
+                'row': row,
+            })
+
+    return eligible
+
+
 def _build_payroll_summary(staff_members):
     summary = {
         'staff_count': 0,
@@ -1087,6 +1103,11 @@ def payroll_generate():
         from app.payroll_models import PayrollBatch, PayrollRecord, PayrollStatus
         from datetime import datetime
         import calendar
+
+        eligible_staff_rows = _get_payroll_eligible_staff()
+        selected_staff_ids = [item['staff'].id for item in eligible_staff_rows]
+        selected_staff = [item['staff'] for item in eligible_staff_rows]
+        payroll_summary = _build_payroll_summary(selected_staff)
         
         if request.method == 'POST':
             # Get payroll month from form
@@ -1094,6 +1115,28 @@ def payroll_generate():
             if not month_str:
                 flash("Please select a payroll month", "error")
                 return redirect(url_for('hr.payroll_generate'))
+
+            selected_staff_ids = request.form.getlist('staff_ids', type=int)
+            if not selected_staff_ids:
+                flash("Select at least one staff member for this payroll.", "error")
+                return render_template(
+                    'hr/payroll/generate.html',
+                    current_month=datetime.now(),
+                    payroll_summary=payroll_summary,
+                    eligible_staff_rows=eligible_staff_rows,
+                    selected_staff_ids=[],
+                )
+
+            selected_staff = User.query.filter(
+                User.is_active.is_(True),
+                User.id.in_(selected_staff_ids)
+            ).order_by(User.name.asc()).all()
+
+            payroll_summary = _build_payroll_summary(selected_staff)
+            eligible_staff_rows = [
+                item for item in eligible_staff_rows
+                if item['staff'].id in set(selected_staff_ids)
+            ]
             
             # Parse date
             payroll_month = datetime.strptime(month_str, '%Y-%m').date()
@@ -1104,14 +1147,9 @@ def payroll_generate():
                 flash(f"Payroll already exists for {payroll_month.strftime('%B %Y')}", "error")
                 return redirect(url_for('hr.payroll_generate'))
             
-            # Get all active staff
-            active_staff = User.query.filter_by(is_active=True).all()
-            
-            if not active_staff:
-                flash("No active staff found", "error")
+            if not selected_staff:
+                flash("No valid active staff were selected.", "error")
                 return redirect(url_for('hr.payroll_generate'))
-
-            payroll_summary = _build_payroll_summary(active_staff)
             if payroll_summary['staff_count'] == 0:
                 flash("No active staff with payroll configuration found", "error")
                 return redirect(url_for('hr.payroll_generate'))
@@ -1189,20 +1227,20 @@ def payroll_generate():
                 'hr/payroll/generate.html',
                 current_month=payroll_month,
                 generated_payroll=batch,
-                payroll_summary=payroll_summary
+                payroll_summary=payroll_summary,
+                eligible_staff_rows=eligible_staff_rows,
+                selected_staff_ids=selected_staff_ids,
             )
         
         # GET request - show form to select month
         current_date = datetime.now()
-        
-        # Fetch and display payroll summary preview
-        active_staff = User.query.filter_by(is_active=True).all()
-        payroll_summary = _build_payroll_summary(active_staff)
-        
+
         return render_template(
             'hr/payroll/generate.html',
             current_month=current_date,
-            payroll_summary=payroll_summary
+            payroll_summary=payroll_summary,
+            eligible_staff_rows=eligible_staff_rows,
+            selected_staff_ids=selected_staff_ids,
         )
     
     except Exception as e:

@@ -7,8 +7,168 @@
 <li class="breadcrumb-item active">Generate</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    .payroll-shell {
+        --panel-border: rgba(13, 110, 253, 0.12);
+        --panel-shadow: 0 16px 36px rgba(13, 37, 63, 0.08);
+    }
+
+    .payroll-shell .card {
+        border-radius: 20px;
+        box-shadow: var(--panel-shadow);
+    }
+
+    .selection-panel {
+        border: 1px solid var(--panel-border);
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        padding: 1rem;
+    }
+
+    .selection-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .staff-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+        max-height: 28rem;
+        overflow: auto;
+        padding-right: 0.15rem;
+    }
+
+    .staff-option {
+        position: relative;
+    }
+
+    .staff-option input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .staff-tile {
+        display: block;
+        border: 1px solid rgba(13, 110, 253, 0.14);
+        border-radius: 18px;
+        padding: 1rem;
+        background: #fff;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        min-height: 100%;
+    }
+
+    .staff-option input:checked + .staff-tile {
+        border-color: rgba(25, 135, 84, 0.5);
+        box-shadow: 0 18px 30px rgba(25, 135, 84, 0.15);
+        background: linear-gradient(180deg, #ffffff 0%, #f2fbf6 100%);
+    }
+
+    .staff-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(13, 37, 63, 0.08);
+    }
+
+    .staff-tile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .staff-tile-name {
+        font-weight: 700;
+        font-size: 0.98rem;
+        color: #1d3557;
+    }
+
+    .staff-tile-email {
+        font-size: 0.8rem;
+        color: #6c757d;
+        word-break: break-word;
+    }
+
+    .staff-tile-tag {
+        background: #eef5ff;
+        color: #0d6efd;
+        border-radius: 999px;
+        padding: 0.3rem 0.65rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .staff-tile-stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.6rem;
+    }
+
+    .staff-tile-stat {
+        padding: 0.7rem;
+        border-radius: 14px;
+        background: #f8fafc;
+    }
+
+    .staff-tile-stat-label {
+        font-size: 0.72rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .staff-tile-stat-value {
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin-top: 0.25rem;
+    }
+
+    .summary-strip {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+
+    .summary-chip {
+        padding: 1rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border: 1px solid rgba(13, 110, 253, 0.12);
+    }
+
+    .summary-chip small {
+        display: block;
+        color: #6c757d;
+        margin-bottom: 0.35rem;
+    }
+
+    .summary-chip strong {
+        font-size: 1.15rem;
+    }
+
+    .table-responsive {
+        border-radius: 16px;
+    }
+
+    @media (max-width: 991.98px) {
+        .staff-grid,
+        .summary-strip {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid payroll-shell">
     <div class="row mb-3">
         <div class="col-12 text-end">
             <a href="{{ url_for('hr.payroll_export_excel') }}" class="btn btn-success btn-sm">
@@ -22,19 +182,63 @@
         <div class="card-body">
             {% if not generated_payroll %}
             <form method="POST">
-                <div class="mb-4">
-                    <label class="form-label" for="payroll_month"><strong>Select Payroll Month</strong></label>
-                    <input type="month" class="form-control form-control-lg" id="payroll_month" name="payroll_month" value="{{ current_month.strftime('%Y-%m') if current_month else '' }}" required>
+                <div class="row g-4 align-items-start mb-4">
+                    <div class="col-lg-4">
+                        <label class="form-label" for="payroll_month"><strong>Select Payroll Month</strong></label>
+                        <input type="month" class="form-control form-control-lg" id="payroll_month" name="payroll_month" value="{{ current_month.strftime('%Y-%m') if current_month else '' }}" required>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="selection-panel">
+                            <div class="selection-toolbar">
+                                <div>
+                                    <h6 class="mb-1">Choose Staff for This Payroll</h6>
+                                    <p class="text-muted small mb-0">HR can now decide exactly who should be included before generating the batch.</p>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllStaff">Select All</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearAllStaff">Clear</button>
+                                </div>
+                            </div>
+                            <div class="staff-grid">
+                                {% for item in eligible_staff_rows %}
+                                <label class="staff-option">
+                                    <input type="checkbox" class="staff-selector" name="staff_ids" value="{{ item.staff.id }}" {% if item.staff.id in selected_staff_ids %}checked{% endif %}>
+                                    <span class="staff-tile">
+                                        <span class="staff-tile-header">
+                                            <span>
+                                                <span class="staff-tile-name">{{ item.staff.name }}</span>
+                                                <span class="d-block staff-tile-email">{{ item.staff.email }}</span>
+                                            </span>
+                                            <span class="staff-tile-tag">{{ item.row.department }}</span>
+                                        </span>
+                                        <span class="staff-tile-stats">
+                                            <span class="staff-tile-stat">
+                                                <span class="staff-tile-stat-label">Gross</span>
+                                                <span class="staff-tile-stat-value">₦{{ "{:,.2f}".format(item.row.gross_monthly) }}</span>
+                                            </span>
+                                            <span class="staff-tile-stat">
+                                                <span class="staff-tile-stat-label">Net</span>
+                                                <span class="staff-tile-stat-value text-success">₦{{ "{:,.2f}".format(item.row.net_monthly) }}</span>
+                                            </span>
+                                        </span>
+                                    </span>
+                                </label>
+                                {% else %}
+                                <div class="alert alert-info mb-0">No staff with payroll inputs are ready yet. Add payroll inputs first, then return here.</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Staff Count</small><strong>{{ payroll_summary.staff_count if payroll_summary else 0 }}</strong></div></div>
-                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) if payroll_summary else 0 }}</strong></div></div>
-                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) if payroll_summary else 0 }}</strong></div></div>
-                    <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) if payroll_summary else 0 }}</strong></div></div>
+                <div class="summary-strip mb-4">
+                    <div class="summary-chip"><small>Configured Staff</small><strong>{{ payroll_summary.staff_count if payroll_summary else 0 }}</strong></div>
+                    <div class="summary-chip"><small>Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) if payroll_summary else 0 }}</strong></div>
+                    <div class="summary-chip"><small>Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) if payroll_summary else 0 }}</strong></div>
+                    <div class="summary-chip"><small>Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) if payroll_summary else 0 }}</strong></div>
                 </div>
 
-                <div class="table-responsive mb-4" style="max-height: 380px; overflow-y: auto;">
+                <div class="desktop-table table-responsive mb-4" style="max-height: 380px; overflow-y: auto;">
                     <table class="table table-sm table-hover">
                         <thead class="table-light" style="position: sticky; top: 0;">
                             <tr>
@@ -87,7 +291,28 @@
                     </table>
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="mobile-card-list mb-4">
+                    {% for staff in payroll_summary.staff_details %}
+                    <div class="mobile-card">
+                        <div class="d-flex justify-content-between gap-3 mb-2">
+                            <div>
+                                <div class="fw-semibold">{{ staff.name }}</div>
+                                <div class="small text-muted">{{ staff.email }}</div>
+                            </div>
+                            <span class="badge bg-light text-dark border">{{ staff.department }}</span>
+                        </div>
+                        <div class="mobile-metric"><span class="mobile-metric-label">Gross</span><span class="mobile-metric-value">₦{{ "{:,.2f}".format(staff.gross_monthly) }}</span></div>
+                        <div class="mobile-metric"><span class="mobile-metric-label">Basic</span><span class="mobile-metric-value">₦{{ "{:,.2f}".format(staff.basic_salary) }}</span></div>
+                        <div class="mobile-metric"><span class="mobile-metric-label">Allowances</span><span class="mobile-metric-value">₦{{ "{:,.2f}".format(staff.housing + staff.transport + staff.utility + staff.meal + staff.medical) }}</span></div>
+                        <div class="mobile-metric"><span class="mobile-metric-label">Deductions</span><span class="mobile-metric-value text-danger">₦{{ "{:,.2f}".format(staff.total_deductions_monthly) }}</span></div>
+                        <div class="mobile-metric"><span class="mobile-metric-label">Net</span><span class="mobile-metric-value text-success">₦{{ "{:,.2f}".format(staff.net_monthly) }}</span></div>
+                    </div>
+                    {% else %}
+                    <div class="mobile-card text-muted text-center">No staff data available.</div>
+                    {% endfor %}
+                </div>
+
+                <div class="page-actions">
                     <button type="submit" class="btn btn-primary btn-lg flex-grow-1"><i class='bx bxs-check-circle'></i> Generate Payroll</button>
                     <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary btn-lg"><i class='bx bxs-left-arrow'></i> Cancel</a>
                 </div>
@@ -97,14 +322,14 @@
                 <strong>Payroll Generated Successfully:</strong> {{ generated_payroll.batch_name }} ({{ generated_payroll.payroll_period }})
             </div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Staff Count</small><strong>{{ payroll_summary.staff_count }}</strong></div></div>
-                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) }}</strong></div></div>
-                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) }}</strong></div></div>
-                <div class="col-md-3"><div class="p-3 border rounded bg-light"><small class="text-muted d-block">Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) }}</strong></div></div>
+            <div class="summary-strip mb-4">
+                <div class="summary-chip"><small>Staff Count</small><strong>{{ payroll_summary.staff_count }}</strong></div>
+                <div class="summary-chip"><small>Total Gross</small><strong>&#8358;{{ "{:,.2f}".format(payroll_summary.total_gross) }}</strong></div>
+                <div class="summary-chip"><small>Total Deductions</small><strong class="text-danger">&#8358;{{ "{:,.2f}".format(payroll_summary.total_deductions) }}</strong></div>
+                <div class="summary-chip"><small>Total Net</small><strong class="text-success">&#8358;{{ "{:,.2f}".format(payroll_summary.total_net_salary) }}</strong></div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="page-actions">
                 <a href="{{ url_for('hr.payroll_batch_detail', batch_id=generated_payroll.id) }}" class="btn btn-outline-primary btn-lg">
                     <i class='bx bxs-edit'></i> Review or Remove Staff
                 </a>
@@ -118,4 +343,28 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const selectors = Array.from(document.querySelectorAll('.staff-selector'));
+    const selectAllButton = document.getElementById('selectAllStaff');
+    const clearAllButton = document.getElementById('clearAllStaff');
+
+    if (selectAllButton) {
+        selectAllButton.addEventListener('click', () => {
+            selectors.forEach((checkbox) => {
+                checkbox.checked = true;
+            });
+        });
+    }
+
+    if (clearAllButton) {
+        clearAllButton.addEventListener('click', () => {
+            selectors.forEach((checkbox) => {
+                checkbox.checked = false;
+            });
+        });
+    }
+</script>
 {% endblock %}

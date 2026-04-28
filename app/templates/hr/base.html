@@ -25,6 +25,7 @@
         body {
             background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
         }
 
         .sidebar {
@@ -79,6 +80,52 @@
         .main-content {
             margin-left: 250px;
             padding: 2rem;
+            min-width: 0;
+        }
+
+        .page-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .mobile-card-list {
+            display: none;
+        }
+
+        .mobile-card {
+            background: #fff;
+            border: 1px solid rgba(13, 110, 253, 0.08);
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: 0 10px 24px rgba(13, 37, 63, 0.06);
+        }
+
+        .mobile-card + .mobile-card {
+            margin-top: 0.875rem;
+        }
+
+        .mobile-metric {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.35rem 0;
+            border-bottom: 1px dashed rgba(108, 117, 125, 0.24);
+        }
+
+        .mobile-metric:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .mobile-metric-label {
+            color: var(--secondary-color);
+            font-size: 0.8rem;
+        }
+
+        .mobile-metric-value {
+            font-weight: 600;
+            text-align: right;
         }
 
         .topbar {
@@ -242,15 +289,44 @@
                 width: 100%;
                 position: relative;
                 min-height: auto;
+                padding: 1rem 0;
             }
 
             .main-content {
                 margin-left: 0;
+                padding: 1rem;
             }
 
             .topbar {
                 flex-direction: column;
                 gap: 1rem;
+            }
+
+            .sidebar-logo {
+                margin-bottom: 1rem;
+                padding: 1rem 1.25rem;
+            }
+
+            .sidebar .nav-link {
+                padding: 0.9rem 1.25rem;
+            }
+
+            .page-actions > * {
+                flex: 1 1 100%;
+            }
+
+            .card-header,
+            .card-body {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .desktop-table {
+                display: none;
+            }
+
+            .mobile-card-list {
+                display: block;
             }
         }
     </style>

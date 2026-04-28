@@ -6,17 +6,29 @@
     <li class="breadcrumb-item active">Payroll</li>
 {% endblock %}
 
+{% block extra_css %}
+<style>
+    .payroll-dashboard .card {
+        border-radius: 18px;
+    }
+
+    .payroll-dashboard .table-responsive {
+        border-radius: 16px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid payroll-dashboard">
     <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h2 class="mb-1">
                 <i class='bx bxs-wallet'></i> Payroll Management
             </h2>
             <p class="text-muted">Manage staff salaries and deductions</p>
         </div>
-        <div>
+        <div class="page-actions">
             <a href="{{ url_for('hr.payroll_details_input') }}" class="btn btn-outline-secondary">
                 <i class='bx bxs-spreadsheet'></i> Manage Payroll Inputs
             </a>
@@ -60,7 +72,7 @@
             <small class="text-muted">Edit draft or submitted batches before final approval</small>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="desktop-table table-responsive">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
@@ -100,6 +112,29 @@
                     </tbody>
                 </table>
             </div>
+            <div class="mobile-card-list p-3">
+                {% for batch in payroll_batches %}
+                <div class="mobile-card">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <div>
+                            <div class="fw-semibold">{{ batch.batch_name }}</div>
+                            <div class="small text-muted">{{ batch.payroll_period }}</div>
+                        </div>
+                        <span class="badge bg-{% if batch.status.value == 'draft' %}secondary{% elif batch.status.value == 'hr_approved' %}warning{% elif batch.status.value == 'admin_approved' %}success{% elif batch.status.value == 'paid' %}info{% else %}dark{% endif %}">
+                            {{ batch.status.value.replace('_', ' ')|title }}
+                        </span>
+                    </div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Staff</span><span class="mobile-metric-value">{{ batch.total_records or 0 }}</span></div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Net Total</span><span class="mobile-metric-value">₦{{ "{:,.2f}".format(batch.total_net or 0) }}</span></div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Created</span><span class="mobile-metric-value">{{ batch.created_at.strftime('%d %b %Y') if batch.created_at else 'N/A' }}</span></div>
+                    <a href="{{ url_for('hr.payroll_batch_detail', batch_id=batch.id) }}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                        <i class='bx bxs-edit'></i> Open Batch
+                    </a>
+                </div>
+                {% else %}
+                <div class="mobile-card text-center text-muted">No generated payroll batches yet.</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
@@ -112,7 +147,7 @@
             </div>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="desktop-table table-responsive">
                 <table class="table table-hover">
                     <thead class="table-light">
                         <tr>
@@ -156,6 +191,30 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+            <div class="mobile-card-list">
+                {% for record in payroll_records %}
+                <div class="mobile-card">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <div>
+                            <div class="fw-semibold">{{ record.name }}</div>
+                            <div class="small text-muted">{{ record.email }}</div>
+                        </div>
+                        <span class="badge pending">{{ record.status }}</span>
+                    </div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Basic Salary</span><span class="mobile-metric-value">₦{{ record.basic_salary }}</span></div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Deductions</span><span class="mobile-metric-value">₦{{ record.deductions }}</span></div>
+                    <div class="mobile-metric"><span class="mobile-metric-label">Net Salary</span><span class="mobile-metric-value">₦{{ record.net_salary }}</span></div>
+                    <div class="page-actions mt-3">
+                        <a href="{{ url_for('hr.edit_payroll', staff_id=record.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class='bx bxs-edit'></i> Edit
+                        </a>
+                        <a href="{{ url_for('hr.view_salary_slip', staff_id=record.id) }}" class="btn btn-sm btn-outline-success">
+                            <i class='bx bxs-download'></i> Slip
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
