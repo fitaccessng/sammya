@@ -79,6 +79,26 @@ class User(UserMixin, db.Model):
         return f'<User {self.email} ({self.role})>'
 
 
+class PasswordResetRequest(db.Model):
+    """Tracks user password reset requests for admin handling."""
+    __tablename__ = 'password_reset_request'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, completed, cancelled
+    requested_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    resolved_at = db.Column(db.DateTime)
+    resolved_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    admin_note = db.Column(db.Text)
+
+    user = db.relationship('User', foreign_keys=[user_id], backref='password_reset_requests')
+    resolver = db.relationship('User', foreign_keys=[resolved_by], backref='resolved_password_reset_requests')
+
+    def __repr__(self):
+        return f'<PasswordResetRequest user={self.user_id} status={self.status}>'
+
+
 class NextOfKin(db.Model):
     """Employee emergency contact and next of kin information."""
     __tablename__ = 'next_of_kin'

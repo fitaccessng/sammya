@@ -1,15 +1,13 @@
 """
 Main application routes - Home, Login, Signup, Password reset, etc.
 """
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
-from app.models import User, db
+from app.models import User, PasswordResetRequest, db
 from app.utils import Roles
 from werkzeug.routing import BuildError
-import random
-import string
 import logging
-import uuid
 
 # Configure logger for this module
 logger = logging.getLogger(__name__)
@@ -179,7 +177,7 @@ def login():
 
 @main_bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    """Forgot password page."""
+    """Submit a password reset request for admin action."""
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
     
@@ -192,18 +190,26 @@ def forgot_password():
                 return render_template("auth/forgot_password.html")
             
             user = User.query.filter_by(email=email).first()
-            
+
             if user:
-                # Generate reset token
-                reset_token = str(uuid.uuid4())
-                user.reset_token = reset_token
+                existing_request = PasswordResetRequest.query.filter_by(
+                    user_id=user.id,
+                    status='pending'
+                ).first()
+
+                if existing_request:
+                    existing_request.requested_at = datetime.utcnow()
+                    existing_request.admin_note = None
+                else:
+                    db.session.add(PasswordResetRequest(user_id=user.id))
+
                 db.session.commit()
-                
-                # TODO: Send email with reset link
-                flash("If an account exists with this email, you will receive a password reset link.", "info")
-            else:
-                # Don't reveal if email exists (security)
-                flash("If an account exists with this email, you will receive a password reset link.", "info")
+
+            flash(
+                "If the account exists, a password reset request has been sent to the admin.",
+                "info"
+            )
+            return redirect(url_for("main.login"))
         
     except Exception as e:
         logger.error(f"Forgot password error: {str(e)}")
@@ -215,46 +221,9 @@ def forgot_password():
 
 @main_bp.route("/reset-password/<token>", methods=["GET", "POST"])
 def reset_password(token):
-    """Reset password page."""
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
-    
-    user = User.query.filter_by(reset_token=token).first()
-    
-    if not user:
-        flash("Invalid or expired reset link", "error")
-        return redirect(url_for("main.login"))
-
-    try:
-        if request.method == "POST":
-            password = request.form.get("password", "").strip()
-            confirm_password = request.form.get("confirm_password", "").strip()
-            
-            if not password or not confirm_password:
-                flash("Both password fields are required", "error")
-                return render_template("auth/reset_password.html", token=token)
-            
-            if password != confirm_password:
-                flash("Passwords do not match", "error")
-                return render_template("auth/reset_password.html", token=token)
-            
-            if len(password) < 6:
-                flash("Password must be at least 6 characters long", "error")
-                return render_template("auth/reset_password.html", token=token)
-            
-            user.set_password(password)
-            user.reset_token = None
-            db.session.commit()
-            
-            flash("Password reset successful! You can now log in.", "success")
-            return redirect(url_for("main.login"))
-    
-    except Exception as e:
-        logger.error(f"Password reset error: {str(e)}")
-        flash("An error occurred. Please try again.", "error")
-        db.session.rollback()
-
-    return render_template("auth/reset_password.html", token=token)
+    """Legacy route kept for compatibility with older links."""
+    flash("Password resets are now handled by the admin after your request is submitted.", "info")
+    return redirect(url_for("main.forgot_password"))
 
 
 @main_bp.route('/logout')

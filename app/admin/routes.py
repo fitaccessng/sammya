@@ -7,7 +7,8 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import current_user, login_required
 from app.models import (
     db, User, Project, ApprovalLog, user_projects, PaymentRecord,
-    StaffImportBatch, StaffImportItem, ApprovalState, ApprovalMessage
+    StaffImportBatch, StaffImportItem, ApprovalState, ApprovalMessage,
+    PasswordResetRequest
 )
 from app.auth.decorators import role_required
 from app.excel_import import StaffImportManager
@@ -94,6 +95,9 @@ def users():
     
     page = request.args.get('page', 1, type=int)
     users = User.query.order_by(User.created_at.desc()).paginate(page=page, per_page=20)
+    pending_reset_requests = PasswordResetRequest.query.filter_by(status='pending').order_by(
+        PasswordResetRequest.requested_at.desc()
+    ).all()
     
     # Get pending staff imports count
     pending_imports_count = StaffImportBatch.query.filter_by(
@@ -115,7 +119,13 @@ def users():
             except:
                 pass
     
-    return render_template('admin/users_list.html', users=users, pending_imports_count=pending_imports_count, submitted_batch_records=submitted_batch_records)
+    return render_template(
+        'admin/users_list.html',
+        users=users,
+        pending_imports_count=pending_imports_count,
+        submitted_batch_records=submitted_batch_records,
+        pending_reset_requests=pending_reset_requests
+    )
 
 
 @bp.route('/user/<int:user_id>/edit', methods=['GET', 'POST'])
@@ -161,6 +171,39 @@ def delete_user(user_id):
     user.is_active = False
     db.session.commit()
     flash(f'User {user.email} has been deactivated.', 'success')
+    return redirect(url_for('admin.users'))
+
+
+@bp.route('/user/<int:user_id>/reset-password', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def reset_user_password(user_id):
+    """Allow admin to set a new password after a reset request."""
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('new_password', '').strip()
+    admin_note = request.form.get('admin_note', '').strip()
+
+    if len(new_password) < 6:
+        flash('New password must be at least 6 characters long.', 'danger')
+        return redirect(url_for('admin.users'))
+
+    user.set_password(new_password)
+
+    pending_requests = PasswordResetRequest.query.filter_by(
+        user_id=user.id,
+        status='pending'
+    ).all()
+
+    resolved_at = datetime.utcnow()
+    if pending_requests:
+        for reset_request in pending_requests:
+            reset_request.status = 'completed'
+            reset_request.resolved_by = current_user.id
+            reset_request.resolved_at = resolved_at
+            reset_request.admin_note = admin_note or 'Password changed by admin.'
+
+    db.session.commit()
+    flash(f'Password updated successfully for {user.email}.', 'success')
     return redirect(url_for('admin.users'))
 
 
