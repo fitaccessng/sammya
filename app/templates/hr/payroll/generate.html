@@ -171,9 +171,11 @@
 <div class="container-fluid payroll-shell">
     <div class="row mb-3">
         <div class="col-12 text-end">
-            <a href="{{ url_for('hr.payroll_export_excel') }}" class="btn btn-success btn-sm">
-                <i class='bx bxs-file-export'></i> Download Excel Report
-            </a>
+            <div class="page-actions justify-content-end">
+                <a href="{{ url_for('hr.payroll_export_excel') }}" class="btn btn-success btn-sm">
+                    <i class='bx bxs-file-export'></i> Download Excel Report
+                </a>
+            </div>
         </div>
     </div>
 
@@ -181,6 +183,32 @@
         <div class="card-header"><h5 class="mb-0">Generate Monthly Payroll</h5></div>
         <div class="card-body">
             {% if not generated_payroll %}
+            <div class="selection-panel mb-4">
+                <div class="selection-toolbar">
+                    <div>
+                        <h6 class="mb-1">Upload Staff Straight Into a Draft Payroll</h6>
+                        <p class="text-muted small mb-0">Use an Excel file like your sample to create or update a payroll draft for the selected month.</p>
+                    </div>
+                </div>
+                <form method="POST" action="{{ url_for('hr.payroll_draft_upload') }}" enctype="multipart/form-data">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-3">
+                            <label class="form-label" for="draft_payroll_month"><strong>Draft Month</strong></label>
+                            <input type="month" class="form-control" id="draft_payroll_month" name="payroll_month" value="{{ current_month.strftime('%Y-%m') if current_month else '' }}" required>
+                        </div>
+                        <div class="col-lg-6">
+                            <label class="form-label" for="draft_payroll_file"><strong>Payroll Excel File</strong></label>
+                            <input type="file" class="form-control" id="draft_payroll_file" name="draft_payroll_file" accept=".csv,.xlsx,.xlsm" required>
+                        </div>
+                        <div class="col-lg-3">
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class='bx bxs-cloud-upload'></i> Upload to Draft
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
             <form method="POST">
                 <div class="row g-4 align-items-start mb-4">
                     <div class="col-lg-4">

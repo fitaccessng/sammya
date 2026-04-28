@@ -12,7 +12,10 @@ from decimal import Decimal, ROUND_HALF_UP
 import csv
 import io
 import os
+import re
+import calendar
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 
 # Import models
 from app.models import (
@@ -365,6 +368,284 @@ def _parse_decimal_input(value):
         return Decimal('0')
     normalized = text.replace(',', '')
     return _money(Decimal(normalized))
+
+
+def _normalize_upload_key(name):
+    return ''.join(ch for ch in str(name or '').lower() if ch.isalnum())
+
+
+def _parse_flexible_date(value):
+    if value in (None, ''):
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    text = re.sub(r'(\d)(st|nd|rd|th)', r'\1', text, flags=re.IGNORECASE)
+    text = text.replace('_', '/').replace('.', ' ')
+    text = ' '.join(text.split())
+
+    formats = [
+        '%d/%m/%Y', '%d/%m/%y', '%Y-%m-%d', '%d-%m-%Y',
+        '%B %d, %Y', '%b %d, %Y', '%d %B %Y', '%d %b %Y',
+        '%B %d %Y', '%b %d %Y'
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _split_allowance_total(total_allowances):
+    total = _money(total_allowances)
+    housing = _money(total * PAYROLL_COMPONENT_ALLOCATION['housing'])
+    transport = _money(total * PAYROLL_COMPONENT_ALLOCATION['transport'])
+    utility = _money(total * PAYROLL_COMPONENT_ALLOCATION['utility'])
+    meal = _money(total * PAYROLL_COMPONENT_ALLOCATION['meal'])
+    medical = _money(total - housing - transport - utility - meal)
+    return {
+        'housing': housing,
+        'transport': transport,
+        'utility': utility,
+        'meal': meal,
+        'medical': medical,
+    }
+
+
+def _iter_payroll_upload_rows(upload, filename):
+    rows = []
+
+    if filename.endswith('.csv'):
+        content = upload.stream.read().decode('utf-8-sig')
+        reader = csv.DictReader(io.StringIO(content))
+        return list(reader)
+
+    if filename.endswith('.xlsx') or filename.endswith('.xlsm'):
+        from openpyxl import load_workbook
+        wb = load_workbook(upload, data_only=True)
+        ws = wb.active
+        all_rows = list(ws.iter_rows(values_only=True))
+        if not all_rows:
+            return []
+        headers = [str(h or '').strip() for h in all_rows[0]]
+        for raw in all_rows[1:]:
+            if not any(raw):
+                continue
+            rows.append({headers[i]: raw[i] for i in range(len(headers))})
+        return rows
+
+    raise ValueError("Unsupported file type. Use CSV or XLSX.")
+
+
+def _resolve_upload_staff_email(preferred_email, employee_id, name):
+    candidate = (preferred_email or '').strip().lower()
+    if candidate:
+        existing = User.query.filter(func.lower(User.email) == candidate).first()
+        if not existing:
+            return candidate
+
+    seed = (employee_id or name or 'payroll-staff').strip().lower()
+    seed = re.sub(r'[^a-z0-9]+', '-', seed).strip('-') or 'payroll-staff'
+    candidate = f"{seed}@payroll.local"
+    suffix = 1
+    while User.query.filter(func.lower(User.email) == candidate.lower()).first():
+        suffix += 1
+        candidate = f"{seed}-{suffix}@payroll.local"
+    return candidate
+
+
+def _find_or_create_staff_for_payroll_upload(normalized_row):
+    raw_name = normalized_row.get('names') or normalized_row.get('name') or normalized_row.get('lastname') or ''
+    name = str(raw_name).strip()
+    employee_id = str(normalized_row.get('employeeid') or '').strip()
+    raw_email = normalized_row.get('email')
+    email = str(raw_email or '').strip().lower()
+
+    staff = None
+    if employee_id:
+        staff = User.query.filter_by(employee_id=employee_id).first()
+    if not staff and not employee_id and email:
+        staff = User.query.filter(func.lower(User.email) == email).first()
+    if not staff and not employee_id and name:
+        staff = User.query.filter(func.lower(User.name) == name.lower()).first()
+
+    created = False
+    if not staff:
+        final_email = _resolve_upload_staff_email(email, employee_id, name)
+        final_name = name or employee_id or 'Payroll Upload Staff'
+        staff = User(
+            name=final_name,
+            email=final_email,
+            role=Roles.PROJECT_STAFF,
+            is_active=True,
+            employee_id=employee_id or None
+        )
+        staff.password_hash = generate_password_hash('TempPass123!', method='pbkdf2:sha256')
+        db.session.add(staff)
+        db.session.flush()
+        created = True
+
+    if name:
+        staff.name = name
+    if employee_id and not staff.employee_id:
+        staff.employee_id = employee_id
+    if email and (not staff.email or staff.email.endswith('@payroll.local')):
+        if staff.email == email or not User.query.filter(func.lower(User.email) == email).filter(User.id != staff.id).first():
+            staff.email = email
+
+    staff.phone = str(normalized_row.get('phonenumber') or staff.phone or '').strip() or staff.phone
+    staff.gender = str(normalized_row.get('gender') or staff.gender or '').strip() or staff.gender
+    staff.city = str(normalized_row.get('nokcity') or normalized_row.get('city') or staff.city or '').strip() or staff.city
+    staff.state = str(normalized_row.get('nokstate') or normalized_row.get('state') or staff.state or '').strip() or staff.state
+    staff.address = str(normalized_row.get('nokaddress') or normalized_row.get('address') or staff.address or '').strip() or staff.address
+
+    dob = _parse_flexible_date(normalized_row.get('dateofbirth'))
+    if dob:
+        staff.date_of_birth = dob
+
+    joined = _parse_flexible_date(normalized_row.get('joiningdate') or normalized_row.get('dateofemployment'))
+    if joined:
+        staff.date_of_employment = joined
+
+    department = str(normalized_row.get('department') or '').strip()
+    if department:
+        access = DepartmentAccess.query.filter_by(user_id=staff.id, department=department).first()
+        if not access:
+            db.session.add(DepartmentAccess(
+                user_id=staff.id,
+                department=department,
+                access_level='view',
+                is_active=True
+            ))
+        else:
+            access.is_active = True
+
+    return staff, created
+
+
+def _import_payroll_rows_to_draft(rows, month_str, actor_id):
+    from app.payroll_models import PayrollBatch, PayrollRecord, PayrollStatus
+
+    existing = PayrollBatch.query.filter_by(payroll_period=month_str).first()
+    if existing and existing.status not in [PayrollStatus.DRAFT, PayrollStatus.HR_APPROVED]:
+        raise ValueError(f"Payroll for {month_str} already exists and is no longer editable.")
+
+    if existing:
+        batch = existing
+        batch.status = PayrollStatus.DRAFT
+    else:
+        payroll_month = datetime.strptime(month_str, '%Y-%m').date()
+        last_day = calendar.monthrange(payroll_month.year, payroll_month.month)[1]
+        batch = PayrollBatch(
+            batch_name=f"Payroll-{payroll_month.strftime('%B %Y')}",
+            payroll_period=month_str,
+            status=PayrollStatus.DRAFT,
+            created_by_id=actor_id,
+            start_date=payroll_month.replace(day=1),
+            end_date=payroll_month.replace(day=last_day)
+        )
+        db.session.add(batch)
+        db.session.flush()
+
+    created_staff = 0
+    created_records = 0
+    updated_records = 0
+    skipped = 0
+
+    for row in rows:
+        normalized = {_normalize_upload_key(k): v for k, v in row.items()}
+        if not any(v not in (None, '') for v in normalized.values()):
+            continue
+
+        basic_salary = _parse_decimal_input(normalized.get('basicsalary'))
+        allowance_total = _parse_decimal_input(normalized.get('allowances'))
+        if basic_salary <= 0 and allowance_total <= 0:
+            skipped += 1
+            continue
+
+        staff, created = _find_or_create_staff_for_payroll_upload(normalized)
+        if created:
+            created_staff += 1
+
+        staff.basic_salary = basic_salary
+
+        deduction_one = _parse_decimal_input(normalized.get('deductionamount1'))
+        deduction_two = _parse_decimal_input(normalized.get('deductionamount2'))
+        total_deductions = _money(deduction_one + deduction_two)
+        gross_salary = _money(basic_salary + allowance_total)
+        provided_net = normalized.get('net')
+        net_salary = _parse_decimal_input(provided_net) if provided_net not in (None, '') else _money(gross_salary - total_deductions)
+        allowance_split = _split_allowance_total(allowance_total)
+
+        tax_deduction = Decimal('0')
+        other_deductions = total_deductions
+        deduction_one_type = str(normalized.get('deductiontype1') or '').strip().lower()
+        if 'tax' in deduction_one_type or 'paye' in deduction_one_type:
+            tax_deduction = deduction_one
+            other_deductions = _money(total_deductions - tax_deduction)
+
+        fields = {
+            'basic_salary': basic_salary,
+            'housing': allowance_split['housing'],
+            'transport': allowance_split['transport'],
+            'utility': allowance_split['utility'],
+            'meal': allowance_split['meal'],
+            'medical': allowance_split['medical'],
+            'annual_pension_employee': Decimal('0'),
+            'annual_nhis': Decimal('0'),
+            'nhf_annual': Decimal('0'),
+            'paye_annual': _money(tax_deduction * 12) if tax_deduction > 0 else Decimal('0'),
+        }
+        _upsert_staff_payroll_inputs(staff, fields, actor_id)
+
+        record = PayrollRecord.query.filter_by(batch_id=batch.id, user_id=staff.id).first()
+        if not record:
+            record = PayrollRecord(batch_id=batch.id, user_id=staff.id, payroll_period=month_str)
+            db.session.add(record)
+            created_records += 1
+        else:
+            updated_records += 1
+
+        record.payroll_period = month_str
+        record.basic_salary = basic_salary
+        record.house_allowance = allowance_split['housing']
+        record.transport_allowance = allowance_split['transport']
+        record.meal_allowance = allowance_split['meal']
+        record.risk_allowance = allowance_split['medical']
+        record.other_allowances = allowance_split['utility']
+        record.total_allowances = allowance_total
+        record.gross_salary = gross_salary
+        record.tax_deduction = tax_deduction
+        record.pension_deduction = Decimal('0')
+        record.insurance_deduction = Decimal('0')
+        record.other_deductions = other_deductions
+        record.total_deductions = total_deductions
+        record.net_salary = net_salary
+        record.is_valid = True
+        record.validation_errors = []
+
+    _refresh_batch_totals(batch)
+    db.session.add(ApprovalLog(
+        entity_type='payroll',
+        entity_id=batch.id,
+        action='draft_imported',
+        actor_id=actor_id,
+        comment=f"Payroll draft import completed for {month_str}. Records created: {created_records}, updated: {updated_records}, staff created: {created_staff}, skipped: {skipped}."
+    ))
+
+    return batch, {
+        'created_staff': created_staff,
+        'created_records': created_records,
+        'updated_records': updated_records,
+        'skipped': skipped,
+    }
 
 
 def _upsert_staff_payroll_inputs(staff, fields, actor_id):
@@ -1026,37 +1307,16 @@ def payroll_details_upload():
             return redirect(url_for('hr.payroll_details_input'))
 
         filename = secure_filename(upload.filename).lower()
-        rows = []
-
-        if filename.endswith('.csv'):
-            content = upload.stream.read().decode('utf-8-sig')
-            reader = csv.DictReader(io.StringIO(content))
-            rows = list(reader)
-        elif filename.endswith('.xlsx') or filename.endswith('.xlsm'):
-            from openpyxl import load_workbook
-            wb = load_workbook(upload, data_only=True)
-            ws = wb.active
-            all_rows = list(ws.iter_rows(values_only=True))
-            if not all_rows:
-                flash("Uploaded file is empty.", "error")
-                return redirect(url_for('hr.payroll_details_input'))
-            headers = [str(h or '').strip() for h in all_rows[0]]
-            for raw in all_rows[1:]:
-                if not any(raw):
-                    continue
-                rows.append({headers[i]: raw[i] for i in range(len(headers))})
-        else:
-            flash("Unsupported file type. Use CSV or XLSX.", "error")
+        rows = _iter_payroll_upload_rows(upload, filename)
+        if not rows:
+            flash("Uploaded file is empty.", "error")
             return redirect(url_for('hr.payroll_details_input'))
-
-        def key(name):
-            return ''.join(ch for ch in str(name or '').lower() if ch.isalnum())
 
         updated = 0
         skipped = 0
 
         for row in rows:
-            normalized = {key(k): v for k, v in row.items()}
+            normalized = {_normalize_upload_key(k): v for k, v in row.items()}
             staff_name = str(normalized.get('names') or normalized.get('name') or '').strip()
             staff_email = str(normalized.get('email') or '').strip()
 
@@ -1093,6 +1353,47 @@ def payroll_details_upload():
         current_app.logger.error(f"Payroll bulk upload error: {str(e)}", exc_info=True)
         flash("Error processing payroll upload.", "error")
         return redirect(url_for('hr.payroll_details_input'))
+
+
+@bp.route('/payroll/draft/upload', methods=['POST'])
+@login_required
+@hr_required
+def payroll_draft_upload():
+    """Bulk upload staff payroll rows into a draft payroll batch."""
+    try:
+        upload = request.files.get('draft_payroll_file')
+        month_str = request.form.get('payroll_month')
+
+        if not month_str:
+            flash("Select a payroll month for the draft upload.", "error")
+            return redirect(url_for('hr.payroll_generate'))
+        if not upload or not upload.filename:
+            flash("Please select an Excel or CSV file to upload.", "error")
+            return redirect(url_for('hr.payroll_generate'))
+
+        filename = secure_filename(upload.filename).lower()
+        rows = _iter_payroll_upload_rows(upload, filename)
+        if not rows:
+            flash("Uploaded payroll file is empty.", "error")
+            return redirect(url_for('hr.payroll_generate'))
+
+        batch, stats = _import_payroll_rows_to_draft(rows, month_str, current_user.id)
+        db.session.commit()
+
+        flash(
+            f"Payroll draft saved for {month_str}. Records created: {stats['created_records']}, updated: {stats['updated_records']}, new staff created: {stats['created_staff']}, skipped: {stats['skipped']}.",
+            "success"
+        )
+        return redirect(url_for('hr.payroll_batch_detail', batch_id=batch.id))
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), "error")
+        return redirect(url_for('hr.payroll_generate'))
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Payroll draft upload error: {str(e)}", exc_info=True)
+        flash("Error uploading payroll into draft.", "error")
+        return redirect(url_for('hr.payroll_generate'))
 
 @bp.route('/payroll/generate', methods=['GET', 'POST'])
 @login_required
