@@ -34,8 +34,18 @@ def resolve_database_url(config_name='development'):
 
 
 def should_auto_create_tables(config_name='development'):
-    """Only create tables automatically outside production unless explicitly enabled."""
-    return config_name != 'production' or _env_flag('AUTO_CREATE_TABLES', default=False)
+    """Create tables automatically when running locally or explicitly enabled."""
+    database_url = resolve_database_url(config_name)
+    using_local_sqlite_fallback = (
+        config_name == 'production'
+        and not os.environ.get('DATABASE_URL')
+        and database_url.startswith('sqlite:///')
+    )
+    return (
+        config_name != 'production'
+        or _env_flag('AUTO_CREATE_TABLES', default=False)
+        or using_local_sqlite_fallback
+    )
 
 
 def create_app(config_name='development'):
