@@ -4,10 +4,7 @@ Main entry point for the Flask application.
 """
 
 import os
-from app.factory import DEFAULT_DATABASE_URL, create_app
-
-
-os.environ.setdefault("DATABASE_URL", DEFAULT_DATABASE_URL)
+from app.factory import create_app
 
 
 def resolve_runtime_environment():

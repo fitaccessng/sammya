@@ -9,7 +9,8 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from app.models import db, User
 
-DEFAULT_DATABASE_URL = 'postgresql://postgres:dfNKPwgXTuimHBHDZBngIUQdDuVoNYyr@postgres.railway.internal:5432/railway'
+DEFAULT_DATABASE_URL = 'sqlite:///fitaccess_dev.db'
+PRODUCTION_DATABASE_URL = 'postgresql://postgres:dfNKPwgXTuimHBHDZBngIUQdDuVoNYyr@thomas.proxy.rlwy.net:23519/railway'
 
 
 def _env_flag(name, default=False):
@@ -28,6 +29,9 @@ def resolve_database_url(config_name='development'):
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         return database_url
+
+    if config_name == 'production':
+        return PRODUCTION_DATABASE_URL
 
     return DEFAULT_DATABASE_URL
 
@@ -137,7 +141,7 @@ def create_app(config_name='development'):
                 app.logger.exception('Database initialization failed during startup.')
     elif not os.environ.get('DATABASE_URL'):
         app.logger.info(
-            'DATABASE_URL is not set; using the configured Railway Postgres URL.'
+            'DATABASE_URL is not set; using the local SQLite development database.'
         )
     
     return app
