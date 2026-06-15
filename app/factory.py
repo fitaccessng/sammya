@@ -9,6 +9,8 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from app.models import db, User
 
+DEFAULT_DATABASE_URL = 'postgresql://postgres:dfNKPwgXTuimHBHDZBngIUQdDuVoNYyr@postgres.railway.internal:5432/railway'
+
 
 def _env_flag(name, default=False):
     """Parse common truthy environment flag values."""
@@ -19,7 +21,7 @@ def _env_flag(name, default=False):
 
 
 def resolve_database_url(config_name='development'):
-    """Return the configured database URL with a safe local fallback."""
+    """Return the configured database URL, defaulting to Railway Postgres."""
     database_url = os.environ.get('DATABASE_URL')
 
     if database_url:
@@ -27,24 +29,14 @@ def resolve_database_url(config_name='development'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
         return database_url
 
-    if config_name == 'production':
-        return 'sqlite:///sammya_prod.db'
-
-    return 'sqlite:///fitaccess_dev.db'
+    return DEFAULT_DATABASE_URL
 
 
 def should_auto_create_tables(config_name='development'):
     """Create tables automatically when running locally or explicitly enabled."""
-    database_url = resolve_database_url(config_name)
-    using_local_sqlite_fallback = (
-        config_name == 'production'
-        and not os.environ.get('DATABASE_URL')
-        and database_url.startswith('sqlite:///')
-    )
     return (
         config_name != 'production'
         or _env_flag('AUTO_CREATE_TABLES', default=False)
-        or using_local_sqlite_fallback
     )
 
 
@@ -144,8 +136,8 @@ def create_app(config_name='development'):
             except Exception:
                 app.logger.exception('Database initialization failed during startup.')
     elif not os.environ.get('DATABASE_URL'):
-        app.logger.warning(
-            'DATABASE_URL is not set in production; falling back to local SQLite.'
+        app.logger.info(
+            'DATABASE_URL is not set; using the configured Railway Postgres URL.'
         )
     
     return app

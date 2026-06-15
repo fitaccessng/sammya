@@ -63,7 +63,17 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Initialize Database
+### 2. Configure Environment
+
+Copy the example environment file and review the database URL in one place:
+
+```bash
+cp .env.example .env
+```
+
+The canonical PostgreSQL connection string is stored in [.env.example](/Users/macbookpro/Documents/new_sammya/.env.example).
+
+### 3. Initialize Database
 
 ```bash
 python seed.py
@@ -74,7 +84,7 @@ This creates:
 - 3 sample projects
 - 4 sample vendors
 
-### 3. Run Application
+### 4. Run Application
 
 ```bash
 python run.py

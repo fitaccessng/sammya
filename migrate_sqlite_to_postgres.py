@@ -2,8 +2,8 @@
 Copy data from a local SQLite database into the configured PostgreSQL database.
 
 Usage:
-    DATABASE_URL=postgresql://... python migrate_sqlite_to_postgres.py
-    DATABASE_URL=postgresql://... python migrate_sqlite_to_postgres.py --sqlite-path /path/to/fitaccess_dev.db
+    DATABASE_URL=$(grep '^DATABASE_URL=' .env.example | cut -d= -f2-) python migrate_sqlite_to_postgres.py
+    DATABASE_URL=$(grep '^DATABASE_URL=' .env.example | cut -d= -f2-) python migrate_sqlite_to_postgres.py --sqlite-path /path/to/fitaccess_dev.db
 
 Notes:
     - This script assumes the target PostgreSQL schema already exists.

@@ -2,7 +2,7 @@
 Initialize the Render/PostgreSQL database for production.
 
 Usage:
-    DATABASE_URL=postgresql://... python init_render_db.py
+    DATABASE_URL=$(grep '^DATABASE_URL=' .env.example | cut -d= -f2-) python init_render_db.py
 """
 
 import os
