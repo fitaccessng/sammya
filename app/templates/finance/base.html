@@ -9,13 +9,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         .sidebar-transition {
-            transition: all 0.3s ease-in-out;
+            transition: transform 0.3s ease-in-out;
         }
         .sidebar-hidden {
             transform: translateX(-100%);
-        }
-        .overlay-active {
-            display: block;
         }
         .nav-item-active {
             @apply bg-blue-50 text-blue-600 border-r-4 border-blue-600;
@@ -40,12 +37,12 @@
     <div id="sidebarOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden"></div>
 
     <!-- Sidebar Navigation -->
-    <aside id="sidebar" class="fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white shadow-lg sidebar-transition z-50 overflow-y-auto">
+    <aside id="sidebar" class="fixed left-0 top-0 w-64 h-screen bg-gradient-to-b from-blue-900 to-blue-800 text-white shadow-lg sidebar-transition z-50 overflow-y-auto sidebar-hidden lg:translate-x-0">
         <!-- Logo Section -->
         <div class="p-6 border-b border-blue-700">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-blue-400 rounded-lg flex items-center justify-center">
-                              <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo" class="h-10 w-auto">
+                    <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo" class="h-10 w-auto">
                 </div>
                 <div>
                     <h1 class="text-xl font-bold">Finance</h1>
@@ -162,11 +159,6 @@
                     <span>Expenses</span>
                 </a>
 
-                <!-- <a href="{{ url_for('finance.reports') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.reports' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-file-pdf w-5"></i>
-                    <span>Reports</span>
-                </a> -->
-
                 <a href="{{ url_for('finance.audit_trail') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.audit_trail' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
                     <i class="fas fa-history w-5"></i>
                     <span>Audit Trail</span>
@@ -183,7 +175,7 @@
                 </a>
             </div>
 
-            <div class="mt-8">
+            <div class="mt-8 mb-6">
                 <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Account</p>
                 <a href="{{ url_for('hr.leave_management') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all nav-item-hover text-blue-100">
                     <i class="fas fa-calendar-check w-5"></i>
@@ -194,25 +186,7 @@
                     <span>Account Settings</span>
                 </a>
             </div>
-           
         </nav>
-
-        <!-- Sidebar Footer -->
-        <!-- <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-blue-700 bg-blue-900">
-            <div class="flex items-center gap-3 px-4 py-3 bg-blue-800 rounded-lg">
-                <div class="w-8 h-8 bg-gradient-to-br from-blue-300 to-blue-500 rounded-full flex items-center justify-center text-xs font-bold">
-                    {{ current_user.name[0].upper() if current_user.is_authenticated else 'U' }}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold truncate">{{ current_user.name if current_user.is_authenticated else 'Guest' }}</p>
-                    <p class="text-xs text-blue-300 truncate">{{ current_user.role if current_user.is_authenticated else 'Not logged in' }}</p>
-                </div>
-            </div>
-            <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-3 px-4 py-3 mt-3 rounded-lg text-blue-100 nav-item-hover w-full text-left">
-                <i class="fas fa-sign-out-alt w-5"></i>
-                <span>Logout</span>
-            </a>
-        </div> -->
     </aside>
 
     <!-- Main Content Wrapper -->
@@ -221,7 +195,7 @@
         <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-40">
             <div class="px-6 py-4 flex items-center justify-between">
                 <!-- Mobile Menu Button -->
-                <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900">
+                <button id="mobileMenuBtn" class="lg:hidden text-slate-600 hover:text-slate-900 focus:outline-none">
                     <i class="fas fa-bars text-2xl"></i>
                 </button>
 
@@ -242,7 +216,7 @@
 
                     <!-- Notifications -->
                     <div class="relative group">
-                        <button class="relative text-slate-600 hover:text-slate-900">
+                        <button class="relative text-slate-600 hover:text-slate-900 focus:outline-none">
                             <i class="fas fa-bell text-xl"></i>
                             <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
@@ -272,7 +246,7 @@
 
                     <!-- User Menu -->
                     <div class="relative group">
-                        <button class="flex items-center gap-2 text-slate-600 hover:text-slate-900">
+                        <button class="flex items-center gap-2 text-slate-600 hover:text-slate-900 focus:outline-none">
                             <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-xs font-bold text-white">
                                 {{ current_user.name[0].upper() if current_user.is_authenticated else 'U' }}
                             </div>
@@ -322,7 +296,7 @@
 
         <!-- Footer -->
         <footer class="bg-white border-t border-slate-200 py-4 px-6">
-            <div class="flex items-center justify-between text-sm text-slate-600">
+            <div class="flex flex-col sm:flex-row items-center justify-between text-sm text-slate-600 gap-2 sm:gap-0">
                 <p>&copy; 2025 FitAccess Construction ERP. All rights reserved.</p>
                 <div class="flex gap-6">
                     <a href="#" class="hover:text-slate-900">Terms</a>
@@ -339,34 +313,35 @@
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-        // Toggle sidebar on mobile
-        mobileMenuBtn.addEventListener('click', () => {
+        function toggleSidebar() {
             sidebar.classList.toggle('sidebar-hidden');
             sidebarOverlay.classList.toggle('hidden');
-        });
+        }
 
-        // Close sidebar when clicking overlay
-        sidebarOverlay.addEventListener('click', () => {
+        function closeSidebar() {
             sidebar.classList.add('sidebar-hidden');
             sidebarOverlay.classList.add('hidden');
-        });
+        }
 
-        // Close sidebar when clicking on a link (mobile)
+        mobileMenuBtn.addEventListener('click', toggleSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar when clicking links on mobile
         const sidebarLinks = sidebar.querySelectorAll('a');
         sidebarLinks.forEach(link => {
             link.addEventListener('click', () => {
                 if (window.innerWidth < 1024) {
-                    sidebar.classList.add('sidebar-hidden');
-                    sidebarOverlay.classList.add('hidden');
+                    closeSidebar();
                 }
             });
         });
 
-        // Handle window resize
+        // Reset state on screen resize
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 1024) {
-                sidebar.classList.remove('sidebar-hidden');
                 sidebarOverlay.classList.add('hidden');
+            } else {
+                sidebar.classList.add('sidebar-hidden');
             }
         });
     </script>
@@ -376,7 +351,7 @@
         <div class="bg-white rounded-lg shadow-lg p-6 w-96 max-w-full mx-4">
             <div class="flex justify-between items-start mb-4">
                 <h2 id="notificationTitle" class="text-2xl font-bold text-gray-800">Notification</h2>
-                <button onclick="closeNotificationModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+                <button onclick="closeNotificationModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <p id="notificationMessage" class="text-gray-700 mb-6"></p>
             <div class="flex gap-2 justify-end">
@@ -386,7 +361,6 @@
     </div>
 
     <script>
-    // Global notification functions
     function showNotification(title, message) {
         document.getElementById('notificationTitle').textContent = title;
         document.getElementById('notificationMessage').textContent = message;
@@ -397,14 +371,12 @@
         document.getElementById('notificationModal').classList.add('hidden');
     }
 
-    // Close modal when clicking outside
     document.getElementById('notificationModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeNotificationModal();
         }
     });
 
-    // Replace alert with notification
     window.alert = function(message) {
         showNotification('Alert', message);
     };
