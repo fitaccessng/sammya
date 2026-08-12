@@ -9,6 +9,7 @@
 {% endblock %}
 
 {% block content %}
+{% set approval_state = batch.approval_state.value if batch.approval_state.value is defined else batch.approval_state %}
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="mb-4">
@@ -17,8 +18,8 @@
                 <h2 class="mb-1">Import Preview</h2>
                 <p class="text-muted">{{ batch.batch_name }} - {{ batch.file_name }}</p>
             </div>
-            <span class="badge bg-{{ 'secondary' if batch.approval_state == 'draft' else 'warning' if batch.approval_state == 'pending' else 'success' }}">
-                {{ batch.approval_state.upper() }}
+            <span class="badge bg-{{ 'secondary' if approval_state == 'draft' else 'warning' if approval_state == 'pending' else 'success' }}">
+                {{ approval_state|upper }}
             </span>
         </div>
     </div>
@@ -109,7 +110,7 @@
                                         <button type="button" class="btn btn-sm btn-outline-primary" 
                                                 data-bs-toggle="modal" 
                                                 data-bs-target="#detailsModal{{ item.id }}">
-                                            View Details
+                                            <i class='bx bxs-show'></i> View Details
                                         </button>
                                     </td>
                                 </tr>
@@ -245,19 +246,19 @@
                         <tbody>
                             {% for item in invalid_items %}
                                 <tr class="table-danger">
-                                    <td><strong>{{ item.row }}</strong></td>
+                                    <td><strong>{{ loop.index }}</strong></td>
                                     <td>
-                                        {% if item.data.first_name and item.data.last_name %}
-                                            {{ item.data.first_name }} {{ item.data.last_name }}
+                                        {% if item.first_name and item.last_name %}
+                                            {{ item.first_name }} {{ item.last_name }}
                                         {% else %}
                                             <em class="text-muted">Incomplete</em>
                                         {% endif %}
                                     </td>
-                                    <td><code>{{ item.data.email or 'N/A' }}</code></td>
+                                    <td><code>{{ item.email or 'N/A' }}</code></td>
                                     <td>
                                         <span class="text-danger">
-                                            <i class="bi bi-exclamation-triangle"></i>
-                                            {{ item.error }}
+                                            <i class='bx bxs-error-circle'></i>
+                                            {{ item.error_message or 'Validation error' }}
                                         </span>
                                     </td>
                                 </tr>
@@ -272,29 +273,29 @@
     <!-- Action Buttons -->
     <div class="d-flex gap-2 justify-content-between">
         <div>
-            {% if batch.approval_state == 'draft' or batch.approval_state == 'pending' %}
+            {% if approval_state == 'draft' or approval_state == 'pending' %}
                 <form method="POST" action="{{ url_for('hr.cancel_import', batch_id=batch.id) }}" 
                       style="display:inline;" 
                       onsubmit="return confirm('Are you sure you want to cancel this import batch?');">
                     <button type="submit" class="btn btn-outline-danger">
-                        <i class="bi bi-trash"></i> Cancel Import
+                        <i class='bx bxs-trash'></i> Cancel Import
                     </button>
                 </form>
             {% endif %}
         </div>
         <div>
             <a href="{{ url_for('hr.import_staff') }}" class="btn btn-secondary">
-                Back to Import
+                <i class='bx bxs-chevron-left'></i> Back to Import
             </a>
             
-            {% if valid_items and (batch.approval_state == 'draft' or batch.approval_state == 'pending') %}
+            {% if valid_items and (approval_state == 'draft' or approval_state == 'pending') %}
                 <form method="POST" action="{{ url_for('hr.submit_import_approval', batch_id=batch.id) }}" 
                       style="display:inline;">
                     <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check-circle"></i> Submit for Admin Approval
+                        <i class='bx bxs-check-circle'></i> Submit for Admin Approval
                     </button>
                 </form>
-            {% elif batch.approval_state == 'approved' %}
+            {% elif approval_state == 'approved' %}
                 <span class="badge bg-success">Import Completed</span>
             {% endif %}
         </div>

@@ -10,9 +10,14 @@
 {% block content %}
 <div class="container-fluid">
     <!-- Page Header -->
-    <div class="mb-4">
-        <h2 class="mb-1">Import Staff from Excel</h2>
-        <p class="text-muted">Upload an Excel file to bulk import staff records with personal information, employment details, compensation, and deductions</p>
+    <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h2 class="mb-1">Import Staff from Excel</h2>
+            <p class="text-muted mb-0">Upload the Sammya staff template, preview every row, then submit it for approval.</p>
+        </div>
+        <a href="{{ url_for('hr.download_import_template') }}" class="btn btn-outline-primary">
+            <i class='bx bxs-download'></i> Download Template
+        </a>
     </div>
 
     <div class="row">
@@ -44,7 +49,21 @@
                         </div>
 
                         <div class="alert alert-info" role="alert">
-                            <h6 class="alert-heading">✓ Required Column Headers (MUST include these exactly):</h6>
+                            <h6 class="alert-heading"><i class='bx bxs-spreadsheet'></i> Template Heading Order</h6>
+                            <p class="mb-2 small">Use these headers in the first row. The first column should be <code>first_name</code>; old files with duplicate <code>last_name</code> headers are still accepted.</p>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% for header in [
+                                    'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
+                                    'employee_id', 'department', 'position', 'employment_type', 'joining_date',
+                                    'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+                                    'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
+                                    'deduction_type_1', 'deduction_amount_1', 'deduction_type_2',
+                                    'deduction_amount_2', 'Net'
+                                ] %}
+                                    <code class="bg-white border rounded px-2 py-1">{{ header }}</code>
+                                {% endfor %}
+                            </div>
+                            <h6 class="alert-heading">Required Columns</h6>
                             <ul class="mb-2">
                                 <li><code>first_name</code> - Staff first name (e.g., "John")</li>
                                 <li><code>last_name</code> - Staff last name (e.g., "Doe")</li>
@@ -117,9 +136,11 @@
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-secondary">Cancel</a>
+                            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-secondary">
+                                <i class='bx bxs-chevron-left'></i> Cancel
+                            </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-upload"></i> Upload and Preview
+                                <i class='bx bxs-cloud-upload'></i> Upload and Preview
                             </button>
                         </div>
                     </form>
