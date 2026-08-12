@@ -780,6 +780,7 @@ def add_team_member(project_id):
     
     # Send email notification
     try:
+        budget_display = f"₦{project.budget:,.2f}" if project.budget else "N/A"
         email_subject = f'Project Assignment: {project.name}'
         email_body = f'''
 Hello {user.name},
@@ -789,7 +790,7 @@ You have been assigned to the project "{project.name}" with the role: {role}
 Project Details:
 - Name: {project.name}
 - Status: {project.status.upper() if project.status else 'Not Set'}
-- Budget: ${project.budget:,.2f if project.budget else 'N/A'}
+- Budget: {budget_display}
 
 {f'Start Date: {action_msg.split("as ")[1] if "as " in action_msg else ""}' if start_date else ''}
 
