@@ -12,8 +12,10 @@ from app.models import (
 )
 from app.auth.decorators import role_required
 from app.excel_import import StaffImportManager
+from app.utils import ROLE_GROUPS, valid_signup_roles
 from datetime import datetime, timedelta
-from sqlalchemy import desc
+from sqlalchemy import desc, func
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -137,9 +139,28 @@ def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     
     if request.method == 'POST':
-        user.name = request.form.get('name', user.name).strip()
-        user.email = request.form.get('email', user.email).strip()
+        name = request.form.get('name', user.name).strip()
+        email = request.form.get('email', user.email).strip().lower()
         new_role = request.form.get('role', user.role).strip()
+
+        if not name or not email:
+            flash('Name and email are required.', 'danger')
+            return redirect(url_for('admin.edit_user', user_id=user.id))
+
+        existing_user = User.query.filter(
+            func.lower(User.email) == email,
+            User.id != user.id
+        ).first()
+        if existing_user:
+            flash('That email address is already assigned to another staff account.', 'danger')
+            return redirect(url_for('admin.edit_user', user_id=user.id))
+
+        if new_role not in valid_signup_roles():
+            flash('Invalid role selected.', 'danger')
+            return redirect(url_for('admin.edit_user', user_id=user.id))
+
+        user.name = name
+        user.email = email
         user.role = new_role
         user.is_active = request.form.get('is_active') == 'on'
         
@@ -147,31 +168,60 @@ def edit_user(user_id):
         flash(f'User {user.email} updated successfully.', 'success')
         return redirect(url_for('admin.users'))
     
-    roles = [
-        'admin', 'procurement_manager', 'procurement_staff',
-        'cost_control_manager', 'cost_control_staff',
-        'finance_manager', 'accounts_payable',
-        'hr_manager', 'project_manager', 'project_staff',
-        'qs_manager', 'qs_staff'
-    ]
+    roles = [role for _, group_roles in ROLE_GROUPS for role, _ in group_roles]
     
     return render_template('admin/edit_user.html', user=user, roles=roles)
+
+
+@bp.route('/user/<int:user_id>/deactivate', methods=['POST'])
+@login_required
+@role_required(['admin'])
+def deactivate_user(user_id):
+    """Make a user inactive without removing their historical records."""
+    user = User.query.get_or_404(user_id)
+    
+    if user.id == current_user.id:
+        flash('Cannot deactivate your own account.', 'danger')
+        return redirect(url_for('admin.users'))
+
+    if not user.is_active:
+        flash(f'User {user.email} is already inactive.', 'info')
+        return redirect(url_for('admin.users'))
+    
+    user.is_active = False
+    db.session.commit()
+    flash(f'User {user.email} has been deactivated.', 'success')
+    return redirect(url_for('admin.users'))
 
 
 @bp.route('/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 @role_required(['admin'])
 def delete_user(user_id):
-    """Delete a user (soft delete by deactivating)."""
+    """Permanently delete a user when no protected history blocks it."""
     user = User.query.get_or_404(user_id)
-    
+
     if user.id == current_user.id:
         flash('Cannot delete your own account.', 'danger')
         return redirect(url_for('admin.users'))
-    
-    user.is_active = False
-    db.session.commit()
-    flash(f'User {user.email} has been deactivated.', 'success')
+
+    email = user.email
+    try:
+        user.projects.clear()
+        db.session.delete(user)
+        db.session.commit()
+        flash(f'User {email} has been permanently deleted.', 'success')
+    except IntegrityError:
+        db.session.rollback()
+        flash(
+            f'User {email} has linked project, payroll, approval, or finance records and cannot be permanently deleted. Deactivate the user instead.',
+            'danger'
+        )
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        current_app.logger.error(f"Failed to delete user {user_id}: {exc}")
+        flash('Unable to delete this user. Please try again or deactivate the account.', 'danger')
+
     return redirect(url_for('admin.users'))
 
 

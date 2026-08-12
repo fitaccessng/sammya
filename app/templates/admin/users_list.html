@@ -163,12 +163,21 @@
                                     <i class="fas fa-key"></i>
                                 </button>
                                 {% if user.id != current_user.id %}
-                                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" 
+                                <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}"
                                       style="display: inline;">
                                     <button type="submit" 
-                                            class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm font-semibold"
-                                            title="Delete" 
+                                            class="px-3 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors text-sm font-semibold"
+                                            title="Make Inactive"
                                             onclick="return confirm('Are you sure you want to deactivate this user?');">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                                      style="display: inline;">
+                                    <button type="submit"
+                                            class="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm font-semibold"
+                                            title="Delete Permanently"
+                                            onclick="return confirm('Permanently delete this user? This cannot be undone. If the user has historical records, deletion will be blocked.');">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>

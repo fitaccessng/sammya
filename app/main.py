@@ -5,8 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
 from app.models import User, PasswordResetRequest, db, ensure_password_reset_request_table
-from app.utils import Roles
-from werkzeug.routing import BuildError
+from app.utils import Roles, ROLE_GROUPS, dashboard_url_for_role, valid_signup_roles
 import logging
 
 # Configure logger for this module
@@ -30,47 +29,7 @@ def dashboard():
         flash('Please log in to access the dashboard.', 'warning')
         return redirect(url_for('auth.login'))
     
-    # Redirect to role-specific dashboard
-    role_dashboard_map = {
-        # Admin & Super HQ
-        'admin': 'admin.dashboard',
-        'super_hq': 'admin.dashboard',
-        
-        # Procurement
-        'procurement_manager': 'procurement.dashboard',
-        'procurement_staff': 'procurement.dashboard',
-        
-        # Cost Control
-        'cost_control_manager': 'cost_control.dashboard',
-        'cost_control_staff': 'cost_control.dashboard',
-        
-        # Finance
-        'finance_manager': 'finance.dashboard',
-        'accounts_payable': 'finance.dashboard',
-        
-        # HR
-        'hr_manager': 'hr.hr_home',
-        'hr_staff': 'hr.hr_home',
-        
-        # Projects
-        'project_manager': 'project.dashboard',
-        'project_staff': 'project.staff_dashboard',
-        
-        # QS
-        'qs_manager': 'qs_dashboard.dashboard',
-        'qs_staff': 'qs_dashboard.dashboard',
-        
-        # Equipment & Legal
-        'equipment_manager': 'admin.dashboard',
-        'legal_manager': 'admin.dashboard',
-    }
-    
-    endpoint = role_dashboard_map.get(current_user.role, 'admin.dashboard')
-    try:
-        return redirect(url_for(endpoint))
-    except BuildError:
-        logger.error(f"Invalid dashboard endpoint mapping for role '{current_user.role}': {endpoint}")
-        return redirect(url_for('admin.dashboard'))
+    return redirect(dashboard_url_for_role(current_user.role))
 
 
 @main_bp.route('/signup', methods=['GET', 'POST'])
@@ -90,30 +49,27 @@ def signup():
             # Input validation
             if not all([name, email, role, password, confirm_password]):
                 flash("All fields are required", "error")
-                return render_template("auth/signup.html")
+                return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             if password != confirm_password:
                 flash("Passwords do not match", "error")
-                return render_template("auth/signup.html")
+                return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             if len(password) < 6:
                 flash("Password must be at least 6 characters long", "error")
-                return render_template("auth/signup.html")
+                return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             # Check existing user
             if User.query.filter_by(email=email).first():
                 flash("Email already registered", "error")
-                return render_template("auth/signup.html")
+                return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             # Validate role
-            valid_roles = ['super_hq', 'admin', 'procurement_manager', 'procurement_staff',
-                          'cost_control_manager', 'cost_control_staff', 'finance_manager',
-                          'accounts_payable', 'hr_manager', 'hr_staff', 'project_manager', 'project_staff',
-                          'qs_manager', 'qs_staff', 'equipment_manager', 'legal_manager']
+            valid_roles = valid_signup_roles()
             
             if role not in valid_roles:
                 flash("Invalid role selected", "error")
-                return render_template("auth/signup.html")
+                return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             # Create new user
             new_user = User(name=name, email=email, role=role)
@@ -128,9 +84,9 @@ def signup():
         logger.error(f"Signup error: {str(e)}")
         db.session.rollback()
         flash("An error occurred during signup. Please try again.", "error")
-        return render_template("auth/signup.html")
+        return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
         
-    return render_template("auth/signup.html")
+    return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
 
 @main_bp.route("/login", methods=["GET", "POST"])

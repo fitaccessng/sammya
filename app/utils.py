@@ -7,6 +7,7 @@ from enum import Enum
 from flask import redirect, url_for, flash, abort, current_app
 from flask_login import current_user
 from flask_mail import Mail, Message
+from werkzeug.routing import BuildError
 
 
 class Roles(str, Enum):
@@ -147,6 +148,87 @@ ROLE_DESCRIPTIONS = {
         'permissions': ['project_view', 'project_edit']
     },
 }
+
+
+ROLE_DASHBOARD_ENDPOINTS = {
+    'admin': 'admin.dashboard',
+    'super_hq': 'admin.dashboard',
+    'hq_procurement': 'procurement.dashboard',
+    'procurement_manager': 'procurement.dashboard',
+    'procurement_staff': 'procurement.dashboard',
+    'cost_control_manager': 'cost_control.dashboard',
+    'cost_control_staff': 'cost_control.dashboard',
+    'hq_finance': 'finance.finance_home',
+    'finance_manager': 'finance.finance_home',
+    'accounts_payable': 'finance.finance_home',
+    'hr_manager': 'hr.hr_home',
+    'hr_staff': 'hr.hr_home',
+    'hq_projects': 'project.dashboard',
+    'project_manager': 'project.dashboard',
+    'project_staff': 'project.staff_dashboard',
+    'qs_manager': 'qs_dashboard.dashboard',
+    'qs_staff': 'qs_dashboard.dashboard',
+    'equipment_manager': 'admin.dashboard',
+    'legal_manager': 'admin.dashboard',
+}
+
+
+ROLE_GROUPS = [
+    ('Administration', [
+        ('super_hq', 'Super HQ - Enterprise-wide admin dashboard'),
+        ('admin', 'Admin - Full system administration dashboard'),
+    ]),
+    ('HQ', [
+        ('hq_procurement', 'HQ Procurement - Procurement oversight dashboard'),
+        ('hq_finance', 'HQ Finance - Finance oversight dashboard'),
+        ('hq_projects', 'HQ Projects - Project oversight dashboard'),
+    ]),
+    ('Procurement', [
+        ('procurement_manager', 'Procurement Manager - Procurement management dashboard'),
+        ('procurement_staff', 'Procurement Staff - Procurement staff dashboard'),
+    ]),
+    ('Cost Control', [
+        ('cost_control_manager', 'Cost Control Manager - Budget and variance dashboard'),
+        ('cost_control_staff', 'Cost Control Staff - Cost tracking dashboard'),
+    ]),
+    ('Finance', [
+        ('finance_manager', 'Finance Manager - Finance management dashboard'),
+        ('accounts_payable', 'Accounts Payable - Payment processing dashboard'),
+    ]),
+    ('HR', [
+        ('hr_manager', 'HR Manager - HR management dashboard'),
+        ('hr_staff', 'HR Staff - HR staff dashboard'),
+    ]),
+    ('Projects', [
+        ('project_manager', 'Project Manager - Project management dashboard'),
+        ('project_staff', 'Project Staff - Staff project dashboard'),
+    ]),
+    ('QS', [
+        ('qs_manager', 'QS Manager - QS management dashboard'),
+        ('qs_staff', 'QS Staff - QS staff dashboard'),
+    ]),
+    ('Specialist', [
+        ('equipment_manager', 'Equipment Manager - Equipment operations dashboard'),
+        ('legal_manager', 'Legal Manager - Legal and compliance dashboard'),
+    ]),
+]
+
+
+def valid_signup_roles():
+    """Return role values that have an explicit dashboard mapping."""
+    return list(ROLE_DASHBOARD_ENDPOINTS.keys())
+
+
+def dashboard_url_for_role(role, fallback_endpoint='main.dashboard'):
+    """Return the dashboard URL that matches a user's assigned role."""
+    endpoint = ROLE_DASHBOARD_ENDPOINTS.get(role, 'main.dashboard')
+    try:
+        return url_for(endpoint)
+    except BuildError:
+        current_app.logger.error(
+            f"Invalid dashboard endpoint mapping for role '{role}': {endpoint}"
+        )
+        return url_for(fallback_endpoint)
 
 
 def role_required(required_roles):

@@ -40,34 +40,13 @@
                         required
                         class="mt-1 block w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 focus:border-blue-500 focus:ring-blue-500">
                         <option value="">-- Select a Role --</option>
-                        <optgroup label="Administration">
-                            <option value="admin">Admin - Full System Access</option>
-                            <option value="super_hq">Super HQ - Super Admin</option>
+                        {% for group_name, roles in role_groups %}
+                        <optgroup label="{{ group_name }}">
+                            {% for role_value, role_label in roles %}
+                            <option value="{{ role_value }}">{{ role_label }}</option>
+                            {% endfor %}
                         </optgroup>
-                        <optgroup label="Procurement">
-                            <option value="procurement_manager">Procurement Manager</option>
-                            <option value="procurement_staff">Procurement Staff</option>
-                        </optgroup>
-                        <optgroup label="Cost Control">
-                            <option value="cost_control_manager">Cost Control Manager</option>
-                            <option value="cost_control_staff">Cost Control Staff</option>
-                        </optgroup>
-                        <optgroup label="Finance">
-                            <option value="finance_manager">Finance Manager</option>
-                            <option value="accounts_payable">Accounts Payable</option>
-                        </optgroup>
-                        <optgroup label="HR">
-                            <option value="hr_manager">HR Manager</option>
-                            <option value="hr_staff">HR Staff</option>
-                        </optgroup>
-                        <optgroup label="Projects">
-                            <option value="project_manager">Project Manager</option>
-                            <option value="project_staff">Project Staff</option>
-                        </optgroup>
-                        <optgroup label="QS">
-                            <option value="qs_manager">QS Manager</option>
-                            <option value="qs_staff">QS Staff</option>
-                        </optgroup>
+                        {% endfor %}
                     </select>
                     <p id="role-help" class="mt-2 text-xs text-slate-500">
                         Select a role to view what dashboard and permissions the account will get.
@@ -119,22 +98,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const roleHelp = document.getElementById('role-help');
 
     const roleDescriptions = {
-        project_manager: 'Project Manager: full project coordination dashboard (planning, assignment, approvals).',
-        project_staff: 'Project Staff: dedicated staff dashboard for DPR, BOQ, material schedule, and milestones shared by manager.',
-        procurement_manager: 'Procurement Manager: procurement dashboard with purchasing oversight.',
-        procurement_staff: 'Procurement Staff: operational procurement dashboard for daily purchasing tasks.',
-        cost_control_manager: 'Cost Control Manager: budget and variance oversight dashboard.',
-        cost_control_staff: 'Cost Control Staff: cost tracking and reporting dashboard.',
-        finance_manager: 'Finance Manager: finance management dashboard and controls.',
-        accounts_payable: 'Accounts Payable: invoice and payment processing dashboard.',
-        hr_manager: 'HR Manager: HR operations and staffing dashboard.',
-        hr_staff: 'HR Staff: HR support dashboard for daily admin tasks.',
-        qs_manager: 'QS Manager: quantity surveying dashboard for BOQ and valuation control.',
-        qs_staff: 'QS Staff: quantity surveying support dashboard.',
-        admin: 'Admin: full system administration dashboard.',
-        super_hq: 'Super HQ: enterprise-wide admin dashboard.',
-        equipment_manager: 'Equipment Manager: equipment operations dashboard.',
-        legal_manager: 'Legal Manager: legal and compliance dashboard.'
+        {% for group_name, roles in role_groups %}
+        {% for role_value, role_label in roles %}
+        {{ role_value|tojson }}: {{ role_label|tojson }},
+        {% endfor %}
+        {% endfor %}
     };
 
     const updateRoleHelp = function () {
