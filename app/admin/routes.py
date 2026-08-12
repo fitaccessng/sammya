@@ -12,7 +12,7 @@ from app.models import (
 )
 from app.auth.decorators import role_required
 from app.excel_import import StaffImportManager
-from app.utils import ROLE_GROUPS, valid_signup_roles
+from app.utils import ROLE_GROUPS, normalize_role, valid_signup_roles
 from datetime import datetime, timedelta
 from sqlalchemy import desc, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -141,7 +141,7 @@ def edit_user(user_id):
     if request.method == 'POST':
         name = request.form.get('name', user.name).strip()
         email = request.form.get('email', user.email).strip().lower()
-        new_role = request.form.get('role', user.role).strip()
+        new_role = normalize_role(request.form.get('role', user.role))
 
         if not name or not email:
             flash('Name and email are required.', 'danger')

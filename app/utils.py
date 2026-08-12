@@ -150,24 +150,64 @@ ROLE_DESCRIPTIONS = {
 }
 
 
+ROLE_ALIASES = {
+    'superhq': 'super_hq',
+    'super hq': 'super_hq',
+    'administrator': 'admin',
+    'hr manager': 'hr_manager',
+    'hrmanager': 'hr_manager',
+    'hr staff': 'hr_staff',
+    'hrstaff': 'hr_staff',
+    'finance manager': 'finance_manager',
+    'financemanager': 'finance_manager',
+    'accounts payable': 'accounts_payable',
+    'account payable': 'accounts_payable',
+    'project manager': 'project_manager',
+    'project staff': 'project_staff',
+    'procurement manager': 'procurement_manager',
+    'procurement staff': 'procurement_staff',
+    'cost control manager': 'cost_control_manager',
+    'cost control staff': 'cost_control_staff',
+    'qs manager': 'qs_manager',
+    'qs staff': 'qs_staff',
+    'equipment manager': 'equipment_manager',
+    'legal manager': 'legal_manager',
+}
+
+
 ROLE_DASHBOARD_ENDPOINTS = {
+    # System administration
     'admin': 'admin.dashboard',
     'super_hq': 'admin.dashboard',
+
+    # Procurement department
     'hq_procurement': 'procurement.dashboard',
     'procurement_manager': 'procurement.dashboard',
     'procurement_staff': 'procurement.dashboard',
+
+    # Cost control department
     'cost_control_manager': 'cost_control.dashboard',
     'cost_control_staff': 'cost_control.dashboard',
+
+    # Finance department
     'hq_finance': 'finance.finance_home',
     'finance_manager': 'finance.finance_home',
     'accounts_payable': 'finance.finance_home',
+
+    # Human resources department
     'hr_manager': 'hr.hr_home',
     'hr_staff': 'hr.hr_home',
+
+    # Projects department
     'hq_projects': 'project.dashboard',
     'project_manager': 'project.dashboard',
     'project_staff': 'project.staff_dashboard',
+
+    # Quantity surveying department
     'qs_manager': 'qs_dashboard.dashboard',
     'qs_staff': 'qs_dashboard.dashboard',
+
+    # Specialist/admin-backed departments
     'equipment_manager': 'admin.dashboard',
     'legal_manager': 'admin.dashboard',
 }
@@ -219,9 +259,20 @@ def valid_signup_roles():
     return list(ROLE_DASHBOARD_ENDPOINTS.keys())
 
 
-def dashboard_url_for_role(role, fallback_endpoint='main.dashboard'):
+def normalize_role(role):
+    """Normalize stored or submitted role values to canonical role keys."""
+    if isinstance(role, Roles):
+        role = role.value
+
+    normalized = str(role or '').strip().lower().replace('-', '_')
+    normalized = '_'.join(normalized.split())
+    return ROLE_ALIASES.get(normalized, normalized)
+
+
+def dashboard_url_for_role(role, fallback_endpoint='main.account_settings'):
     """Return the dashboard URL that matches a user's assigned role."""
-    endpoint = ROLE_DASHBOARD_ENDPOINTS.get(role, 'main.dashboard')
+    normalized_role = normalize_role(role)
+    endpoint = ROLE_DASHBOARD_ENDPOINTS.get(normalized_role, fallback_endpoint)
     try:
         return url_for(endpoint)
     except BuildError:
@@ -246,8 +297,9 @@ def role_required(required_roles):
                 return redirect(url_for('auth.login'))
             
             # Check if user has required role
-            user_role = current_user.role
-            if user_role not in required_roles and user_role != Roles.SUPER_HQ:
+            user_role = normalize_role(current_user.role)
+            normalized_required_roles = [normalize_role(role) for role in required_roles]
+            if user_role not in normalized_required_roles and user_role != Roles.SUPER_HQ.value:
                 flash('You do not have permission to access this page.', 'danger')
                 abort(403)
             

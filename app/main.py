@@ -5,7 +5,9 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
 from app.models import User, PasswordResetRequest, db, ensure_password_reset_request_table
-from app.utils import Roles, ROLE_GROUPS, dashboard_url_for_role, valid_signup_roles
+from app.utils import (
+    Roles, ROLE_GROUPS, dashboard_url_for_role, normalize_role, valid_signup_roles
+)
 import logging
 
 # Configure logger for this module
@@ -42,7 +44,7 @@ def signup():
         if request.method == 'POST':
             name = request.form.get("name", "").strip()
             email = request.form.get("email", "").strip()
-            role = request.form.get("role", "").strip()
+            role = normalize_role(request.form.get("role", ""))
             password = request.form.get("password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
 
@@ -65,9 +67,7 @@ def signup():
                 return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 
             # Validate role
-            valid_roles = valid_signup_roles()
-            
-            if role not in valid_roles:
+            if role not in valid_signup_roles():
                 flash("Invalid role selected", "error")
                 return render_template("auth/signup.html", role_groups=ROLE_GROUPS)
 

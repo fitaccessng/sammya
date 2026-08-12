@@ -5,7 +5,7 @@ Authentication routes (login, logout, registration).
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, current_user
 from app.models import db, User
-from app.utils import ROLE_GROUPS, dashboard_url_for_role, valid_signup_roles
+from app.utils import ROLE_GROUPS, dashboard_url_for_role, normalize_role, valid_signup_roles
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -58,7 +58,7 @@ def register():
         name = request.form.get('name', '').strip()
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        role = request.form.get('role', '').strip()
+        role = normalize_role(request.form.get('role', ''))
         
         if not all([name, email, password, role]):
             flash('All fields are required.', 'warning')

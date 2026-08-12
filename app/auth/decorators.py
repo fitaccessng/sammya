@@ -5,6 +5,7 @@ Authentication and authorization decorators.
 from functools import wraps
 from flask import redirect, url_for, flash, jsonify, session, request
 from flask_login import current_user, login_required as login_required_flask
+from app.utils import normalize_role
 
 
 def login_required(f):
@@ -40,7 +41,10 @@ def role_required(required_roles):
                 flash('You must be logged in.', 'warning')
                 return redirect(url_for('auth.login', next=request.url))
             
-            if current_user.role not in required_roles:
+            normalized_role = normalize_role(current_user.role)
+            normalized_required_roles = [normalize_role(role) for role in required_roles]
+
+            if normalized_role not in normalized_required_roles:
                 if request.is_json or request.path.startswith('/api'):
                     return jsonify({'error': 'Insufficient permissions'}), 403
                 else:

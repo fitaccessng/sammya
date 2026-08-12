@@ -23,7 +23,7 @@ from app.models import (
     StaffImportBatch, StaffImportItem, StaffCompensation, PayrollDeduction,
     DepartmentAccess, LeaveRequest
 )
-from app.utils import role_required, Roles
+from app.utils import role_required, Roles, normalize_role
 from app.excel_import import StaffExcelParser, StaffImportManager, ExcelImportError
 
 # Create blueprint
@@ -35,7 +35,8 @@ def hr_required(f):
     """Check if user has HR role"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user or current_user.role not in [Roles.HR_MANAGER, Roles.HR_STAFF, Roles.ADMIN]:
+        role = normalize_role(getattr(current_user, 'role', None))
+        if not current_user or role not in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]:
             flash("Access denied. Insufficient permissions.", "error")
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
@@ -45,7 +46,8 @@ def admin_required(f):
     """Check if user has admin role"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user or current_user.role != Roles.ADMIN:
+        role = normalize_role(getattr(current_user, 'role', None))
+        if not current_user or role != Roles.ADMIN.value:
             flash("Access denied. Admin privileges required.", "error")
             return redirect(url_for('main.dashboard'))
         return f(*args, **kwargs)
@@ -1962,7 +1964,8 @@ def leave_management():
     try:
         page = request.args.get('page', 1, type=int)
         year = request.args.get('year', datetime.utcnow().year, type=int)
-        is_hr = current_user.role in [Roles.HR_MANAGER, Roles.HR_STAFF, Roles.ADMIN]
+        role = normalize_role(current_user.role)
+        is_hr = role in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]
 
         staff_leave_balances = []
         if is_hr:
@@ -2161,7 +2164,8 @@ def analytics():
 def leave_detail(leave_id):
     """View leave request details."""
     leave = LeaveRequest.query.get_or_404(leave_id)
-    is_hr = current_user.role in [Roles.HR_MANAGER, Roles.HR_STAFF, Roles.ADMIN]
+    role = normalize_role(current_user.role)
+    is_hr = role in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]
     if not is_hr and leave.user_id != current_user.id:
         flash("Access denied", "error")
         return redirect(url_for('hr.leave_management'))
@@ -2469,7 +2473,8 @@ def request_leave(staff_id):
     """Request leave for staff"""
     try:
         staff = User.query.get_or_404(staff_id)
-        is_hr = current_user.role in [Roles.HR_MANAGER, Roles.HR_STAFF, Roles.ADMIN]
+        role = normalize_role(current_user.role)
+        is_hr = role in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]
         if not is_hr and current_user.id != staff.id:
             flash("You can only request leave for your own profile", "error")
             return redirect(url_for('hr.leave_management'))
@@ -2521,7 +2526,8 @@ def view_leave(staff_id):
     """View staff leave balance and history"""
     try:
         staff = User.query.get_or_404(staff_id)
-        is_hr = current_user.role in [Roles.HR_MANAGER, Roles.HR_STAFF, Roles.ADMIN]
+        role = normalize_role(current_user.role)
+        is_hr = role in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]
         if not is_hr and current_user.id != staff.id:
             flash("Access denied", "error")
             return redirect(url_for('hr.leave_management'))
@@ -2760,7 +2766,7 @@ def preview_import(batch_id):
         batch = StaffImportBatch.query.get_or_404(batch_id)
         
         # Only creator or admin can preview
-        if current_user.id != batch.created_by and current_user.role != Roles.ADMIN:
+        if current_user.id != batch.created_by and normalize_role(current_user.role) != Roles.ADMIN.value:
             flash('Insufficient permissions', 'error')
             return redirect(url_for('hr.staff_list'))
         
@@ -2793,7 +2799,7 @@ def submit_import_approval(batch_id):
         batch = StaffImportBatch.query.get_or_404(batch_id)
         
         # Only creator or admin can submit
-        if current_user.id != batch.created_by and current_user.role != Roles.ADMIN:
+        if current_user.id != batch.created_by and normalize_role(current_user.role) != Roles.ADMIN.value:
             flash('Insufficient permissions', 'error')
             return redirect(url_for('hr.staff_list'))
         
@@ -2823,7 +2829,7 @@ def submit_import_approval(batch_id):
             pass
         
         # If user is admin, redirect to admin users page to show success message
-        if current_user.role in ['admin', 'super_hq']:
+        if normalize_role(current_user.role) in ['admin', 'super_hq']:
             return redirect(url_for('admin.users'))
         
         return redirect(url_for('hr.staff_list'))
@@ -2843,7 +2849,7 @@ def cancel_import(batch_id):
         batch = StaffImportBatch.query.get_or_404(batch_id)
         
         # Only creator or admin can cancel
-        if current_user.id != batch.created_by and current_user.role != Roles.ADMIN:
+        if current_user.id != batch.created_by and normalize_role(current_user.role) != Roles.ADMIN.value:
             flash('Insufficient permissions', 'error')
             return redirect(url_for('hr.staff_list'))
         
@@ -3072,7 +3078,7 @@ def import_batches():
             query = query.filter_by(approval_state=status_filter)
         
         # HR staff only see their own batches, admin sees all
-        if current_user.role != Roles.ADMIN:
+        if normalize_role(current_user.role) != Roles.ADMIN.value:
             query = query.filter_by(created_by=current_user.id)
         
         batches = query.order_by(desc(StaffImportBatch.created_at)).paginate(page=page, per_page=10)

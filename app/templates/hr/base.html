@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Finance - Sammya ERP{% endblock %}</title>
+    <title>{% block title %}HR - Sammya ERP{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
@@ -52,7 +52,7 @@
                     <img src="{{ url_for('static', filename='images/sammya_logo.jpeg') }}" alt="Sammya Logo" class="h-10 w-auto object-cover">
                 </div>
                 <div>
-                    <h1 class="text-xl font-bold">Finance</h1>
+                    <h1 class="text-xl font-bold">HR</h1>
                     <p class="text-xs text-blue-300">Module</p>
                 </div>
             </div>
@@ -61,7 +61,7 @@
         <!-- Main Navigation Menu -->
         <nav class="mt-8 px-4 pb-8">
             <!-- Dashboard -->
-            <a href="{{ url_for('finance.dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.dashboard' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+            <a href="{{ url_for('hr.hr_home') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'hr.hr_home' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
                 <i class="fas fa-chart-line w-5"></i>
                 <span>Dashboard</span>
             </a>
@@ -208,7 +208,7 @@
 
                 <!-- Page Title (Breadcrumb) -->
                 <div class="hidden md:flex items-center gap-2 text-sm text-slate-600">
-                    <a href="{{ url_for('finance.dashboard') }}" class="text-blue-600 hover:underline">Finance</a>
+                    <a href="{{ url_for('hr.hr_home') }}" class="text-blue-600 hover:underline">HR</a>
                     <i class="fas fa-chevron-right text-xs"></i>
                     <span>{% block page_title %}Dashboard{% endblock %}</span>
                 </div>
