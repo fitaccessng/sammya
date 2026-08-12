@@ -54,6 +54,43 @@ def admin_required(f):
     return decorated_function
 
 
+def _staff_role_options():
+    """Return canonical role choices used by dashboards and staff forms."""
+    return [(role, label.split(' - ')[0]) for _, roles in ROLE_GROUPS for role, label in roles]
+
+
+def _staff_form_data():
+    """Shared select-list data for add/edit staff forms."""
+    return {
+        'departments': sorted(StaffExcelParser.VALID_DEPARTMENTS),
+        'managers': User.query.filter_by(is_active=True).order_by(User.name).all(),
+        'role_options': _staff_role_options(),
+        'template_headers': [
+            'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
+            'employee_id', 'department', 'position', 'employment_type', 'joining_date',
+            'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+            'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
+            'deduction_type_1', 'deduction_amount_1', 'deduction_type_2',
+            'deduction_amount_2', 'Net'
+        ]
+    }
+
+
+def _parse_form_date(value):
+    if not value:
+        return None
+    valid, parsed = StaffExcelParser.validate_date(value)
+    if not valid:
+        raise ValueError(f'Invalid date: {value}')
+    return parsed
+
+
+def _parse_money(value, default=0):
+    if value in (None, ''):
+        return default
+    return float(str(value).replace(',', '').strip())
+
+
 LEAVE_ALLOWANCE = {
     'casual': 7,
     'compensate': 7,
@@ -865,7 +902,7 @@ def staff_list():
             query = query.filter(func.lower(User.role) == role_filter)
         
         staff = query.order_by(User.name).paginate(page=page, per_page=20)
-        role_options = [(role, label.split(' - ')[0]) for _, roles in ROLE_GROUPS for role, label in roles]
+        role_options = _staff_role_options()
         role_labels = dict(role_options)
         
         stats = {
@@ -969,8 +1006,14 @@ def edit_staff(staff_id):
         
         if request.method == 'POST':
             staff.name = request.form.get('name', staff.name)
-            staff.email = request.form.get('email', staff.email)
-            staff.role = request.form.get('role', staff.role)
+            new_email = request.form.get('email', staff.email).strip().lower()
+            existing_email = User.query.filter(User.email == new_email, User.id != staff.id).first()
+            if existing_email:
+                flash('Email already belongs to another staff member', 'error')
+                return redirect(url_for('hr.edit_staff', staff_id=staff_id))
+
+            staff.email = new_email
+            staff.role = normalize_role(request.form.get('role', staff.role)) or staff.role
             staff.is_active = request.form.get('is_active') == 'on'
             
             # Personal Information
@@ -995,11 +1038,57 @@ def edit_staff(staff_id):
             # Handle salary and deductions
             basic_salary = request.form.get('basic_salary')
             if basic_salary:
-                staff.basic_salary = float(basic_salary)
+                staff.basic_salary = _parse_money(basic_salary)
             
             default_deductions = request.form.get('default_deductions')
             if default_deductions:
-                staff.default_deductions = float(default_deductions)
+                staff.default_deductions = _parse_money(default_deductions)
+
+            compensation = StaffCompensation.query.filter_by(user_id=staff.id).first()
+            if not compensation:
+                compensation = StaffCompensation(user_id=staff.id, basic_salary=staff.basic_salary or 0, allowances=0)
+                db.session.add(compensation)
+            compensation.basic_salary = staff.basic_salary or 0
+            compensation.allowances = _parse_money(request.form.get('allowances'), float(compensation.allowances or 0))
+            compensation.calculate_gross_salary()
+
+            department = request.form.get('department')
+            if department:
+                access = DepartmentAccess.query.filter_by(user_id=staff.id, department=department).first()
+                if not access:
+                    access = DepartmentAccess(user_id=staff.id, department=department, access_level='view', is_active=True)
+                    db.session.add(access)
+
+            deduction_deletes = request.form.getlist('deduction_delete[]')
+            for deduction_id in deduction_deletes:
+                try:
+                    deduction = PayrollDeduction.query.filter_by(id=int(deduction_id), compensation_id=compensation.id).first()
+                    if deduction:
+                        db.session.delete(deduction)
+                except (TypeError, ValueError):
+                    pass
+
+            deduction_ids = request.form.getlist('deduction_id[]')
+            deduction_types = request.form.getlist('deduction_type[]')
+            deduction_amounts = request.form.getlist('deduction_amount[]')
+            deduction_recurring = set(request.form.getlist('deduction_recurring[]'))
+            for idx, deduction_type in enumerate(deduction_types):
+                if not deduction_type.strip():
+                    continue
+                deduction_id = deduction_ids[idx] if idx < len(deduction_ids) else ''
+                if str(deduction_id).startswith('new_') or not deduction_id:
+                    deduction = PayrollDeduction(compensation_id=compensation.id, effective_from=date.today())
+                else:
+                    try:
+                        deduction = PayrollDeduction.query.filter_by(id=int(deduction_id), compensation_id=compensation.id).first()
+                    except (TypeError, ValueError):
+                        deduction = None
+                    if not deduction:
+                        deduction = PayrollDeduction(compensation_id=compensation.id, effective_from=date.today())
+                deduction.deduction_type = deduction_type.strip()
+                deduction.amount = _parse_money(deduction_amounts[idx] if idx < len(deduction_amounts) else 0)
+                deduction.is_recurring = deduction_id in deduction_recurring
+                db.session.add(deduction)
             
             # ==================== HANDLE NEXT OF KIN ====================
             
@@ -1071,10 +1160,18 @@ def edit_staff(staff_id):
             flash('Staff member updated successfully', 'success')
             return redirect(url_for('hr.staff_details', staff_id=staff_id))
         
-        roles = ['ADMIN', 'HR_MANAGER', 'HR_STAFF', 'QS_MANAGER', 'QC_MANAGER', 
-                 'COST_MANAGER', 'SAFETY_MANAGER']
+        compensation = StaffCompensation.query.filter_by(user_id=staff.id).first()
+        deductions = PayrollDeduction.query.filter_by(compensation_id=compensation.id).all() if compensation else []
+        data = _staff_form_data()
         
-        return render_template('hr/staff/edit.html', staff=staff, roles=roles)
+        return render_template(
+            'hr/staff/edit.html',
+            staff=staff,
+            roles=data['role_options'],
+            data=data,
+            compensation=compensation,
+            deductions=deductions
+        )
         
     except Exception as e:
         current_app.logger.error(f"Edit Staff Error: {str(e)}")
@@ -2187,10 +2284,108 @@ def generate_payroll_report():
 @login_required
 @hr_required
 def add_staff():
-    """Redirect to staff list"""
+    """Create a staff member manually using the import-template fields."""
+    data = _staff_form_data()
+
     if request.method == 'POST':
-        flash("User creation coming soon", "info")
-    return redirect(url_for('hr.staff_list'))
+        try:
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            email = request.form.get('email', '').strip().lower()
+            employee_id = request.form.get('employee_id', '').strip() or None
+
+            if not first_name or not last_name or not email:
+                flash('First name, last name, and email are required', 'error')
+                return render_template('hr/staff/add.html', data=data)
+
+            if User.query.filter_by(email=email).first():
+                flash('Email already belongs to another staff member', 'error')
+                return render_template('hr/staff/add.html', data=data)
+
+            if employee_id and User.query.filter_by(employee_id=employee_id).first():
+                flash('Employee ID already belongs to another staff member', 'error')
+                return render_template('hr/staff/add.html', data=data)
+
+            role = normalize_role(request.form.get('role', 'hr_staff')) or 'hr_staff'
+            if role not in StaffExcelParser.VALID_ROLES:
+                flash('Select a valid staff role', 'error')
+                return render_template('hr/staff/add.html', data=data)
+
+            basic_salary = _parse_money(request.form.get('basic_salary'))
+            allowances = _parse_money(request.form.get('allowances'))
+
+            user = User(
+                name=f'{first_name} {last_name}'.strip(),
+                email=email,
+                role=role,
+                is_active=request.form.get('status', 'Active') == 'Active',
+                phone=request.form.get('phone_number') or request.form.get('phone') or None,
+                date_of_birth=_parse_form_date(request.form.get('date_of_birth')),
+                date_of_employment=_parse_form_date(request.form.get('joining_date') or request.form.get('date_of_employment')),
+                employee_id=employee_id,
+                gender=request.form.get('gender') or None,
+                basic_salary=basic_salary
+            )
+            user.set_password(StaffExcelParser.prepare_password(email))
+            db.session.add(user)
+            db.session.flush()
+
+            department = request.form.get('department')
+            if department:
+                db.session.add(DepartmentAccess(
+                    user_id=user.id,
+                    department=StaffExcelParser.normalize_department(department),
+                    access_level='approve' if role in ['admin', 'super_hq'] else 'view',
+                    is_active=True
+                ))
+
+            compensation = StaffCompensation(
+                user_id=user.id,
+                basic_salary=basic_salary,
+                allowances=allowances
+            )
+            compensation.calculate_gross_salary()
+            db.session.add(compensation)
+            db.session.flush()
+
+            for number in ('1', '2'):
+                deduction_type = request.form.get(f'deduction_type_{number}', '').strip()
+                deduction_amount = _parse_money(request.form.get(f'deduction_amount_{number}'))
+                if deduction_type and deduction_amount:
+                    db.session.add(PayrollDeduction(
+                        compensation_id=compensation.id,
+                        deduction_type=deduction_type,
+                        amount=deduction_amount,
+                        is_recurring=True,
+                        effective_from=date.today()
+                    ))
+
+            nok_full_name = request.form.get('nok_full_name', '').strip()
+            nok_relationship = request.form.get('nok_relationship', '').strip()
+            nok_phone = request.form.get('nok_phone', '').strip()
+            if nok_full_name and nok_relationship and nok_phone:
+                db.session.add(NextOfKin(
+                    user_id=user.id,
+                    full_name=nok_full_name,
+                    relationship=nok_relationship,
+                    phone=nok_phone,
+                    email=request.form.get('nok_email') or None,
+                    address=request.form.get('nok_address') or None,
+                    city=request.form.get('nok_city') or None,
+                    state=request.form.get('nok_state') or None,
+                    is_primary=request.form.get('nok_is_primary', 'on') == 'on'
+                ))
+
+            db.session.commit()
+            flash(f'{user.name} has been added successfully', 'success')
+            return redirect(url_for('hr.staff_details', staff_id=user.id))
+
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Add Staff Error: {str(e)}")
+            flash(f'Error adding staff member: {str(e)}', 'error')
+
+    return render_template('hr/staff/add.html', data=data)
 
 @bp.route('/analytics')
 @login_required
@@ -2346,8 +2541,21 @@ def performance():
 @login_required
 @hr_required
 def delete_staff(staff_id):
-    """Redirect to staff list"""
-    flash("Staff deletion coming soon", "info")
+    """Delete a staff account and related HR records."""
+    try:
+        if staff_id == current_user.id:
+            flash('You cannot delete your own account while logged in', 'error')
+            return redirect(url_for('hr.staff_list'))
+
+        staff = User.query.get_or_404(staff_id)
+        staff_name = staff.name
+        db.session.delete(staff)
+        db.session.commit()
+        flash(f'{staff_name} has been deleted', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Delete Staff Error: {str(e)}")
+        flash('Error deleting staff member. Make the staff inactive if records are linked to payroll, projects, or approvals.', 'error')
     return redirect(url_for('hr.staff_list'))
 
 @bp.route('/payroll/submit', methods=['POST'])
@@ -3146,7 +3354,7 @@ def download_import_template():
         import pandas as pd
         from datetime import datetime
         
-        # Create sample data
+        # Create sample data using the staff-list template layout.
         template_data = {
             'first_name': ['John', 'Jane'],
             'last_name': ['Doe', 'Smith'],
@@ -3160,10 +3368,20 @@ def download_import_template():
             'employment_type': ['Full-time', 'Full-time'],
             'joining_date': ['2026-01-15', '2026-02-01'],
             'basic_salary': [150000, 120000],
-            'allowances': [20000, 15000],
-            'nok_name': ['Mary Doe', 'Tom Smith'],
+            'nok_full_name': ['Mary Doe', 'Tom Smith'],
             'nok_relationship': ['Spouse', 'Parent'],
-            'nok_phone': ['+234-801-111-2222', '+234-802-333-4444']
+            'nok_phone': ['+234-801-111-2222', '+234-802-333-4444'],
+            'nok_email': ['mary.doe@example.com', 'tom.smith@example.com'],
+            'nok_address': ['Lagos', 'Abuja'],
+            'nok_city': ['Lagos', 'Abuja'],
+            'nok_state': ['Lagos', 'FCT'],
+            'nok_is_primary': ['yes', 'yes'],
+            'allowances': [20000, 15000],
+            'deduction_type_1': ['Tax', 'Tax'],
+            'deduction_amount_1': [5000, 4000],
+            'deduction_type_2': ['Pension', 'Pension'],
+            'deduction_amount_2': [8000, 6500],
+            'Net': [157000, 124500]
         }
         
         df = pd.DataFrame(template_data)

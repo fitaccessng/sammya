@@ -51,7 +51,7 @@
                                 <li><code>email</code> - Email address (e.g., "john.doe@company.com") - Must be unique</li>
                                 <li><code>basic_salary</code> - Monthly basic salary (e.g., "5000000" or "5000000.00")</li>
                             </ul>
-                            <small class="text-warning"><strong>⚠️ Important:</strong> Your Excel file MUST have these 4 columns with these exact names. Column names are case-sensitive.</small>
+                            <small class="text-warning"><strong>Important:</strong> Your Excel file must include these 4 columns. Column names are matched case-insensitively.</small>
                         </div>
 
                         <div class="alert alert-secondary" role="alert">
@@ -94,8 +94,8 @@
                                     <ul class="mb-0">
                                         <li><code>deduction_type_1</code> - Type (e.g., Tax, Insurance, Loan)</li>
                                         <li><code>deduction_amount_1</code> - Amount (e.g., 100000.00)</li>
-                                        <li><code>deduction_type_2</code>, <code>deduction_amount_2</code>, etc.</li>
-                                        <li class="text-muted"><small>Add multiple deductions using numbered suffix</small></li>
+                                        <li><code>deduction_type_2</code>, <code>deduction_amount_2</code></li>
+                                        <li class="text-muted"><small>These columns are available in the template for manual payroll setup after import approval.</small></li>
                                     </ul>
                                 </div>
                             </div>
@@ -147,11 +147,11 @@
                     <ul>
                         <li><strong>Basic Salary:</strong> Monthly base salary amount</li>
                         <li><strong>Allowances:</strong> Optional monthly allowances</li>
-                        <li><strong>Multiple Deductions:</strong> Add as many deductions as needed:
+                        <li><strong>Deductions:</strong> Use the template deduction columns for payroll setup:
                             <ul>
                                 <li>Column: <code>deduction_type_1</code> (e.g., "Tax")</li>
                                 <li>Column: <code>deduction_amount_1</code> (e.g., 100000.00)</li>
-                                <li>Column: <code>deduction_type_2</code>, <code>deduction_amount_2</code>, etc.</li>
+                                <li>Column: <code>deduction_type_2</code>, <code>deduction_amount_2</code></li>
                             </ul>
                         </li>
                     </ul>
@@ -175,7 +175,7 @@
                         <li>Submit for admin approval when ready</li>
                         <li>Admin reviews and imports the batch</li>
                         <li>Staff accounts are created with default password based on their email</li>
-                        <li>Compensation, deductions, and emergency contacts are automatically linked</li>
+                        <li>Compensation and emergency contacts are automatically linked</li>
                     </ol>
                 </div>
             </div>

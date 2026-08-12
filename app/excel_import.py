@@ -28,17 +28,19 @@ class StaffExcelParser:
         'first_name', 'last_name', 'email', 'basic_salary'
     }
     OPTIONAL_COLUMNS = {
-        'phone', 'gender', 'date_of_birth', 'address', 'city', 'state', 'marital_status',
-        'employee_id', 'date_of_employment', 'department', 'position', 'role', 'allowances',
-        'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email', 
-        'nok_address', 'nok_city', 'nok_state'
+        'phone', 'phone_number', 'gender', 'date_of_birth', 'address', 'city', 'state', 'marital_status',
+        'employee_id', 'date_of_employment', 'joining_date', 'department', 'position', 'role', 'allowances',
+        'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+        'nok_address', 'nok_city', 'nok_state', 'nok_is_primary',
+        'deduction_type_1', 'deduction_amount_1', 'deduction_type_2', 'deduction_amount_2', 'net'
     }
     
     VALID_DEPARTMENTS = {
         'HR', 'Finance', 'Procurement', 'QC', 'Projects', 'Cost Control', 'Admin',
         'IT', 'Marketing', 'Operations', 'Legal', 'Strategy', 'Engineering',
         'Sales', 'Support', 'Operations', 'Management', 'Human Resources',
-        'Information Technology', 'Quality Control', 'Project Management'
+        'Information Technology', 'Quality Control', 'Project Management', 'Technical',
+        'Workshop', 'Store', 'Site', 'Transport', 'Domestic'
     }
     
     # Department mapping for common variations
@@ -65,13 +67,23 @@ class StaffExcelParser:
         'engineering': 'Engineering',
         'sales': 'Sales',
         'support': 'Support',
-        'management': 'Management'
+        'management': 'Management',
+        'technical': 'Technical',
+        'workshop': 'Workshop',
+        'store': 'Store',
+        'stores': 'Store',
+        'site': 'Site',
+        'transport': 'Transport',
+        'transportation': 'Transport',
+        'logistics': 'Transport',
+        'domestic': 'Domestic'
     }
     
     VALID_ROLES = {
-        'admin', 'hr_manager', 'hr_staff', 'finance_manager', 'finance_staff',
-        'procurement_manager', 'procurement_staff', 'qc_staff', 'project_manager',
-        'cost_control_manager', 'cost_control_staff'
+        'admin', 'super_hq', 'hr_manager', 'hr_staff', 'hq_finance', 'finance_manager',
+        'accounts_payable', 'hq_procurement', 'procurement_manager', 'procurement_staff',
+        'project_manager', 'project_staff', 'hq_projects', 'qs_manager', 'qs_staff',
+        'cost_control_manager', 'cost_control_staff', 'equipment_manager', 'legal_manager'
     }
     
     @staticmethod
@@ -93,6 +105,12 @@ class StaffExcelParser:
             df = pd.read_excel(file_path)
             # Convert column names to lowercase for consistency
             df.columns = df.columns.str.lower().str.strip()
+            if 'last_name.1' in df.columns and 'first_name' not in df.columns:
+                df = df.rename(columns={'last_name': 'first_name', 'last_name.1': 'last_name'})
+            if 'phone_number' in df.columns and 'phone' not in df.columns:
+                df = df.rename(columns={'phone_number': 'phone'})
+            if 'joining_date' in df.columns and 'date_of_employment' not in df.columns:
+                df = df.rename(columns={'joining_date': 'date_of_employment'})
             return df
         except Exception as e:
             raise ExcelImportError(f'Failed to read Excel file: {str(e)}')
@@ -141,8 +159,12 @@ class StaffExcelParser:
         if not phone:
             return True  # Phone is optional
         import re
-        pattern = r'^\+?[1-9]\d{1,14}$'
-        return re.match(pattern, str(phone).replace('-', '').replace(' ', '')) is not None
+        clean_phone = str(phone).strip()
+        if clean_phone.endswith('.0'):
+            clean_phone = clean_phone[:-2]
+        clean_phone = clean_phone.replace('-', '').replace(' ', '').replace('(', '').replace(')', '')
+        pattern = r'^\+?[0-9]{7,15}$'
+        return re.match(pattern, clean_phone) is not None
     
     @staticmethod
     def validate_date(date_str) -> Tuple[bool, date]:
@@ -150,14 +172,23 @@ class StaffExcelParser:
         if pd.isna(date_str) or date_str == '':
             return True, None
         
+        if isinstance(date_str, datetime):
+            return True, date_str.date()
+
         if isinstance(date_str, date):
             return True, date_str
+
+        normalized_date = str(date_str).strip().replace('_', '/').replace('.', '/')
         
         for fmt in ['%d-%m-%Y', '%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y']:
             try:
-                return True, datetime.strptime(str(date_str), fmt).date()
+                return True, datetime.strptime(normalized_date, fmt).date()
             except ValueError:
                 continue
+
+        parsed = pd.to_datetime(normalized_date, errors='coerce', dayfirst=True)
+        if pd.notna(parsed):
+            return True, parsed.date()
         
         return False, None
     
@@ -199,7 +230,15 @@ class StaffExcelParser:
             errors.append('Last name is required')
         normalized['last_name'] = last_name
         
-        email = str(row.get('email', '')).strip().lower()
+        raw_email = row.get('email', '')
+        email = str(raw_email).strip().lower() if pd.notna(raw_email) else ''
+        if email in {'nan', 'none', 'null'}:
+            email = ''
+
+        employee_id_for_email = str(row.get('employee_id', '')).strip().lower() if pd.notna(row.get('employee_id')) else ''
+        if not email and employee_id_for_email:
+            email = f'{employee_id_for_email}@sammya.local'
+
         if not email:
             errors.append('Email is required')
         elif not StaffExcelParser.validate_email(email):
@@ -220,6 +259,8 @@ class StaffExcelParser:
         
         # Optional fields with validation
         phone = str(row.get('phone', '')).strip() if pd.notna(row.get('phone')) else ''
+        if phone.endswith('.0'):
+            phone = phone[:-2]
         if phone and not StaffExcelParser.validate_phone(phone):
             errors.append(f'Invalid phone format: {phone}')
         normalized['phone'] = phone or None
@@ -295,6 +336,8 @@ class StaffExcelParser:
         normalized['nok_relationship'] = nok_relationship or None
         
         nok_phone = str(row.get('nok_phone', '')).strip() if pd.notna(row.get('nok_phone')) else ''
+        if nok_phone.endswith('.0'):
+            nok_phone = nok_phone[:-2]
         if nok_phone and not StaffExcelParser.validate_phone(nok_phone):
             errors.append(f'Invalid next of kin phone format')
         normalized['nok_phone'] = nok_phone or None
@@ -326,11 +369,24 @@ class StaffExcelParser:
         
         valid_rows = []
         invalid_rows = []
+        seen_emails = set()
         
         for idx, row in df.iterrows():
             is_valid, normalized, error_msg = StaffExcelParser.validate_and_normalize_row(row, idx)
+            email = normalized.get('email')
+            if is_valid and email in seen_emails:
+                employee_id = normalized.get('employee_id')
+                replacement_email = f"{str(employee_id).strip().lower()}@sammya.local" if employee_id else ''
+                if replacement_email and replacement_email not in seen_emails and not User.query.filter_by(email=replacement_email).first():
+                    normalized['email'] = replacement_email
+                    email = replacement_email
+                else:
+                    is_valid = False
+                    error_msg = 'Duplicate email in spreadsheet'
+
             if is_valid:
                 valid_rows.append(normalized)
+                seen_emails.add(email)
             else:
                 invalid_rows.append({
                     'row': idx + 2,  # +2 because Excel is 1-indexed and has header

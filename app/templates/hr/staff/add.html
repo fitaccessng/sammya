@@ -106,6 +106,15 @@
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Dashboard Role <span class="text-danger">*</span></label>
+                                        <select name="role" class="form-select" required>
+                                            <option value="">Select Role</option>
+                                            {% for role, label in data.role_options %}
+                                                <option value="{{ role }}">{{ label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6">
                                         <label class="form-label fw-medium">Position <span class="text-danger">*</span></label>
                                         <input type="text" name="position" class="form-control" required placeholder="Software Engineer">
                                     </div>
@@ -148,8 +157,15 @@
                                     <div class="col-12 col-md-6">
                                         <label class="form-label fw-medium">Basic Salary <span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <span class="input-group-text">$</span>
+                                            <span class="input-group-text">₦</span>
                                             <input type="number" name="basic_salary" class="form-control" step="0.01" required placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Allowances</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₦</span>
+                                            <input type="number" name="allowances" class="form-control" step="0.01" value="0">
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -171,6 +187,82 @@
                                     <div class="col-12 col-md-6">
                                         <label class="form-label fw-medium">Profile Photo</label>
                                         <input type="file" name="photo" class="form-control" accept="image/*">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Next of Kin -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-semibold text-primary mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-contact'></i> Next of Kin
+                                </h5>
+                                <hr class="text-secondary opacity-25 mb-4">
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Full Name</label>
+                                        <input type="text" name="nok_full_name" class="form-control" placeholder="Emergency contact name">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Relationship</label>
+                                        <input type="text" name="nok_relationship" class="form-control" placeholder="Spouse, Parent, Sibling">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Phone</label>
+                                        <input type="tel" name="nok_phone" class="form-control" placeholder="+234 801 234 5678">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Email</label>
+                                        <input type="email" name="nok_email" class="form-control" placeholder="contact@example.com">
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label fw-medium">Address</label>
+                                        <input type="text" name="nok_address" class="form-control" placeholder="Address">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">City</label>
+                                        <input type="text" name="nok_city" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">State</label>
+                                        <input type="text" name="nok_state" class="form-control">
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="nok_is_primary" id="nok_is_primary" checked>
+                                            <label class="form-check-label" for="nok_is_primary">Primary emergency contact</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Template Deductions -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-semibold text-primary mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-minus-circle'></i> Payroll Deductions
+                                </h5>
+                                <hr class="text-secondary opacity-25 mb-4">
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Deduction Type 1</label>
+                                        <input type="text" name="deduction_type_1" class="form-control" placeholder="Tax, Loan, Pension">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Deduction Amount 1</label>
+                                        <input type="number" name="deduction_amount_1" class="form-control" step="0.01" value="0">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Deduction Type 2</label>
+                                        <input type="text" name="deduction_type_2" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Deduction Amount 2</label>
+                                        <input type="number" name="deduction_amount_2" class="form-control" step="0.01" value="0">
                                     </div>
                                 </div>
                             </div>
