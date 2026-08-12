@@ -44,6 +44,8 @@ def _model_fields(obj):
         return fields
     mapper = sa_inspect(obj.__class__)
     for column in mapper.columns:
+        if column.key in {'password_hash'}:
+            continue
         fields.append({
             'label': _humanize_field_name(column.key),
             'name': column.key,
@@ -53,24 +55,30 @@ def _model_fields(obj):
 
 
 def _relation_preview(obj, relation_name, limit=100):
-    if not obj or not hasattr(obj, relation_name):
+    if not obj:
         return []
-    relation = getattr(obj, relation_name)
-    if relation is None:
+    try:
+        if not hasattr(obj, relation_name):
+            return []
+        relation = getattr(obj, relation_name)
+        if relation is None:
+            return []
+        if hasattr(relation, 'limit') and hasattr(relation, 'all'):
+            rows = relation.limit(limit).all()
+        elif isinstance(relation, list):
+            rows = relation[:limit]
+        else:
+            rows = [relation]
+        return [
+            {
+                'title': f'{row.__class__.__name__} #{getattr(row, "id", "")}'.strip(),
+                'fields': _model_fields(row),
+            }
+            for row in rows
+        ]
+    except Exception as exc:
+        current_app.logger.warning(f"Admin approval detail skipped relation {relation_name}: {exc}")
         return []
-    if hasattr(relation, 'limit') and hasattr(relation, 'all'):
-        rows = relation.limit(limit).all()
-    elif isinstance(relation, list):
-        rows = relation[:limit]
-    else:
-        rows = [relation]
-    return [
-        {
-            'title': f'{row.__class__.__name__} #{getattr(row, "id", "")}'.strip(),
-            'fields': _model_fields(row),
-        }
-        for row in rows
-    ]
 
 
 def _approval_entity_model_map():
@@ -78,7 +86,7 @@ def _approval_entity_model_map():
         MaterialRequest, PurchaseOrder, QCInspection, PaymentRequest, ChangeOrder,
         BOQItem, Expense, Project, ProjectPaymentRequest, StaffImportBatch,
         StaffImportItem, PaymentRecord, BankReconciliation, ChartOfAccount,
-        LedgerEntry, RevenueSale
+        LedgerEntry, RevenueSale, Payroll
     )
     from app.payroll_models import PayrollBatch, PayrollRecord
 
@@ -107,7 +115,7 @@ def _approval_entity_model_map():
         'staffimportbatch': StaffImportBatch,
         'staff_import_item': StaffImportItem,
         'staffimportitem': StaffImportItem,
-        'payroll': PayrollBatch,
+        'payroll': (Payroll, PayrollBatch),
         'payroll_batch': PayrollBatch,
         'payrollbatch': PayrollBatch,
         'batch': PayrollBatch,
@@ -130,47 +138,81 @@ def _approval_entity_model_map():
 
 def _resolve_approval_entity_detail(log):
     """Load the complete submitted entity for an approval log."""
-    normalized_type = str(log.entity_type or '').strip().lower().replace('-', '_')
-    model = _approval_entity_model_map().get(normalized_type) or _approval_entity_model_map().get(normalized_type.replace('_', ''))
-    if not model:
+    try:
+        normalized_type = str(log.entity_type or '').strip().lower().replace('-', '_')
+        model_entry = _approval_entity_model_map().get(normalized_type) or _approval_entity_model_map().get(normalized_type.replace('_', ''))
+        if not model_entry:
+            return {
+                'found': False,
+                'title': f'{log.entity_type} #{log.entity_id}',
+                'message': 'No detailed model mapping exists for this approval type yet.',
+                'fields': [],
+                'related_sections': [],
+            }
+
+        models = model_entry if isinstance(model_entry, tuple) else (model_entry,)
+        obj = None
+        matched_model = models[0]
+        lookup_errors = []
+        for model in models:
+            matched_model = model
+            try:
+                obj = model.query.get(log.entity_id)
+            except Exception as exc:
+                lookup_errors.append(f'{model.__name__}: {exc}')
+                current_app.logger.warning(f"Admin approval detail skipped model {model.__name__}: {exc}")
+                obj = None
+            if obj:
+                matched_model = model
+                break
+
+        if not obj:
+            message = 'The submitted record could not be found. It may have been deleted or migrated.'
+            if lookup_errors:
+                message = f'{message} Lookup notes: {"; ".join(lookup_errors[:2])}'
+            return {
+                'found': False,
+                'title': f'{matched_model.__name__} #{log.entity_id}',
+                'message': message,
+                'fields': [],
+                'related_sections': [],
+            }
+    except Exception as exc:
+        current_app.logger.error(f"Admin approval detail resolver failed for log {getattr(log, 'id', None)}: {exc}")
         return {
             'found': False,
             'title': f'{log.entity_type} #{log.entity_id}',
-            'message': 'No detailed model mapping exists for this approval type yet.',
-            'fields': [],
-            'related_sections': [],
-        }
-
-    obj = model.query.get(log.entity_id)
-    if not obj:
-        return {
-            'found': False,
-            'title': f'{model.__name__} #{log.entity_id}',
-            'message': 'The submitted record could not be found. It may have been deleted or migrated.',
+            'message': f'Unable to load submitted details safely: {exc}',
             'fields': [],
             'related_sections': [],
         }
 
     related_sections = []
-    relationship_names = [rel.key for rel in sa_inspect(obj.__class__).relationships]
-    for relation_name in relationship_names:
-        if relation_name in {'approval_logs', 'approvals', 'audit_logs'}:
-            continue
-        rows = _relation_preview(obj, relation_name)
-        if rows:
-            related_sections.append({
-                'title': _humanize_field_name(relation_name),
-                'items': rows,
-            })
+    try:
+        relationship_names = [rel.key for rel in sa_inspect(obj.__class__).relationships]
+        for relation_name in relationship_names:
+            if relation_name in {'approval_logs', 'approvals', 'audit_logs'}:
+                continue
+            rows = _relation_preview(obj, relation_name)
+            if rows:
+                related_sections.append({
+                    'title': _humanize_field_name(relation_name),
+                    'items': rows,
+                })
+    except Exception as exc:
+        current_app.logger.warning(f"Admin approval detail relationship scan failed: {exc}")
 
-    approval_history = ApprovalLog.query.filter_by(
-        entity_type=log.entity_type,
-        entity_id=log.entity_id
-    ).order_by(ApprovalLog.timestamp.desc()).all()
+    try:
+        approval_history = ApprovalLog.query.filter_by(
+            entity_type=log.entity_type,
+            entity_id=log.entity_id
+        ).order_by(ApprovalLog.timestamp.desc()).all()
+    except Exception:
+        approval_history = []
 
     return {
         'found': True,
-        'title': f'{model.__name__} #{getattr(obj, "id", log.entity_id)}',
+        'title': f'{obj.__class__.__name__} #{getattr(obj, "id", log.entity_id)}',
         'message': '',
         'fields': _model_fields(obj),
         'related_sections': related_sections,
