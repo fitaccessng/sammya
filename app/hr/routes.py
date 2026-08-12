@@ -23,7 +23,7 @@ from app.models import (
     StaffImportBatch, StaffImportItem, StaffCompensation, PayrollDeduction,
     DepartmentAccess, LeaveRequest
 )
-from app.utils import role_required, Roles, normalize_role
+from app.utils import ROLE_GROUPS, role_required, Roles, normalize_role
 from app.excel_import import StaffExcelParser, StaffImportManager, ExcelImportError
 
 # Create blueprint
@@ -849,6 +849,7 @@ def staff_list():
         page = request.args.get('page', 1, type=int)
         search = request.args.get('search', '')
         status_filter = request.args.get('status', 'active')
+        role_filter = normalize_role(request.args.get('role', ''))
         
         query = User.query
         
@@ -859,8 +860,13 @@ def staff_list():
             query = query.filter_by(is_active=True)
         elif status_filter == 'inactive':
             query = query.filter_by(is_active=False)
+
+        if role_filter:
+            query = query.filter(func.lower(User.role) == role_filter)
         
         staff = query.order_by(User.name).paginate(page=page, per_page=20)
+        role_options = [(role, label.split(' - ')[0]) for _, roles in ROLE_GROUPS for role, label in roles]
+        role_labels = dict(role_options)
         
         stats = {
             'total_staff': User.query.count(),
@@ -868,7 +874,16 @@ def staff_list():
             'inactive_staff': User.query.filter_by(is_active=False).count(),
         }
         
-        return render_template('hr/staff/index.html', staff=staff, stats=stats, search=search, status_filter=status_filter)
+        return render_template(
+            'hr/staff/index.html',
+            staff=staff,
+            stats=stats,
+            search=search,
+            status_filter=status_filter,
+            role_filter=role_filter,
+            role_options=role_options,
+            role_labels=role_labels,
+        )
         
     except Exception as e:
         current_app.logger.error(f"Staff List Error: {str(e)}")

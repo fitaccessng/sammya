@@ -7,265 +7,197 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="space-y-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-            <h2 class="mb-1">Staff Management</h2>
-            <p class="text-muted">Manage all staff members</p>
+            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Human Resources</p>
+            <h1 class="mt-1 text-3xl font-bold text-slate-900">Staff Management</h1>
+            <p class="mt-2 text-sm text-slate-600">Manage staff profiles, assigned roles, account status, and bulk onboarding.</p>
         </div>
-        <div class="btn-group">
-            <!-- <a href="{{ url_for('hr.add_staff') }}" class="btn btn-primary">
-                <i class='bx bxs-plus-circle'></i> Add New Staff
-            </a> -->
-            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#importModal">
-                <i class='bx bxs-file-import'></i> Import from Excel
-            </button>
-        </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="stat-card">
-                <h4>{{ stats.total_staff }}</h4>
-                <p>Total Staff</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card green">
-                <h4>{{ stats.active_staff }}</h4>
-                <p>Active Staff</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="stat-card orange">
-                <h4>{{ stats.inactive_staff }}</h4>
-                <p>Inactive Staff</p>
-            </div>
+        <div class="flex flex-col gap-2 sm:flex-row">
+            <a href="{{ url_for('hr.add_staff') }}" class="btn-primary inline-flex items-center justify-center gap-2">
+                <i class='bx bxs-user-plus'></i>
+                Add Staff
+            </a>
+            <a href="{{ url_for('hr.import_staff') }}" class="btn-secondary inline-flex items-center justify-center gap-2">
+                <i class='bx bxs-file-import'></i>
+                Import from Excel
+            </a>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="GET" class="row g-3">
-                <div class="col-md-6">
-                    <input type="text" name="search" class="form-control" placeholder="Search by name or email..." value="{{ search or '' }}">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="stat-card">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p>Total Staff</p>
+                    <h4>{{ stats.total_staff }}</h4>
                 </div>
-                <div class="col-md-4">
-                    <select name="status" class="form-select">
-                        <option value="">All Status</option>
+                <span class="rounded-lg bg-blue-100 p-3 text-blue-700"><i class='bx bxs-group text-xl'></i></span>
+            </div>
+        </div>
+        <div class="stat-card green">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p>Active Staff</p>
+                    <h4>{{ stats.active_staff }}</h4>
+                </div>
+                <span class="rounded-lg bg-green-100 p-3 text-green-700"><i class='bx bxs-check-shield text-xl'></i></span>
+            </div>
+        </div>
+        <div class="stat-card orange">
+            <div class="flex items-start justify-between gap-3">
+                <div>
+                    <p>Inactive Staff</p>
+                    <h4>{{ stats.inactive_staff }}</h4>
+                </div>
+                <span class="rounded-lg bg-amber-100 p-3 text-amber-700"><i class='bx bxs-user-x text-xl'></i></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div>
+                <h2 class="text-lg font-bold text-slate-900">Staff Directory</h2>
+                <p class="mt-1 text-sm text-slate-500">The displayed role controls the dashboard and sidebar each user receives after login.</p>
+            </div>
+        </div>
+        <div class="card-body border-b border-slate-200">
+            <form method="GET" class="grid grid-cols-1 gap-3 lg:grid-cols-12">
+                <div class="lg:col-span-5">
+                    <label class="form-label" for="search">Search staff</label>
+                    <input id="search" type="text" name="search" class="form-control" placeholder="Search by name or email" value="{{ search or '' }}">
+                </div>
+                <div class="lg:col-span-3">
+                    <label class="form-label" for="role">Role</label>
+                    <select id="role" name="role" class="form-select">
+                        <option value="">All roles</option>
+                        {% for role, label in role_options %}
+                        <option value="{{ role }}" {% if role_filter == role %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="form-label" for="status">Status</label>
+                    <select id="status" name="status" class="form-select">
+                        <option value="" {% if not status_filter %}selected{% endif %}>All</option>
                         <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                         <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class='bx bxs-filter'></i> Filter
+                <div class="flex items-end gap-2 lg:col-span-2">
+                    <button type="submit" class="btn-primary inline-flex w-full items-center justify-center gap-2">
+                        <i class='bx bxs-filter-alt'></i>
+                        Filter
                     </button>
                 </div>
             </form>
         </div>
-    </div>
 
-    <!-- Staff Table -->
-    <div class="card">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
+            <table class="status-table mb-0">
+                <thead>
                     <tr>
-                        <th>Name</th>
+                        <th>Staff Member</th>
                         <th>Email</th>
                         <th>Role</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th class="text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for staff_member in staff.items %}
-                        <tr>
-                            <td>
-                                <strong>{{ staff_member.name }}</strong>
-                            </td>
-                            <td>{{ staff_member.email or 'N/A' }}</td>
-                            <td>{{ staff_member.role or 'Not assigned' }}</td>
-                            <td>
-                                <span class="badge {% if staff_member.is_active %}bg-success{% else %}bg-secondary{% endif %}">
-                                    {% if staff_member.is_active %}Active{% else %}Inactive{% endif %}
+                    <tr>
+                        <td>
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm font-bold text-blue-700">
+                                    {{ (staff_member.name or staff_member.email or 'S')[:1].upper() }}
                                 </span>
-                            </td>
-                            <td>
-                                <!-- <a href="{{ url_for('hr.staff_details', staff_id=staff_member.id) }}" class="btn btn-sm btn-info">
+                                <div>
+                                    <div class="font-semibold text-slate-900">{{ staff_member.name or 'Unnamed Staff' }}</div>
+                                    <div class="text-xs text-slate-500">ID #{{ staff_member.id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if staff_member.email %}
+                            <a href="mailto:{{ staff_member.email }}" class="font-medium text-blue-700 hover:text-blue-800">{{ staff_member.email }}</a>
+                            {% else %}
+                            <span class="text-slate-400">Not provided</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if staff_member.role %}
+                            <span class="approval-badge info">{{ role_labels.get(staff_member.role, staff_member.role.replace('_', ' ').title()) }}</span>
+                            {% else %}
+                            <span class="approval-badge neutral">Not assigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if staff_member.is_active %}
+                            <span class="approval-badge approved">Active</span>
+                            {% else %}
+                            <span class="approval-badge neutral">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="flex justify-end gap-2">
+                                <a href="{{ url_for('hr.staff_details', staff_id=staff_member.id) }}" class="btn btn-sm btn-outline-secondary" title="View staff">
                                     <i class='bx bxs-show'></i>
-                                </a> -->
-                                <a href="{{ url_for('hr.edit_staff', staff_id=staff_member.id) }}" class="btn btn-sm btn-warning">
+                                </a>
+                                <a href="{{ url_for('hr.edit_staff', staff_id=staff_member.id) }}" class="btn btn-sm btn-warning" title="Edit staff">
                                     <i class='bx bxs-edit'></i>
                                 </a>
-                                <!-- <form method="POST" action="{{ url_for('hr.delete_staff', staff_id=staff_member.id) }}" style="display: inline;" onsubmit="return confirm('Delete this staff member?');">
-                                    <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class='bx bxs-trash'></i>
-                                    </button>
-                                </form> -->
-                            </td>
-                        </tr>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="py-10 text-center">
+                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
+                                    <i class='bx bxs-user-detail text-2xl'></i>
+                                </div>
+                                <h3 class="mt-3 text-base font-bold text-slate-900">No staff found</h3>
+                                <p class="mt-1 text-sm text-slate-500">Adjust the filters or import staff from Excel.</p>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
-    <!-- Pagination -->
     {% if staff.pages > 1 %}
-        <nav aria-label="Page navigation" class="mt-4">
-            <ul class="pagination justify-content-center">
-                {% if staff.has_prev %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('hr.staff_list', page=staff.prev_num) }}">Previous</a>
-                    </li>
-                {% endif %}
+    <nav aria-label="Staff pages">
+        <ul class="pagination justify-content-center">
+            {% if staff.has_prev %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.staff_list', page=staff.prev_num, search=search, status=status_filter, role=role_filter) }}">Previous</a>
+            </li>
+            {% endif %}
 
-                {% for page_num in staff.iter_pages() %}
-                    {% if page_num %}
-                        {% if page_num == staff.page %}
-                            <li class="page-item active">
-                                <span class="page-link">{{ page_num }}</span>
-                            </li>
-                        {% else %}
-                            <li class="page-item">
-                                <a class="page-link" href="{{ url_for('hr.staff_list', page=page_num) }}">{{ page_num }}</a>
-                            </li>
-                        {% endif %}
-                    {% endif %}
-                {% endfor %}
-
-                {% if staff.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="{{ url_for('hr.staff_list', page=staff.next_num) }}">Next</a>
-                    </li>
+            {% for page_num in staff.iter_pages() %}
+            {% if page_num %}
+            <li class="page-item {% if page_num == staff.page %}active{% endif %}">
+                {% if page_num == staff.page %}
+                <span class="page-link">{{ page_num }}</span>
+                {% else %}
+                <a class="page-link" href="{{ url_for('hr.staff_list', page=page_num, search=search, status=status_filter, role=role_filter) }}">{{ page_num }}</a>
                 {% endif %}
-            </ul>
-        </nav>
+            </li>
+            {% endif %}
+            {% endfor %}
+
+            {% if staff.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="{{ url_for('hr.staff_list', page=staff.next_num, search=search, status=status_filter, role=role_filter) }}">Next</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
     {% endif %}
-</div>
-
-<!-- Import Modal -->
-<div class="modal fade" id="importModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class='bx bxs-file-import'></i> Import Staff from Excel
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('hr.import_staff') }}" enctype="multipart/form-data">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Batch Name (Optional)</label>
-                        <input type="text" name="batch_name" class="form-control" 
-                               placeholder="e.g., 'Q1 2026 Hiring' or leave blank for auto-generated name">
-                        <small class="text-muted">A descriptive name to identify this import batch</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Excel File *</label>
-                        <div class="input-group">
-                            <input type="file" name="excel_file" class="form-control" 
-                                   accept=".xlsx,.xls" required id="fileInput">
-                            <span class="input-group-text">
-                                <i class='bx bxs-file-excel'></i>
-                            </span>
-                        </div>
-                        <small class="text-muted">Supported formats: .xlsx, .xls (Maximum 10MB)</small>
-                    </div>
-
-                    <div class="alert alert-info" role="alert">
-                        <h6 class="alert-heading mb-2">Required Column Headers:</h6>
-                        <div class="row small">
-                            <div class="col-md-6">
-                                <strong>Personal Information:</strong>
-                                <ul class="mb-2">
-                                    <li><code>first_name</code></li>
-                                    <li><code>last_name</code></li>
-                                    <li><code>email</code></li>
-                                    <li><code>phone_number</code></li>
-                                    <li><code>date_of_birth</code> (YYYY-MM-DD)</li>
-                                    <li><code>gender</code></li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Employment Information:</strong>
-                                <ul class="mb-2">
-                                    <li><code>employee_id</code></li>
-                                    <li><code>department</code></li>
-                                    <li><code>position</code></li>
-                                    <li><code>employment_type</code></li>
-                                    <li><code>joining_date</code> (YYYY-MM-DD)</li>
-                                    <li><code>basic_salary</code></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-secondary" role="alert">
-                        <h6 class="alert-heading mb-2">Emergency Contact (Next of Kin):</h6>
-                        <div class="row small">
-                            <div class="col-md-6">
-                                <ul class="mb-0">
-                                    <li><code>nok_full_name</code> - Full name *</li>
-                                    <li><code>nok_relationship</code> - e.g., Spouse, Parent, Sibling *</li>
-                                    <li><code>nok_phone</code> - Phone number *</li>
-                                    <li><code>nok_email</code> - Email address</li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <ul class="mb-0">
-                                    <li><code>nok_address</code> - Residential address</li>
-                                    <li><code>nok_city</code> - City</li>
-                                    <li><code>nok_state</code> - State</li>
-                                    <li><code>nok_is_primary</code> - Mark as Primary (TRUE/FALSE)</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-warning" role="alert">
-                        <h6 class="alert-heading mb-2">Compensation & Deductions:</h6>
-                        <div class="small">
-                            <ul class="mb-2">
-                                <li><code>basic_salary</code> - Basic Salary (₦) e.g., 5000000.00</li>
-                                <li><code>allowances</code> - Monthly allowances (optional)</li>
-                                <li><strong>Multiple Deductions:</strong> Add as many as needed:
-                                    <ul>
-                                        <li><code>deduction_type_1</code> (e.g., Tax, Insurance, Loan)</li>
-                                        <li><code>deduction_amount_1</code> (₦) e.g., 100000.00</li>
-                                        <li><code>deduction_type_2</code>, <code>deduction_amount_2</code>, etc.</li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-warning" role="alert">
-                        <i class='bx bxs-info-circle'></i> 
-                        <strong>Note:</strong> The Excel file will be validated and previewed before final import. You can review and correct any errors before submission.
-                    </div>
-
-                    <div class="text-center">
-                        <a href="{{ url_for('hr.download_import_template') }}" class="btn btn-outline-primary btn-sm">
-                            <i class='bx bxs-download'></i> Download Template
-                        </a>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class='bx bxs-upload'></i> Upload & Preview
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 {% endblock %}
