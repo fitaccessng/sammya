@@ -82,6 +82,21 @@ def create_app(config_name='development'):
     login_manager.init_app(app)
     login_manager.login_view = 'main.login'
     login_manager.login_message = 'Please log in to access this page.'
+
+    @app.context_processor
+    def inject_asset_version():
+        """Expose a stable cache-busting token for static assets."""
+        version = (
+            os.environ.get('RAILWAY_GIT_COMMIT_SHA')
+            or os.environ.get('RENDER_GIT_COMMIT')
+            or os.environ.get('SOURCE_VERSION')
+        )
+        if not version:
+            try:
+                version = str(int(os.path.getmtime(os.path.join(app.static_folder, 'css', 'style.css'))))
+            except OSError:
+                version = 'dev'
+        return {'asset_version': version[:12]}
     
     @login_manager.user_loader
     def load_user(user_id):

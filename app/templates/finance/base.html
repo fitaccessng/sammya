@@ -6,7 +6,7 @@
     <title>{% block title %}Finance - FitAccess ERP{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css', v=asset_version) }}">
     <style>
         .sidebar-transition {
             transition: transform 0.3s ease-in-out;
