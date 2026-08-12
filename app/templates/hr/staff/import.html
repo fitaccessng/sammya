@@ -1,4 +1,5 @@
 {% extends "hr/base.html" %}
+{% import "components/ui.html" as ui %}
 
 {% block title %}Import Staff from Excel{% endblock %}
 
@@ -8,18 +9,26 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Bulk Onboarding</p>
-            <h1 class="mt-1 text-3xl font-bold text-slate-900">Import Staff from Excel</h1>
-            <p class="mt-2 max-w-3xl text-sm text-slate-600">Upload, validate, preview, and submit staff records for admin approval before accounts are created.</p>
-        </div>
-        <a href="{{ url_for('hr.staff_list') }}" class="btn-secondary inline-flex items-center justify-center gap-2">
-            <i class='bx bx-arrow-back'></i>
-            Back to Staff
-        </a>
-    </div>
+{% set header_actions %}
+<a href="{{ url_for('hr.download_import_template') }}" class="btn-secondary">
+    <i class='bx bxs-download'></i>
+    Download Excel Template
+</a>
+<a href="{{ url_for('hr.staff_list') }}" class="btn-secondary">
+    <i class='bx bx-arrow-back'></i>
+    Back to Staff
+</a>
+{% endset %}
+
+<div class="app-page">
+    {{ ui.page_header(
+        'HR / Staff Import',
+        'Import Staff',
+        'Upload an Excel spreadsheet to add multiple staff members after validation and preview.',
+        header_actions
+    ) }}
+
+    {{ ui.stepper(1, ['Upload', 'Validate', 'Preview', 'Import']) }}
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <div class="xl:col-span-8">
@@ -44,8 +53,8 @@
                             <label for="fileInput" class="staff-import-dropzone">
                                 <span class="staff-import-dropzone-icon"><i class='bx bxs-file-import'></i></span>
                                 <span>
-                                    <strong>Select Excel file</strong>
-                                    <small id="selectedFileName">Accepted: .xlsx, .xls</small>
+                                    <strong>Upload Excel File</strong>
+                                    <small id="selectedFileName">Drag and drop your spreadsheet here or browse. XLSX or XLS.</small>
                                 </span>
                             </label>
                             <input id="fileInput" type="file" name="excel_file" class="sr-only" accept=".xlsx,.xls" required>
@@ -73,8 +82,8 @@
                         </div>
 
                         <div class="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
-                            <a href="{{ url_for('hr.staff_list') }}" class="btn-secondary inline-flex items-center justify-center">Cancel</a>
-                            <button type="submit" class="btn-primary inline-flex items-center justify-center gap-2">
+                            <a href="{{ url_for('hr.staff_list') }}" class="btn-secondary">Cancel</a>
+                            <button type="submit" class="btn-primary">
                                 <i class='bx bx-upload'></i>
                                 Upload and Preview
                             </button>
@@ -83,12 +92,25 @@
                 </div>
             </div>
 
-            <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-base font-bold text-slate-900">Optional Staff Fields</h2>
+            <div class="mt-6 card">
+                <div class="card-header">
+                    <div>
+                        <h2 class="app-section-title">Column Requirements</h2>
+                        <p class="app-section-subtitle">Open only the field group you need while preparing the spreadsheet.</p>
                     </div>
-                    <div class="card-body">
+                </div>
+                <div class="divide-y divide-slate-200">
+                    <details class="app-accordion" open>
+                        <summary>Required Excel Columns</summary>
+                        <div class="staff-column-list">
+                            <span>first_name</span>
+                            <span>last_name</span>
+                            <span>email</span>
+                            <span>basic_salary</span>
+                        </div>
+                    </details>
+                    <details class="app-accordion">
+                        <summary>Personal Information</summary>
                         <div class="staff-column-list">
                             <span>phone_number</span>
                             <span>gender</span>
@@ -97,21 +119,21 @@
                             <span>city</span>
                             <span>state</span>
                             <span>marital_status</span>
+                        </div>
+                    </details>
+                    <details class="app-accordion">
+                        <summary>Employment Information</summary>
+                        <div class="staff-column-list">
                             <span>employee_id</span>
                             <span>joining_date</span>
                             <span>department</span>
                             <span>position</span>
                             <span>role</span>
                             <span>employment_type</span>
-                            <span>allowances</span>
                         </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="text-base font-bold text-slate-900">Next of Kin Fields</h2>
-                    </div>
-                    <div class="card-body">
+                    </details>
+                    <details class="app-accordion">
+                        <summary>Emergency Contact</summary>
                         <div class="staff-column-list">
                             <span>nok_full_name</span>
                             <span>nok_relationship</span>
@@ -122,7 +144,35 @@
                             <span>nok_state</span>
                             <span>nok_is_primary</span>
                         </div>
-                        <p class="mt-4 text-sm text-slate-500">Use TRUE or FALSE for the primary contact flag.</p>
+                    </details>
+                    <details class="app-accordion">
+                        <summary>Compensation & Deductions</summary>
+                        <div class="staff-column-list">
+                            <span>allowances</span>
+                            <span>deduction_type_1</span>
+                            <span>deduction_amount_1</span>
+                            <span>deduction_type_2</span>
+                            <span>deduction_amount_2</span>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="app-section-title">Role Mapping</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-sm text-slate-600">Use valid role keys in the spreadsheet. Those role keys determine the staff dashboard and sidebar after login.</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="app-section-title">Data Review</h2>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-sm text-slate-600">The system validates the workbook first, then shows a preview of valid and invalid records before import confirmation.</p>
                     </div>
                 </div>
             </div>
@@ -131,7 +181,7 @@
         <aside class="space-y-6 xl:col-span-4">
             <div class="card">
                 <div class="card-header">
-                    <h2 class="text-base font-bold text-slate-900">Recent Imports</h2>
+                    <h2 class="app-section-title">Recent Imports</h2>
                 </div>
                 <div class="divide-y divide-slate-200">
                     {% set recent_batches = get_user_import_batches(current_user.id, limit=5) %}
@@ -143,15 +193,7 @@
                                 <p class="truncate text-sm font-bold text-slate-900">{{ batch.batch_name }}</p>
                                 <p class="mt-1 truncate text-xs text-slate-500">{{ batch.file_name }}</p>
                             </div>
-                            {% if batch.approval_state == 'approved' %}
-                            <span class="approval-badge approved">{{ batch.approval_state.upper() }}</span>
-                            {% elif batch.approval_state == 'pending' %}
-                            <span class="approval-badge pending">{{ batch.approval_state.upper() }}</span>
-                            {% elif batch.approval_state == 'rejected' %}
-                            <span class="approval-badge rejected">{{ batch.approval_state.upper() }}</span>
-                            {% else %}
-                            <span class="approval-badge neutral">{{ batch.approval_state.upper() }}</span>
-                            {% endif %}
+                            {{ ui.status_badge(batch.approval_state, batch.approval_state.upper()) }}
                         </div>
                         <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
                             <span>{{ batch.total_records }} records</span>
@@ -160,17 +202,11 @@
                     </a>
                     {% endfor %}
                     {% else %}
-                    <div class="p-6 text-center">
-                        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-                            <i class='bx bxs-folder-open text-2xl'></i>
-                        </div>
-                        <p class="mt-3 text-sm font-semibold text-slate-900">No recent imports</p>
-                        <p class="mt-1 text-xs text-slate-500">Uploaded batches will appear here.</p>
-                    </div>
+                    {{ ui.empty_state('No recent imports', 'Uploaded batches will appear here.') }}
                     {% endif %}
                 </div>
                 <div class="card-footer">
-                    <a href="{{ url_for('hr.import_batches') }}" class="btn-secondary inline-flex w-full items-center justify-center gap-2">
+                    <a href="{{ url_for('hr.import_batches') }}" class="btn-secondary w-full">
                         <i class='bx bxs-collection'></i>
                         View All Batches
                     </a>
@@ -179,7 +215,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h2 class="text-base font-bold text-slate-900">Preparation Checklist</h2>
+                    <h2 class="app-section-title">Preparation Checklist</h2>
                 </div>
                 <div class="card-body">
                     <ul class="space-y-3 text-sm text-slate-700">

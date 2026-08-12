@@ -1,4 +1,5 @@
 {% extends "hr/base.html" %}
+{% import "components/ui.html" as ui %}
 
 {% block title %}Staff Management{% endblock %}
 
@@ -7,66 +8,43 @@
 {% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Human Resources</p>
-            <h1 class="mt-1 text-3xl font-bold text-slate-900">Staff Management</h1>
-            <p class="mt-2 text-sm text-slate-600">Manage staff profiles, assigned roles, account status, and bulk onboarding.</p>
-        </div>
-        <div class="flex flex-col gap-2 sm:flex-row">
-            <a href="{{ url_for('hr.add_staff') }}" class="btn-primary inline-flex items-center justify-center gap-2">
-                <i class='bx bxs-user-plus'></i>
-                Add Staff
-            </a>
-            <a href="{{ url_for('hr.import_staff') }}" class="btn-secondary inline-flex items-center justify-center gap-2">
-                <i class='bx bxs-file-import'></i>
-                Import from Excel
-            </a>
-        </div>
-    </div>
+{% set header_actions %}
+<a href="{{ url_for('hr.import_staff') }}" class="btn-secondary">
+    <i class='bx bxs-download'></i>
+    Import Excel
+</a>
+<a href="{{ url_for('hr.add_staff') }}" class="btn-primary">
+    <i class='bx bxs-user-plus'></i>
+    Add Staff
+</a>
+{% endset %}
 
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div class="stat-card">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p>Total Staff</p>
-                    <h4>{{ stats.total_staff }}</h4>
-                </div>
-                <span class="rounded-lg bg-blue-100 p-3 text-blue-700"><i class='bx bxs-group text-xl'></i></span>
-            </div>
-        </div>
-        <div class="stat-card green">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p>Active Staff</p>
-                    <h4>{{ stats.active_staff }}</h4>
-                </div>
-                <span class="rounded-lg bg-green-100 p-3 text-green-700"><i class='bx bxs-check-shield text-xl'></i></span>
-            </div>
-        </div>
-        <div class="stat-card orange">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <p>Inactive Staff</p>
-                    <h4>{{ stats.inactive_staff }}</h4>
-                </div>
-                <span class="rounded-lg bg-amber-100 p-3 text-amber-700"><i class='bx bxs-user-x text-xl'></i></span>
-            </div>
-        </div>
+<div class="app-page">
+    {{ ui.page_header(
+        'HR / Staff',
+        'Staff Management',
+        'Manage employees, roles and employment information.',
+        header_actions
+    ) }}
+
+    <div class="app-grid-kpi">
+        {{ ui.stat_card('Total Staff', stats.total_staff, 'All employees', 'fa-users', 'blue') }}
+        {{ ui.stat_card('Active Staff', stats.active_staff, 'Currently active', 'fa-user-check', 'green') }}
+        {{ ui.stat_card('Inactive Staff', stats.inactive_staff, 'Currently inactive', 'fa-user-xmark', 'amber') }}
     </div>
 
     <div class="card">
         <div class="card-header">
             <div>
-                <h2 class="text-lg font-bold text-slate-900">Staff Directory</h2>
-                <p class="mt-1 text-sm text-slate-500">The displayed role controls the dashboard and sidebar each user receives after login.</p>
+                <h2 class="app-section-title">Staff Directory</h2>
+                <p class="app-section-subtitle">View and manage all employees across your organisation.</p>
             </div>
         </div>
-        <div class="card-body border-b border-slate-200">
-            <form method="GET" class="grid grid-cols-1 gap-3 lg:grid-cols-12">
-                <div class="lg:col-span-5">
-                    <label class="form-label" for="search">Search staff</label>
+        <div class="app-filter-bar">
+            <form method="GET" class="grid w-full grid-cols-1 gap-3 lg:grid-cols-12">
+                <div class="app-search lg:col-span-5">
+                    <label class="form-label" for="search">Search</label>
+                    <i class="fas fa-search"></i>
                     <input id="search" type="text" name="search" class="form-control" placeholder="Search by name or email" value="{{ search or '' }}">
                 </div>
                 <div class="lg:col-span-3">
@@ -87,7 +65,7 @@
                     </select>
                 </div>
                 <div class="flex items-end gap-2 lg:col-span-2">
-                    <button type="submit" class="btn-primary inline-flex w-full items-center justify-center gap-2">
+                    <button type="submit" class="btn-primary w-full">
                         <i class='bx bxs-filter-alt'></i>
                         Filter
                     </button>
@@ -100,7 +78,6 @@
                 <thead>
                     <tr>
                         <th>Staff Member</th>
-                        <th>Email</th>
                         <th>Role</th>
                         <th>Status</th>
                         <th class="text-right">Actions</th>
@@ -112,33 +89,27 @@
                         <td>
                             <div class="flex items-center gap-3">
                                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm font-bold text-blue-700">
-                                    {{ (staff_member.name or staff_member.email or 'S')[:1].upper() }}
+                                    {% set parts = (staff_member.name or staff_member.email or 'S').split() %}
+                                    {{ (parts[0][:1] ~ (parts[-1][:1] if parts|length > 1 else '')) | upper }}
                                 </span>
-                                <div>
+                                <div class="min-w-0">
                                     <div class="font-semibold text-slate-900">{{ staff_member.name or 'Unnamed Staff' }}</div>
-                                    <div class="text-xs text-slate-500">ID #{{ staff_member.id }}</div>
+                                    <div class="truncate text-sm text-slate-500">{{ staff_member.email or 'No email provided' }}</div>
                                 </div>
                             </div>
                         </td>
                         <td>
-                            {% if staff_member.email %}
-                            <a href="mailto:{{ staff_member.email }}" class="font-medium text-blue-700 hover:text-blue-800">{{ staff_member.email }}</a>
-                            {% else %}
-                            <span class="text-slate-400">Not provided</span>
-                            {% endif %}
-                        </td>
-                        <td>
                             {% if staff_member.role %}
-                            <span class="approval-badge info">{{ role_labels.get(staff_member.role, staff_member.role.replace('_', ' ').title()) }}</span>
+                            <span class="approval-badge info">{{ ui.role_label(staff_member.role, role_labels) }}</span>
                             {% else %}
                             <span class="approval-badge neutral">Not assigned</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if staff_member.is_active %}
-                            <span class="approval-badge approved">Active</span>
+                            {{ ui.status_badge('active', 'Active') }}
                             {% else %}
-                            <span class="approval-badge neutral">Inactive</span>
+                            {{ ui.status_badge('inactive', 'Inactive') }}
                             {% endif %}
                         </td>
                         <td>
@@ -154,14 +125,8 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5">
-                            <div class="py-10 text-center">
-                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-                                    <i class='bx bxs-user-detail text-2xl'></i>
-                                </div>
-                                <h3 class="mt-3 text-base font-bold text-slate-900">No staff found</h3>
-                                <p class="mt-1 text-sm text-slate-500">Adjust the filters or import staff from Excel.</p>
-                            </div>
+                        <td colspan="4">
+                            {{ ui.empty_state('No staff found', 'No employees match your current filters.') }}
                         </td>
                     </tr>
                     {% endfor %}

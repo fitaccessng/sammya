@@ -1,0 +1,71 @@
+{% macro role_label(role, labels={}) -%}
+    {{ labels.get(role, (role or 'Not assigned').replace('_', ' ').title()) }}
+{%- endmacro %}
+
+{% macro page_header(eyebrow='', title='', subtitle='', actions='') -%}
+<div class="app-page-header">
+    <div class="min-w-0">
+        {% if eyebrow %}
+        <p class="app-eyebrow">{{ eyebrow }}</p>
+        {% endif %}
+        <h1 class="app-page-title">{{ title }}</h1>
+        {% if subtitle %}
+        <p class="app-page-subtitle">{{ subtitle }}</p>
+        {% endif %}
+    </div>
+    {% if actions %}
+    <div class="app-page-actions">{{ actions | safe }}</div>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro stat_card(title, value, subtitle='', icon='fa-chart-line', tone='blue') -%}
+<div class="app-stat-card app-stat-{{ tone }}">
+    <div class="app-stat-card-inner">
+        <div>
+            <p class="app-stat-label">{{ title }}</p>
+            <p class="app-stat-value">{{ value }}</p>
+        </div>
+        <div class="app-stat-icon">
+            <i class="fas {{ icon }}"></i>
+        </div>
+    </div>
+    {% if subtitle %}
+    <p class="app-stat-subtitle">{{ subtitle }}</p>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro status_badge(status, label='') -%}
+{% set key = (status or 'neutral') | lower | replace(' ', '-') | replace('_', '-') %}
+<span class="app-status-badge app-status-{{ key }}">
+    <span class="app-status-dot"></span>
+    {{ label or (status or 'Unknown').replace('_', ' ').title() }}
+</span>
+{%- endmacro %}
+
+{% macro empty_state(title, subtitle='', action='') -%}
+<div class="app-empty-state">
+    <div class="app-empty-icon">
+        <i class="fas fa-folder-open"></i>
+    </div>
+    <h3>{{ title }}</h3>
+    {% if subtitle %}
+    <p>{{ subtitle }}</p>
+    {% endif %}
+    {% if action %}
+    <div class="mt-4">{{ action | safe }}</div>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{% macro stepper(active=1, steps=[]) -%}
+<div class="app-stepper" aria-label="Import progress">
+    {% for step in steps %}
+    <div class="app-step {% if loop.index <= active %}is-active{% endif %}">
+        <span>{{ loop.index }}</span>
+        <strong>{{ step }}</strong>
+    </div>
+    {% endfor %}
+</div>
+{%- endmacro %}
