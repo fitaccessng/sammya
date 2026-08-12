@@ -6,6 +6,7 @@ Implements role-based approvals, workflows, and audit trails.
 from datetime import datetime
 from enum import Enum
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect, text
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -49,6 +50,11 @@ class User(UserMixin, db.Model):
     state = db.Column(db.String(100))
     gender = db.Column(db.String(10))  # Male, Female, Other
     marital_status = db.Column(db.String(50))  # Single, Married, etc.
+    department = db.Column(db.String(100))
+    position = db.Column(db.String(100))
+    employment_type = db.Column(db.String(50))
+    pay_frequency = db.Column(db.String(50))
+    manager_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     
     # Relationships
     projects = db.relationship('Project', secondary='user_projects', backref='team_members')
@@ -56,6 +62,7 @@ class User(UserMixin, db.Model):
     approval_logs = db.relationship('ApprovalLog', foreign_keys='ApprovalLog.actor_id')
     next_of_kin = db.relationship('NextOfKin', backref='employee', cascade='all, delete-orphan')
     department_access = db.relationship('DepartmentAccess', backref='user', cascade='all, delete-orphan')
+    manager = db.relationship('User', remote_side=[id], backref='direct_reports')
     
     def set_password(self, password):
         """Hash and set password."""
@@ -102,6 +109,46 @@ class PasswordResetRequest(db.Model):
 def ensure_password_reset_request_table():
     """Create the password reset request table if it is missing."""
     PasswordResetRequest.__table__.create(bind=db.engine, checkfirst=True)
+
+
+def ensure_staff_profile_columns():
+    """Add staff profile columns to existing databases created before the HR form grew."""
+    inspector = inspect(db.engine)
+    existing_columns = {column['name'] for column in inspector.get_columns('user')}
+    dialect = db.engine.dialect.name
+    column_types = {
+        'department': 'VARCHAR(100)',
+        'position': 'VARCHAR(100)',
+        'employment_type': 'VARCHAR(50)',
+        'pay_frequency': 'VARCHAR(50)',
+        'manager_id': 'INTEGER',
+    }
+
+    with db.engine.begin() as connection:
+        for column_name, column_type in column_types.items():
+            if column_name not in existing_columns:
+                if dialect == 'postgresql':
+                    connection.execute(text(f'ALTER TABLE "user" ADD COLUMN {column_name} {column_type}'))
+                else:
+                    connection.execute(text(f'ALTER TABLE user ADD COLUMN {column_name} {column_type}'))
+
+
+def ensure_staff_import_item_columns():
+    """Add import preview columns for template data added after early deployments."""
+    inspector = inspect(db.engine)
+    existing_columns = {column['name'] for column in inspector.get_columns('staff_import_item')}
+    column_types = {
+        'employment_type': 'VARCHAR(50)',
+        'deduction_type_1': 'VARCHAR(100)',
+        'deduction_amount_1': 'NUMERIC(12, 2) DEFAULT 0',
+        'deduction_type_2': 'VARCHAR(100)',
+        'deduction_amount_2': 'NUMERIC(12, 2) DEFAULT 0',
+    }
+
+    with db.engine.begin() as connection:
+        for column_name, column_type in column_types.items():
+            if column_name not in existing_columns:
+                connection.execute(text(f'ALTER TABLE staff_import_item ADD COLUMN {column_name} {column_type}'))
 
 
 class NextOfKin(db.Model):
@@ -1115,6 +1162,7 @@ class StaffImportItem(db.Model):
     date_of_employment = db.Column(db.Date)
     department = db.Column(db.String(100))  # HR, Finance, Procurement, QC, etc.
     position = db.Column(db.String(100))
+    employment_type = db.Column(db.String(50))
     role = db.Column(db.String(50))  # System role: hr_staff, finance_staff, admin, etc.
     
     # Next of Kin
@@ -1129,6 +1177,10 @@ class StaffImportItem(db.Model):
     # Compensation
     basic_salary = db.Column(db.Numeric(12, 2))
     allowances = db.Column(db.Numeric(12, 2), default=0)
+    deduction_type_1 = db.Column(db.String(100))
+    deduction_amount_1 = db.Column(db.Numeric(12, 2), default=0)
+    deduction_type_2 = db.Column(db.String(100))
+    deduction_amount_2 = db.Column(db.Numeric(12, 2), default=0)
     
     # Import Status
     status = db.Column(db.String(50), default='pending')  # pending, imported, failed, skipped

@@ -1072,11 +1072,24 @@ def staff_details(staff_id):
         
         # Get project assignments
         assignments = ProjectStaff.query.filter_by(user_id=staff_id).all()
+        compensation = StaffCompensation.query.filter_by(user_id=staff_id).first()
+        deductions = PayrollDeduction.query.filter_by(compensation_id=compensation.id).all() if compensation else []
+        next_of_kin = NextOfKin.query.filter_by(user_id=staff_id).order_by(NextOfKin.is_primary.desc()).all()
+        department_access = DepartmentAccess.query.filter_by(user_id=staff_id, is_active=True).all()
         
         # Pass current date for age/tenure calculations
         from datetime import datetime as dt
         
-        return render_template('hr/staff/details.html', staff=staff, assignments=assignments, now=dt.now())
+        return render_template(
+            'hr/staff/details.html',
+            staff=staff,
+            assignments=assignments,
+            compensation=compensation,
+            deductions=deductions,
+            next_of_kin=next_of_kin,
+            department_access=department_access,
+            now=dt.now()
+        )
         
     except Exception as e:
         current_app.logger.error(f"Staff Details Error: {str(e)}")
@@ -2466,6 +2479,15 @@ def add_staff():
                 date_of_employment=_parse_form_date(request.form.get('joining_date') or request.form.get('date_of_employment')),
                 employee_id=employee_id,
                 gender=request.form.get('gender') or None,
+                address=request.form.get('address') or None,
+                city=request.form.get('city') or None,
+                state=request.form.get('state') or None,
+                marital_status=request.form.get('marital_status') or None,
+                department=StaffExcelParser.normalize_department(request.form.get('department')) if request.form.get('department') else None,
+                position=request.form.get('position') or None,
+                employment_type=request.form.get('employment_type') or None,
+                pay_frequency=request.form.get('pay_frequency') or None,
+                manager_id=request.form.get('manager_id') or None,
                 basic_salary=basic_salary
             )
             user.set_password(StaffExcelParser.prepare_password(email))

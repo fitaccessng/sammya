@@ -317,6 +317,9 @@ class StaffExcelParser:
         
         position = str(row.get('position', '')).strip() if pd.notna(row.get('position')) else ''
         normalized['position'] = position or None
+
+        employment_type = str(row.get('employment_type', '')).strip() if pd.notna(row.get('employment_type')) else ''
+        normalized['employment_type'] = employment_type or None
         
         # Role
         role = str(row.get('role', 'hr_staff')).strip().lower() if pd.notna(row.get('role')) else 'hr_staff'
@@ -327,6 +330,12 @@ class StaffExcelParser:
         # Allowances
         allow_valid, allowances = StaffExcelParser.validate_salary(row.get('allowances', 0))
         normalized['allowances'] = allowances or 0
+
+        for number in ('1', '2'):
+            deduction_type = str(row.get(f'deduction_type_{number}', '')).strip() if pd.notna(row.get(f'deduction_type_{number}')) else ''
+            deduction_valid, deduction_amount = StaffExcelParser.validate_salary(row.get(f'deduction_amount_{number}', 0))
+            normalized[f'deduction_type_{number}'] = deduction_type or None
+            normalized[f'deduction_amount_{number}'] = deduction_amount if deduction_valid else 0
         
         # Next of Kin fields
         nok_full_name = str(row.get('nok_full_name', '')).strip() if pd.notna(row.get('nok_full_name')) else ''
@@ -441,9 +450,14 @@ class StaffImportManager:
                 date_of_employment=record.get('date_of_employment'),
                 department=record.get('department'),
                 position=record.get('position'),
+                employment_type=record.get('employment_type'),
                 role=record.get('role'),
                 basic_salary=record.get('basic_salary'),
                 allowances=record.get('allowances'),
+                deduction_type_1=record.get('deduction_type_1'),
+                deduction_amount_1=record.get('deduction_amount_1'),
+                deduction_type_2=record.get('deduction_type_2'),
+                deduction_amount_2=record.get('deduction_amount_2'),
                 nok_full_name=record.get('nok_full_name'),
                 nok_relationship=record.get('nok_relationship'),
                 nok_phone=record.get('nok_phone'),
@@ -473,9 +487,14 @@ class StaffImportManager:
                 date_of_employment=record.get('data', {}).get('date_of_employment'),
                 department=record.get('data', {}).get('department'),
                 position=record.get('data', {}).get('position'),
+                employment_type=record.get('data', {}).get('employment_type'),
                 role=record.get('data', {}).get('role'),
                 basic_salary=record.get('data', {}).get('basic_salary'),
                 allowances=record.get('data', {}).get('allowances'),
+                deduction_type_1=record.get('data', {}).get('deduction_type_1'),
+                deduction_amount_1=record.get('data', {}).get('deduction_amount_1'),
+                deduction_type_2=record.get('data', {}).get('deduction_type_2'),
+                deduction_amount_2=record.get('data', {}).get('deduction_amount_2'),
                 nok_full_name=record.get('data', {}).get('nok_full_name'),
                 nok_relationship=record.get('data', {}).get('nok_relationship'),
                 nok_phone=record.get('data', {}).get('nok_phone'),
@@ -504,6 +523,10 @@ class StaffImportManager:
                 date_of_birth=item.date_of_birth,
                 date_of_employment=item.date_of_employment,
                 employee_id=item.employee_id,
+                basic_salary=float(item.basic_salary or 0),
+                department=item.department,
+                position=item.position,
+                employment_type=item.employment_type,
                 address=item.address,
                 city=item.city,
                 state=item.state,
@@ -528,6 +551,19 @@ class StaffImportManager:
             compensation.calculate_gross_salary()
             db.session.add(compensation)
             db.session.flush()
+
+            for deduction_type, deduction_amount in (
+                (item.deduction_type_1, item.deduction_amount_1),
+                (item.deduction_type_2, item.deduction_amount_2),
+            ):
+                if deduction_type and float(deduction_amount or 0) > 0:
+                    db.session.add(PayrollDeduction(
+                        compensation_id=compensation.id,
+                        deduction_type=deduction_type,
+                        amount=float(deduction_amount or 0),
+                        is_recurring=True,
+                        effective_from=date.today()
+                    ))
             
             # Create Next of Kin if provided
             if item.nok_full_name and item.nok_relationship:

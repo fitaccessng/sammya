@@ -7,7 +7,7 @@ import os
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_mail import Mail
-from app.models import db, User
+from app.models import db, User, ensure_staff_import_item_columns, ensure_staff_profile_columns
 
 DEFAULT_DATABASE_URL = 'sqlite:///fitaccess_dev.db'
 PRODUCTION_DATABASE_URL = 'postgresql://postgres:dfNKPwgXTuimHBHDZBngIUQdDuVoNYyr@thomas.proxy.rlwy.net:23519/railway'
@@ -153,6 +153,8 @@ def create_app(config_name='development'):
         with app.app_context():
             try:
                 db.create_all()
+                ensure_staff_profile_columns()
+                ensure_staff_import_item_columns()
             except Exception:
                 app.logger.exception('Database initialization failed during startup.')
     elif not os.environ.get('DATABASE_URL'):

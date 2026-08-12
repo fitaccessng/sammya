@@ -91,6 +91,108 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">Personal & Employment</h3>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Employee ID</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.employee_id or 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Phone</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.phone or 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Department</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.department or (department_access[0].department if department_access else 'N/A') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Position</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.position or 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Employment Type</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.employment_type or 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Date Joined</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.date_of_employment.strftime('%b %d, %Y') if staff.date_of_employment else 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Date of Birth</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.date_of_birth.strftime('%b %d, %Y') if staff.date_of_birth else 'N/A' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Gender</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.gender or 'N/A' }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Address</dt>
+                    <dd class="font-medium text-slate-800">{{ [staff.address, staff.city, staff.state]|select|join(', ') or 'N/A' }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
+            <h3 class="text-lg font-bold text-slate-900 mb-4">Compensation</h3>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Basic Salary</dt>
+                    <dd class="font-medium text-slate-800">₦{{ "%.2f"|format((compensation.basic_salary if compensation else staff.basic_salary) or 0) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Allowances</dt>
+                    <dd class="font-medium text-slate-800">₦{{ "%.2f"|format((compensation.allowances if compensation else 0) or 0) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Gross Salary</dt>
+                    <dd class="font-medium text-slate-800">₦{{ "%.2f"|format((compensation.gross_salary if compensation else staff.basic_salary) or 0) }}</dd>
+                </div>
+                <div>
+                    <dt class="text-xs font-semibold uppercase text-slate-400">Pay Frequency</dt>
+                    <dd class="font-medium text-slate-800">{{ staff.pay_frequency or 'Monthly' }}</dd>
+                </div>
+            </dl>
+            <div class="mt-5 pt-4 border-t border-slate-100">
+                <h4 class="text-sm font-bold text-slate-800 mb-3">Deductions</h4>
+                {% if deductions %}
+                    <div class="space-y-2">
+                        {% for deduction in deductions %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-slate-600">{{ deduction.deduction_type }}</span>
+                                <span class="font-medium text-slate-800">₦{{ "%.2f"|format(deduction.amount or 0) }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-sm text-slate-500">No recurring deductions recorded.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
+        <h3 class="text-lg font-bold text-slate-900 mb-4">Next of Kin</h3>
+        {% if next_of_kin %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for contact in next_of_kin %}
+                    <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-100">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-slate-900">{{ contact.full_name }}</h4>
+                            {% if contact.is_primary %}<span class="text-xs font-semibold text-emerald-700">Primary</span>{% endif %}
+                        </div>
+                        <p class="text-sm text-slate-600">{{ contact.relationship }} · {{ contact.phone }}</p>
+                        <p class="text-sm text-slate-500 mt-1">{{ contact.email or 'No email' }}</p>
+                        <p class="text-sm text-slate-500 mt-1">{{ [contact.address, contact.city, contact.state]|select|join(', ') or 'No address' }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-sm text-slate-500">No next of kin recorded.</p>
+        {% endif %}
+    </div>
+
     <!-- Assigned Projects Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6">
         <div class="flex items-center justify-between mb-6">
