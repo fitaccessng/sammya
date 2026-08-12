@@ -1005,13 +1005,18 @@ def edit_staff(staff_id):
         staff = User.query.get_or_404(staff_id)
         
         if request.method == 'POST':
-            staff.name = request.form.get('name', staff.name)
+            submitted_name = request.form.get('name', '').strip()
             new_email = request.form.get('email', staff.email).strip().lower()
+            if not new_email:
+                flash('Email is required to keep the staff login active', 'error')
+                return redirect(url_for('hr.edit_staff', staff_id=staff_id))
+
             existing_email = User.query.filter(User.email == new_email, User.id != staff.id).first()
             if existing_email:
                 flash('Email already belongs to another staff member', 'error')
                 return redirect(url_for('hr.edit_staff', staff_id=staff_id))
 
+            staff.name = submitted_name or staff.employee_id or new_email.split('@')[0]
             staff.email = new_email
             staff.role = normalize_role(request.form.get('role', staff.role)) or staff.role
             staff.is_active = request.form.get('is_active') == 'on'
@@ -1037,8 +1042,7 @@ def edit_staff(staff_id):
             
             # Handle salary and deductions
             basic_salary = request.form.get('basic_salary')
-            if basic_salary:
-                staff.basic_salary = _parse_money(basic_salary)
+            staff.basic_salary = _parse_money(basic_salary)
             
             default_deductions = request.form.get('default_deductions')
             if default_deductions:
@@ -2294,8 +2298,8 @@ def add_staff():
             email = request.form.get('email', '').strip().lower()
             employee_id = request.form.get('employee_id', '').strip() or None
 
-            if not first_name or not last_name or not email:
-                flash('First name, last name, and email are required', 'error')
+            if not email:
+                flash('Email is required to create a staff login. You can save the rest of the profile later.', 'error')
                 return render_template('hr/staff/add.html', data=data)
 
             if User.query.filter_by(email=email).first():
@@ -2306,16 +2310,19 @@ def add_staff():
                 flash('Employee ID already belongs to another staff member', 'error')
                 return render_template('hr/staff/add.html', data=data)
 
+            display_name = f'{first_name} {last_name}'.strip()
+            if not display_name:
+                display_name = employee_id or email.split('@')[0]
+
             role = normalize_role(request.form.get('role', 'hr_staff')) or 'hr_staff'
             if role not in StaffExcelParser.VALID_ROLES:
-                flash('Select a valid staff role', 'error')
-                return render_template('hr/staff/add.html', data=data)
+                role = 'hr_staff'
 
             basic_salary = _parse_money(request.form.get('basic_salary'))
             allowances = _parse_money(request.form.get('allowances'))
 
             user = User(
-                name=f'{first_name} {last_name}'.strip(),
+                name=display_name,
                 email=email,
                 role=role,
                 is_active=request.form.get('status', 'Active') == 'Active',

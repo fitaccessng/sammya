@@ -51,12 +51,12 @@
 
                                 <div class="row g-3">
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">First Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="first_name" class="form-control" required placeholder="e.g. John">
+                                        <label class="form-label fw-medium">First Name</label>
+                                        <input type="text" name="first_name" class="form-control" placeholder="e.g. John">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Last Name <span class="text-danger">*</span></label>
-                                        <input type="text" name="last_name" class="form-control" required placeholder="e.g. Doe">
+                                        <label class="form-label fw-medium">Last Name</label>
+                                        <input type="text" name="last_name" class="form-control" placeholder="e.g. Doe">
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <label class="form-label fw-medium">Email <span class="text-danger">*</span></label>
@@ -93,12 +93,12 @@
 
                                 <div class="row g-3">
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Employee ID <span class="text-danger">*</span></label>
-                                        <input type="text" name="employee_id" class="form-control" required placeholder="EMP-001">
+                                        <label class="form-label fw-medium">Employee ID</label>
+                                        <input type="text" name="employee_id" class="form-control" placeholder="EMP-001">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Department <span class="text-danger">*</span></label>
-                                        <select name="department" class="form-select" required>
+                                        <label class="form-label fw-medium">Department</label>
+                                        <select name="department" class="form-select">
                                             <option value="">Select Department</option>
                                             {% for dept in data.departments %}
                                                 <option value="{{ dept }}">{{ dept }}</option>
@@ -106,21 +106,23 @@
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Dashboard Role <span class="text-danger">*</span></label>
-                                        <select name="role" class="form-select" required>
-                                            <option value="">Select Role</option>
+                                        <label class="form-label fw-medium">Dashboard Role</label>
+                                        <select name="role" class="form-select">
+                                            <option value="hr_staff">HR Staff</option>
                                             {% for role, label in data.role_options %}
-                                                <option value="{{ role }}">{{ label }}</option>
+                                                {% if role != 'hr_staff' %}
+                                                    <option value="{{ role }}">{{ label }}</option>
+                                                {% endif %}
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Position <span class="text-danger">*</span></label>
-                                        <input type="text" name="position" class="form-control" required placeholder="Software Engineer">
+                                        <label class="form-label fw-medium">Position</label>
+                                        <input type="text" name="position" class="form-control" placeholder="Software Engineer">
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Employment Type <span class="text-danger">*</span></label>
-                                        <select name="employment_type" class="form-select" required>
+                                        <label class="form-label fw-medium">Employment Type</label>
+                                        <select name="employment_type" class="form-select">
                                             <option value="">Select Type</option>
                                             <option value="Full-time">Full-time</option>
                                             <option value="Part-time">Part-time</option>
@@ -129,8 +131,8 @@
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Date of Joining <span class="text-danger">*</span></label>
-                                        <input type="date" name="joining_date" class="form-control" required>
+                                        <label class="form-label fw-medium">Date of Joining</label>
+                                        <input type="date" name="joining_date" class="form-control">
                                     </div>
                                     <div class="col-12 col-md-6">
                                         <label class="form-label fw-medium">Manager</label>
@@ -155,10 +157,10 @@
 
                                 <div class="row g-3">
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Basic Salary <span class="text-danger">*</span></label>
+                                        <label class="form-label fw-medium">Basic Salary</label>
                                         <div class="input-group">
                                             <span class="input-group-text">₦</span>
-                                            <input type="number" name="basic_salary" class="form-control" step="0.01" required placeholder="0.00">
+                                            <input type="number" name="basic_salary" class="form-control" step="0.01" placeholder="0.00">
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6">
@@ -169,8 +171,8 @@
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Pay Frequency <span class="text-danger">*</span></label>
-                                        <select name="pay_frequency" class="form-select" required>
+                                        <label class="form-label fw-medium">Pay Frequency</label>
+                                        <select name="pay_frequency" class="form-select">
                                             <option value="">Select Frequency</option>
                                             <option value="Monthly">Monthly</option>
                                             <option value="Bi-weekly">Bi-weekly</option>
@@ -178,8 +180,8 @@
                                         </select>
                                     </div>
                                     <div class="col-12 col-md-6">
-                                        <label class="form-label fw-medium">Status <span class="text-danger">*</span></label>
-                                        <select name="status" class="form-select" required>
+                                        <label class="form-label fw-medium">Status</label>
+                                        <select name="status" class="form-select">
                                             <option value="Active">Active</option>
                                             <option value="Inactive">Inactive</option>
                                         </select>
@@ -289,7 +291,7 @@
                                 <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
                                     <li class="d-flex align-items-start gap-2">
                                         <i class='bx bx-check text-success fs-6 mt-1'></i>
-                                        <span>Fields marked with <span class="text-danger fw-bold">*</span> are required.</span>
+                                        <span>Only email is required to save a staff record. Complete the rest anytime from Edit Staff.</span>
                                     </li>
                                     <li class="d-flex align-items-start gap-2">
                                         <i class='bx bx-check text-success fs-6 mt-1'></i>

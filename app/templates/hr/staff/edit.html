@@ -28,7 +28,7 @@
                         <div class="row mb-3">
                             <div class="col-md-12">
                                 <label class="form-label">Full Name *</label>
-                                <input type="text" name="name" class="form-control" value="{{ staff.name or '' }}" required>
+                                <input type="text" name="name" class="form-control" value="{{ staff.name or '' }}">
                             </div>
                         </div>
 
@@ -144,17 +144,17 @@
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Full Name *</label>
-                                                    <input type="text" name="kin_name[]" class="form-control" value="{{ kin.full_name }}" required>
+                                                    <input type="text" name="kin_name[]" class="form-control" value="{{ kin.full_name }}">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Relationship *</label>
-                                                    <input type="text" name="kin_relationship[]" class="form-control" value="{{ kin.relationship }}" placeholder="e.g., Spouse, Parent, Sibling" required>
+                                                    <input type="text" name="kin_relationship[]" class="form-control" value="{{ kin.relationship }}" placeholder="e.g., Spouse, Parent, Sibling">
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Phone *</label>
-                                                    <input type="tel" name="kin_phone[]" class="form-control" value="{{ kin.phone }}" required>
+                                                    <input type="tel" name="kin_phone[]" class="form-control" value="{{ kin.phone }}">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Email</label>
@@ -206,7 +206,7 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Basic Salary (₦) *</label>
-                                <input type="number" id="basicSalary" name="basic_salary" class="form-control" step="0.01" value="{{ staff.basic_salary or 0 }}" required onchange="calculateNetSalary()">
+                                <input type="number" id="basicSalary" name="basic_salary" class="form-control" step="0.01" value="{{ staff.basic_salary or 0 }}" onchange="calculateNetSalary()">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Allowances (₦)</label>
@@ -236,11 +236,11 @@
                                             <div class="row mb-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Deduction Type *</label>
-                                                    <input type="text" name="deduction_type[]" class="form-control deduction-type" value="{{ deduction.deduction_type }}" placeholder="e.g., Tax, Insurance, Loan" required onchange="calculateNetSalary()">
+                                                    <input type="text" name="deduction_type[]" class="form-control deduction-type" value="{{ deduction.deduction_type }}" placeholder="e.g., Tax, Insurance, Loan" onchange="calculateNetSalary()">
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Amount (₦) *</label>
-                                                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="{{ "%.2f"|format(deduction.amount) }}" required onchange="calculateNetSalary()">
+                                                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="{{ "%.2f"|format(deduction.amount) }}" onchange="calculateNetSalary()">
                                                 </div>
                                             </div>
                                             <div class="row">
@@ -326,7 +326,7 @@
                         <i class='bx bxs-info-circle'></i> Form Tips
                     </h5>
                     <ul class="small text-muted">
-                        <li class="mb-2">Fields marked with <span class="text-danger">*</span> are required</li>
+                        <li class="mb-2">Only email is required. Incomplete profile details can be saved and completed later.</li>
                         <li class="mb-2">Salary changes take effect from next payroll period</li>
                         <li class="mb-2">Default deductions are automatically applied to payroll</li>
                         <li class="mb-2">Changing status affects leave and payroll processing</li>
@@ -378,11 +378,11 @@ function addDeductionForm() {
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Deduction Type *</label>
-                    <input type="text" name="deduction_type[]" class="form-control deduction-type" placeholder="e.g., Tax, Insurance, Loan" required onchange="calculateNetSalary()">
+                    <input type="text" name="deduction_type[]" class="form-control deduction-type" placeholder="e.g., Tax, Insurance, Loan" onchange="calculateNetSalary()">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Amount (₦) *</label>
-                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="0.00" required onchange="calculateNetSalary()">
+                    <input type="number" name="deduction_amount[]" class="form-control deduction-amount" step="0.01" value="0.00" onchange="calculateNetSalary()">
                 </div>
             </div>
             <div class="row">
@@ -498,17 +498,17 @@ function addNextOfKinForm() {
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Full Name *</label>
-                    <input type="text" name="kin_name[]" class="form-control" placeholder="Full name" required>
+                    <input type="text" name="kin_name[]" class="form-control" placeholder="Full name">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Relationship *</label>
-                    <input type="text" name="kin_relationship[]" class="form-control" placeholder="e.g., Spouse, Parent, Sibling" required>
+                    <input type="text" name="kin_relationship[]" class="form-control" placeholder="e.g., Spouse, Parent, Sibling">
                 </div>
             </div>
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Phone *</label>
-                    <input type="tel" name="kin_phone[]" class="form-control" placeholder="Phone number" required>
+                    <input type="tel" name="kin_phone[]" class="form-control" placeholder="Phone number">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Email</label>
