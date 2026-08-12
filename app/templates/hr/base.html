@@ -66,128 +66,72 @@
                 <span>Dashboard</span>
             </a>
 
-            <!-- Transactions Section -->
             <div class="mt-8">
-                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Transactions</p>
-                
-                <a href="{{ url_for('finance.account_transactions') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.account_transactions' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-receipt w-5"></i>
-                    <span>Account Transactions</span>
+                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Workforce</p>
+                <a href="{{ url_for('hr.staff_list') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint in ['hr.staff_list', 'hr.staff_details', 'hr.add_staff', 'hr.edit_staff'] %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-users w-5"></i>
+                    <span>Staff Directory</span>
                 </a>
-
-                <a href="{{ url_for('finance.transactions') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.transactions' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-book w-5"></i>
-                    <span>Transaction Ledger</span>
+                <a href="{{ url_for('hr.assignments') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'hr.assignments' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-people-arrows w-5"></i>
+                    <span>Assignments</span>
                 </a>
-                <a href="{{ url_for('finance.ledger') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.ledger' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-book-open w-5"></i>
-                    <span>General Ledger</span>
-                </a>
-                <a href="{{ url_for('finance.chart_of_accounts') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.chart_of_accounts' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-list-ol w-5"></i>
-                    <span>Chart of Accounts</span>
-                </a>
-
-                <a href="{{ url_for('finance.payment') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.payment' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-money-bill w-5"></i>
-                    <span>Payments</span>
-                </a>
-
-                <a href="{{ url_for('finance.invoice') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.invoice' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-file-invoice w-5"></i>
-                    <span>Invoices</span>
+                <a href="{{ url_for('hr.role_management') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'hr.role_management' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-user-shield w-5"></i>
+                    <span>Roles</span>
                 </a>
             </div>
 
-            <!-- Bank & Reconciliation Section -->
             <div class="mt-8">
-                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Bank Management</p>
-                
-                <a href="{{ url_for('finance.bank_reconciliation') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.bank_reconciliation' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-sync w-5"></i>
-                    <span>Bank Reconciliation</span>
+                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Time & Leave</p>
+                <a href="{{ url_for('hr.leave_management') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint in ['hr.leave_management', 'hr.leave_detail', 'hr.request_leave', 'hr.view_leave'] %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-calendar-check w-5"></i>
+                    <span>Leave</span>
                 </a>
-
-                <a href="{{ url_for('finance.cashflow') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.cashflow' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-chart-bar w-5"></i>
-                    <span>Cash Flow</span>
-                </a>
-
-                <a href="{{ url_for('finance.receivables') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.receivables' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-inbox w-5"></i>
-                    <span>Receivables</span>
-                </a>
-                <a href="{{ url_for('finance.revenue_sales') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.revenue_sales' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-sack-dollar w-5"></i>
-                    <span>Revenue / Sales</span>
+                <a href="{{ url_for('hr.attendance') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint in ['hr.attendance', 'hr.record_attendance'] %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-clock w-5"></i>
+                    <span>Attendance</span>
                 </a>
             </div>
 
-            <!-- Approvals & Expenses Section -->
             <div class="mt-8">
-                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Approvals</p>
-                
-                <a href="{{ url_for('finance.purchase_order_approval') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.purchase_order_approval' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-box w-5"></i>
-                    <span>PO Approvals</span>
-                </a>
-
-                <a href="{{ url_for('finance.payroll_approval') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.payroll_approval' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-check w-5"></i>
-                    <span>Payroll Approval</span>
-                </a>
-
-                <a href="{{ url_for('finance.payroll_pending') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.payroll_pending' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-hourglass-half w-5"></i>
-                    <span>Pending Payroll</span>
-                </a>
-
-                <a href="{{ url_for('finance.cost_control_approvals') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.cost_control_approvals' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-tasks w-5"></i>
-                    <span>Cost Control</span>
-                </a>
-                <a href="{{ url_for('finance.project_payment_requests') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.project_payment_requests' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-hand-holding-dollar w-5"></i>
-                    <span>Project Payments</span>
+                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Payroll</p>
+                <a href="{{ url_for('hr.payroll') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint and request.endpoint.startswith('hr.payroll') %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-file-invoice-dollar w-5"></i>
+                    <span>Payroll</span>
                 </a>
             </div>
 
-            <!-- Budget & Analysis Section -->
             <div class="mt-8">
-                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Analysis</p>
-                
-                <a href="{{ url_for('finance.budgets') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.budgets' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-wallet w-5"></i>
-                    <span>Budgets</span>
+                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Engagement</p>
+                <a href="{{ url_for('hr.performance') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint and request.endpoint.startswith('hr.performance') %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-chart-line w-5"></i>
+                    <span>Performance</span>
                 </a>
-
-                <a href="{{ url_for('finance.expenses') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.expenses' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-credit-card w-5"></i>
-                    <span>Expenses</span>
+                <a href="{{ url_for('hr.staff_queries') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint and 'quer' in request.endpoint %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-comments w-5"></i>
+                    <span>Staff Queries</span>
                 </a>
-
-                <a href="{{ url_for('finance.audit_trail') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.audit_trail' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-history w-5"></i>
-                    <span>Audit Trail</span>
+                <a href="{{ url_for('hr.tasks') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'hr.tasks' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-list-check w-5"></i>
+                    <span>Tasks</span>
                 </a>
             </div>
 
-            <!-- Documents Section -->
             <div class="mt-8">
-                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Documents</p>
-                
-                <a href="{{ url_for('finance.documents') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'finance.documents' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
-                    <i class="fas fa-upload w-5"></i>
-                    <span>Upload/View</span>
+                <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Insights</p>
+                <a href="{{ url_for('hr.reports') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint and request.endpoint.startswith('hr.reports') %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-file-lines w-5"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="{{ url_for('hr.analytics') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'hr.analytics' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
+                    <i class="fas fa-chart-pie w-5"></i>
+                    <span>Analytics</span>
                 </a>
             </div>
 
             <div class="mt-8 mb-6">
                 <p class="px-4 text-xs uppercase tracking-wider text-blue-300 font-semibold mb-3">Account</p>
-                <a href="{{ url_for('hr.leave_management') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all nav-item-hover text-blue-100">
-                    <i class="fas fa-calendar-check w-5"></i>
-                    <span>Leave Request</span>
-                </a>
                 <a href="{{ url_for('main.account_settings') }}" class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all {% if request.endpoint == 'main.account_settings' %}nav-item-active{% else %}nav-item-hover text-blue-100{% endif %}">
                     <i class="fas fa-user-cog w-5"></i>
                     <span>Account Settings</span>

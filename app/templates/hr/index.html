@@ -1,204 +1,169 @@
 {% extends "hr/base.html" %}
 
 {% block title %}HR Dashboard{% endblock %}
-
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Dashboard</li>
-{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="p-4 sm:p-6 lg:p-8 space-y-6">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-            <h2 class="mb-1">HR Dashboard</h2>
-            <p class="text-muted">Welcome to the HR Management System</p>
+            <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Human Resources</p>
+            <h1 class="mt-2 text-3xl font-bold text-slate-950">HR Dashboard</h1>
+            <p class="mt-1 text-sm text-slate-600">Workforce, attendance, leave, payroll, and staff operations.</p>
         </div>
-        <div class="btn-group" role="group">
-            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-primary">
-                <i class='bx bxs-users'></i> View Staff
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ url_for('hr.add_staff') }}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                <i class="fas fa-user-plus"></i>
+                Add Staff
             </a>
-            <a href="{{ url_for('hr.assignments') }}" class="btn btn-success">
-                <i class='bx bxs-briefcase'></i> Assignments
+            <a href="{{ url_for('hr.staff_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <i class="fas fa-users"></i>
+                Staff Directory
             </a>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <i class='bx bxs-user' style="font-size: 2rem; color: var(--primary-color);"></i>
-                <h4>{{ dashboard.total_staff }}</h4>
-                <p>Total Staff</p>
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-600">Total Staff</p>
+                <span class="rounded-md bg-blue-50 p-2 text-blue-700"><i class="fas fa-users"></i></span>
             </div>
+            <p class="mt-4 text-3xl font-bold text-slate-950">{{ dashboard.total_staff }}</p>
+            <p class="mt-1 text-xs text-slate-500">All staff accounts</p>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card green">
-                <i class='bx bxs-user-check' style="font-size: 2rem; color: var(--success-color);"></i>
-                <h4>{{ dashboard.active_staff }}</h4>
-                <p>Active Staff</p>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-600">Active Staff</p>
+                <span class="rounded-md bg-emerald-50 p-2 text-emerald-700"><i class="fas fa-user-check"></i></span>
             </div>
+            <p class="mt-4 text-3xl font-bold text-emerald-700">{{ dashboard.active_staff }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ dashboard.inactive_staff }} inactive</p>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card orange">
-                <i class='bx bxs-calendar-check' style="font-size: 2rem; color: var(--warning-color);"></i>
-                <h4>{{ dashboard.pending_leaves }}</h4>
-                <p>Pending Leaves</p>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-600">Pending Leave</p>
+                <span class="rounded-md bg-amber-50 p-2 text-amber-700"><i class="fas fa-calendar-day"></i></span>
             </div>
+            <p class="mt-4 text-3xl font-bold text-amber-700">{{ dashboard.pending_leaves }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ dashboard.active_leaves }} active leave records</p>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card red">
-                <i class='bx bxs-credit' style="font-size: 2rem; color: var(--danger-color);"></i>
-                <h4>{{ dashboard.pending_payroll }}</h4>
-                <p>Pending Payroll</p>
+
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-slate-600">Project Assignments</p>
+                <span class="rounded-md bg-cyan-50 p-2 text-cyan-700"><i class="fas fa-people-arrows"></i></span>
             </div>
+            <p class="mt-4 text-3xl font-bold text-cyan-700">{{ dashboard.total_assignments }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ dashboard.active_projects }} active projects</p>
         </div>
     </div>
 
-    <!-- Today's Attendance -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Today's Attendance</h5>
-                    <span class="badge bg-primary">{{ dashboard.present_today + dashboard.absent_today + dashboard.late_today }}</span>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-950">Workforce By Role</h2>
+                    <p class="text-sm text-slate-500">Current account distribution.</p>
                 </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h3 class="text-success">{{ dashboard.present_today }}</h3>
-                            <p class="text-muted">Present</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 class="text-danger">{{ dashboard.absent_today }}</h3>
-                            <p class="text-muted">Absent</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3 class="text-warning">{{ dashboard.late_today }}</h3>
-                            <p class="text-muted">Late</p>
-                        </div>
-                    </div>
-                </div>
+                <a href="{{ url_for('hr.role_management') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">Manage Roles</a>
             </div>
-        </div>
 
-        <!-- Leave Status -->
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Leave Status</h5>
-                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+            {% if dashboard.staff_by_role %}
+            <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {% for item in dashboard.staff_by_role %}
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-sm font-semibold text-slate-700">{{ item.role.replace('_', ' ').title() }}</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-950">{{ item.count }}</p>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Active Leaves</span>
-                        <h5>{{ dashboard.active_leaves }}</h5>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Pending Approval</span>
-                        <h5 class="text-warning">{{ dashboard.pending_leaves }}</h5>
-                    </div>
-                    <hr>
-                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-primary w-100">
-                        <i class='bx bxs-users'></i> Manage Staff
-                    </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="mt-5 rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                No role distribution is available yet.
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-bold text-slate-950">Attendance Today</h2>
+            <p class="text-sm text-slate-500">Daily attendance snapshot.</p>
+            <div class="mt-5 space-y-3">
+                <div class="flex items-center justify-between rounded-lg bg-emerald-50 px-4 py-3">
+                    <span class="text-sm font-semibold text-emerald-900">Present</span>
+                    <span class="text-xl font-bold text-emerald-700">{{ dashboard.present_today }}</span>
+                </div>
+                <div class="flex items-center justify-between rounded-lg bg-rose-50 px-4 py-3">
+                    <span class="text-sm font-semibold text-rose-900">Absent</span>
+                    <span class="text-xl font-bold text-rose-700">{{ dashboard.absent_today }}</span>
+                </div>
+                <div class="flex items-center justify-between rounded-lg bg-amber-50 px-4 py-3">
+                    <span class="text-sm font-semibold text-amber-900">Late</span>
+                    <span class="text-xl font-bold text-amber-700">{{ dashboard.late_today }}</span>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 
-    <!-- Tasks & Queries -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Tasks</h5>
-                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">Manage</a>
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm xl:col-span-2">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-950">Recent Staff</h2>
+                    <p class="text-sm text-slate-500">Latest staff accounts added to the system.</p>
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Pending Tasks</span>
-                        <h5>{{ dashboard.pending_tasks }}</h5>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>In Progress</span>
-                        <h5 class="text-info">{{ dashboard.in_progress_tasks }}</h5>
-                    </div>
-                </div>
+                <a href="{{ url_for('hr.staff_list') }}" class="text-sm font-semibold text-blue-700 hover:text-blue-800">View All</a>
             </div>
-        </div>
 
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Staff Queries</h5>
-                    <a href="{{ url_for('hr.staff_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total Projects</span>
-                        <h5>{{ dashboard.total_projects }}</h5>
-                    </div>
-                    <hr>
-                    <a href="{{ url_for('hr.assignments') }}" class="btn btn-sm btn-primary w-100">
-                        <i class='bx bxs-briefcase'></i> View Assignments
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Activities -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Recent Activities</h5>
-        </div>
-        <div class="card-body">
-            {% if dashboard.recent_activities %}
-                <div class="timeline">
-                    {% for activity in dashboard.recent_activities %}
-                        <div class="timeline-item mb-3 pb-3 border-bottom">
-                            <div class="d-flex">
-                                <div class="timeline-marker">
-                                    <i class='bx bx-circle' style="font-size: 1.5rem; color: var(--primary-color);"></i>
-                                </div>
-                                <div class="timeline-content ms-3">
-                                    <h6 class="mb-1">{{ activity.title }}</h6>
-                                    <small class="text-muted">{{ activity.time }}</small>
-                                </div>
-                            </div>
+            <div class="mt-5 overflow-hidden rounded-lg border border-slate-200">
+                {% if dashboard.recent_staff %}
+                <div class="divide-y divide-slate-200">
+                    {% for staff in dashboard.recent_staff %}
+                    <div class="flex items-center justify-between gap-4 bg-white px-4 py-3">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-slate-950">{{ staff.name }}</p>
+                            <p class="truncate text-xs text-slate-500">{{ staff.email }}</p>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <span class="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 sm:inline-block">{{ staff.role.replace('_', ' ').title() }}</span>
+                            {% if staff.is_active %}
+                            <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Active</span>
+                            {% else %}
+                            <span class="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
                 </div>
-            {% else %}
-                <div class="alert alert-info">No recent activities</div>
-            {% endif %}
-        </div>
+                {% else %}
+                <div class="p-8 text-center text-sm text-slate-500">No staff records yet.</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="text-lg font-bold text-slate-950">Quick Actions</h2>
+            <div class="mt-5 grid gap-3">
+                <a href="{{ url_for('hr.import_staff') }}" class="flex items-center gap-3 rounded-lg border border-slate-200 p-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <i class="fas fa-file-import text-blue-700"></i>
+                    Import Staff
+                </a>
+                <a href="{{ url_for('hr.leave_management') }}" class="flex items-center gap-3 rounded-lg border border-slate-200 p-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <i class="fas fa-calendar-check text-amber-700"></i>
+                    Review Leave
+                </a>
+                <a href="{{ url_for('hr.payroll') }}" class="flex items-center gap-3 rounded-lg border border-slate-200 p-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <i class="fas fa-file-invoice-dollar text-emerald-700"></i>
+                    Payroll
+                </a>
+                <a href="{{ url_for('hr.reports') }}" class="flex items-center gap-3 rounded-lg border border-slate-200 p-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                    <i class="fas fa-file-lines text-cyan-700"></i>
+                    Reports
+                </a>
+            </div>
+        </section>
     </div>
 </div>
-
-<style>
-    .timeline {
-        position: relative;
-    }
-
-    .timeline-item {
-        position: relative;
-        padding-left: 0;
-    }
-
-    .timeline-marker {
-        flex-shrink: 0;
-    }
-
-    .stat-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    }
-</style>
 {% endblock %}

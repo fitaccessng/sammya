@@ -778,6 +778,14 @@ def hr_home():
         
         # Project Assignments
         total_assignments = ProjectStaff.query.filter_by(is_active=True).count()
+
+        today = date.today()
+        pending_leaves = LeaveRequest.query.filter_by(status='pending').count()
+        active_leaves = LeaveRequest.query.filter(
+            LeaveRequest.status == 'approved',
+            LeaveRequest.start_date <= today,
+            LeaveRequest.end_date >= today
+        ).count()
         
         # Recent staff
         recent_users = User.query.order_by(desc(User.created_at)).limit(5).all()
@@ -809,7 +817,26 @@ def hr_home():
     except Exception as e:
         current_app.logger.error(f"HR Dashboard Error: {str(e)}")
         flash("Error loading HR dashboard", "error")
-        return redirect(url_for('main.dashboard'))
+        return render_template('hr/index.html', dashboard={
+            'total_staff': 0,
+            'active_staff': 0,
+            'inactive_staff': 0,
+            'staff_by_role': [],
+            'total_projects': 0,
+            'active_projects': 0,
+            'total_assignments': 0,
+            'recent_staff': [],
+            'present_today': 0,
+            'absent_today': 0,
+            'late_today': 0,
+            'active_leaves': active_leaves,
+            'pending_leaves': pending_leaves,
+            'pending_payroll': 0,
+            'pending_tasks': 0,
+            'in_progress_tasks': 0,
+            'pending_queries': 0,
+            'recent_activities': []
+        })
 
 # ==================== STAFF MANAGEMENT ROUTES ====================
 
