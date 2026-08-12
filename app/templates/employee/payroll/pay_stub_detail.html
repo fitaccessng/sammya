@@ -100,22 +100,22 @@
             <div class="mb-8">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Deductions</h3>
                 <div class="space-y-3">
-                    {% if record.tax_amount > 0 %}
+                    {% if record.tax_deduction > 0 %}
                     <div class="flex justify-between text-sm">
                         <p class="text-gray-600">Income Tax</p>
-                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.tax_amount) }}</p>
+                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.tax_deduction) }}</p>
                     </div>
                     {% endif %}
-                    {% if record.pension_amount > 0 %}
+                    {% if record.pension_deduction > 0 %}
                     <div class="flex justify-between text-sm">
                         <p class="text-gray-600">Pension Contribution</p>
-                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.pension_amount) }}</p>
+                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.pension_deduction) }}</p>
                     </div>
                     {% endif %}
-                    {% if record.insurance_amount > 0 %}
+                    {% if record.insurance_deduction > 0 %}
                     <div class="flex justify-between text-sm">
                         <p class="text-gray-600">Insurance</p>
-                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.insurance_amount) }}</p>
+                        <p class="text-red-600 font-medium">-₦{{ "{:,.2f}".format(record.insurance_deduction) }}</p>
                     </div>
                     {% endif %}
                     {% if record.loan_deduction > 0 %}

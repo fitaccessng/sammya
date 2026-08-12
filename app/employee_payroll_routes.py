@@ -59,7 +59,7 @@ def payroll_dashboard():
         'gross': sum(r.gross_salary for r in ytd_records),
         'deductions': sum(r.total_deductions for r in ytd_records),
         'net': sum(r.net_salary for r in ytd_records),
-        'tax': sum(r.tax_amount for r in ytd_records),
+        'tax': sum(r.tax_deduction for r in ytd_records),
     }
     
     # Latest pay slip (most recent record)
@@ -262,11 +262,11 @@ def tax_summary():
         month = record.payroll_period
         monthly_tax[month] = {
             'gross': record.gross_salary,
-            'tax': record.tax_amount,
-            'effective_rate': (record.tax_amount / record.gross_salary * 100) if record.gross_salary > 0 else 0,
+            'tax': record.tax_deduction,
+            'effective_rate': (record.tax_deduction / record.gross_salary * 100) if record.gross_salary > 0 else 0,
         }
     
-    total_tax = sum(r.tax_amount for r in ytd_records)
+    total_tax = sum(r.tax_deduction for r in ytd_records)
     total_gross = sum(r.gross_salary for r in ytd_records)
     average_rate = (total_tax / total_gross * 100) if total_gross > 0 else 0
     
@@ -297,11 +297,11 @@ def deductions_breakdown():
     ).all()
     
     deduction_summary = {
-        'tax': sum(r.tax_amount for r in ytd_records),
-        'pension': sum(r.pension_amount for r in ytd_records),
-        'insurance': sum(r.insurance_amount for r in ytd_records),
+        'tax': sum(r.tax_deduction for r in ytd_records),
+        'pension': sum(r.pension_deduction for r in ytd_records),
+        'insurance': sum(r.insurance_deduction for r in ytd_records),
         'loan': sum(r.loan_deduction for r in ytd_records),
-        'other': sum(r.other_deduction for r in ytd_records),
+        'other': sum(r.other_deductions for r in ytd_records),
     }
     
     total_deductions = sum(deduction_summary.values())
@@ -353,8 +353,8 @@ def api_current_salary():
             'tax': float(mapping.tax_amount),
             'pension': float(mapping.pension_amount),
             'insurance': float(mapping.insurance_amount),
-            'loan': float(mapping.loan_deduction),
-            'other': float(mapping.other_deduction),
+            'loan': float(mapping.loan_amount),
+            'other': float(mapping.other_deductions),
         },
         'effective_date': mapping.effective_date.isoformat(),
     })
@@ -429,8 +429,8 @@ def api_monthly_breakdown():
             'basic': float(record.basic_salary),
             'allowances': float(record.gross_salary - record.basic_salary),
             'gross': float(record.gross_salary),
-            'tax': float(record.tax_amount),
-            'pension': float(record.pension_amount),
+            'tax': float(record.tax_deduction),
+            'pension': float(record.pension_deduction),
             'deductions': float(record.total_deductions),
             'net': float(record.net_salary),
         }

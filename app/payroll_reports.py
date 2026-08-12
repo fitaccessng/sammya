@@ -87,11 +87,11 @@ class PaySlipGenerator:
             # Deductions
             deductions_data = [
                 ['DEDUCTIONS', '', 'Amount'],
-                ['Income Tax', '', f"₦{record.tax_amount:,.2f}"],
-                ['Pension Contribution', '', f"₦{record.pension_amount:,.2f}"],
-                ['Insurance', '', f"₦{record.insurance_amount:,.2f}"],
+                ['Income Tax', '', f"₦{record.tax_deduction:,.2f}"],
+                ['Pension Contribution', '', f"₦{record.pension_deduction:,.2f}"],
+                ['Insurance', '', f"₦{record.insurance_deduction:,.2f}"],
                 ['Loan Deduction', '', f"₦{record.loan_deduction:,.2f}"],
-                ['Other Deduction', '', f"₦{record.other_deduction:,.2f}"],
+                ['Other Deduction', '', f"₦{record.other_deductions:,.2f}"],
                 ['', '', ''],
                 ['TOTAL DEDUCTIONS', '', f"₦{record.total_deductions:,.2f}"],
             ]
@@ -208,9 +208,9 @@ class PayrollSummaryReport:
             'total_meal_allowance': sum(r.meal_allowance for r in records),
             'total_allowances': total_allowances,
             'total_gross': total_gross,
-            'total_tax': sum(r.tax_amount for r in records),
-            'total_pension': sum(r.pension_amount for r in records),
-            'total_insurance': sum(r.insurance_amount for r in records),
+            'total_tax': sum(r.tax_deduction for r in records),
+            'total_pension': sum(r.pension_deduction for r in records),
+            'total_insurance': sum(r.insurance_deduction for r in records),
             'total_deductions': total_deductions,
             'total_net': total_net,
             'average_net': total_net / len(records) if records else 0,
@@ -284,7 +284,7 @@ class TaxReport:
                         f"{record.gross_salary - record.basic_salary:,.2f}",
                         f"{record.gross_salary:,.2f}",
                         f"{taxable_income:,.2f}",
-                        f"{record.tax_amount:,.2f}",
+                        f"{record.tax_deduction:,.2f}",
                         batch.payroll_period
                     ])
             
@@ -298,8 +298,8 @@ class TaxReport:
         """Generate tax summary statistics"""
         records = batch.payroll_records
         
-        total_tax = sum(r.tax_amount for r in records)
-        taxable_staff = len([r for r in records if r.tax_amount > 0])
+        total_tax = sum(r.tax_deduction for r in records)
+        taxable_staff = len([r for r in records if r.tax_deduction > 0])
         
         return {
             'payroll_period': batch.payroll_period,
@@ -341,7 +341,7 @@ class PensionReport:
                         record.user.email,
                         record.user.pension_id or 'N/A',
                         f"{record.basic_salary:,.2f}",
-                        f"{record.pension_amount:,.2f}",
+                        f"{record.pension_deduction:,.2f}",
                         batch.payroll_period
                     ])
             
@@ -382,7 +382,7 @@ class DepartmentalReport:
             departments[dept]['total_gross'] += record.gross_salary
             departments[dept]['total_deductions'] += record.total_deductions
             departments[dept]['total_net'] += record.net_salary
-            departments[dept]['total_tax'] += record.tax_amount
+            departments[dept]['total_tax'] += record.tax_deduction
         
         return departments
     

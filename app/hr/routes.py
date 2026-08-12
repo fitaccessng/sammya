@@ -407,6 +407,143 @@ def _parse_decimal_input(value):
     return _money(Decimal(normalized))
 
 
+def _format_money(value):
+    return f"{float(_money(value)):,.2f}"
+
+
+def _format_date(value):
+    return value.strftime('%Y-%m-%d') if value else 'N/A'
+
+
+def _build_salary_slip_data(staff):
+    """Build a complete HR salary slip from the latest payroll record or live inputs."""
+    from app.payroll_models import PayrollRecord
+
+    latest_record = PayrollRecord.query.filter_by(user_id=staff.id).order_by(
+        PayrollRecord.created_at.desc(),
+        PayrollRecord.id.desc()
+    ).first()
+    live_row = _build_staff_payroll_row(staff)
+    department = live_row.get('department') or (
+        staff.department_access[0].department if staff.department_access else 'Unassigned'
+    )
+    primary_nok = next((nok for nok in staff.next_of_kin if nok.is_primary), None)
+    if not primary_nok and staff.next_of_kin:
+        primary_nok = staff.next_of_kin[0]
+
+    if latest_record:
+        payroll_period = latest_record.payroll_period or 'Current'
+        batch = latest_record.batch
+        basic_salary = _d(latest_record.basic_salary)
+        allowances = [
+            ('House Allowance', latest_record.house_allowance),
+            ('Transport Allowance', latest_record.transport_allowance),
+            ('Meal Allowance', latest_record.meal_allowance),
+            ('Risk Allowance', latest_record.risk_allowance),
+            ('Performance Allowance', latest_record.performance_allowance),
+            ('Other Allowances', latest_record.other_allowances),
+        ]
+        gross_monthly = _d(latest_record.gross_salary)
+        total_allowances = _d(latest_record.total_allowances)
+        deductions = [
+            ('PAYE / Income Tax', latest_record.tax_deduction),
+            ('Employee Pension', latest_record.pension_deduction),
+            ('NHIS / Insurance', latest_record.insurance_deduction),
+            ('Loan Deduction', latest_record.loan_deduction),
+            ('Other Deductions', latest_record.other_deductions),
+        ]
+        total_deductions = _d(latest_record.total_deductions)
+        net_salary = _d(latest_record.net_salary)
+        annual_gross = _money(gross_monthly * 12)
+        annual_pension_employee = _money(_d(latest_record.pension_deduction) * 12)
+        annual_nhis = _money(_d(latest_record.insurance_deduction) * 12)
+        annual_nhf = _money(live_row.get('annual_nhf'))
+        taxable_income_annual = _money(live_row.get('taxable_income_annual'))
+        paye_annual = _money(_d(latest_record.tax_deduction) * 12)
+        employer_pension_annual = _money(basic_salary * 12 * NIGERIA_PAYROLL_RULES_2026['employer_pension_rate'])
+        payment = {
+            'bank_name': latest_record.bank_name or 'N/A',
+            'bank_account': latest_record.bank_account or 'N/A',
+            'status': latest_record.payment_status or 'pending',
+            'reference': latest_record.payment_reference or 'N/A',
+        }
+    else:
+        payroll_period = 'Current'
+        batch = None
+        basic_salary = _d(live_row.get('basic_salary'))
+        allowances = [
+            ('Housing Allowance', live_row.get('housing')),
+            ('Transport Allowance', live_row.get('transport')),
+            ('Utility Allowance', live_row.get('utility')),
+            ('Meal Allowance', live_row.get('meal')),
+            ('Medical Allowance', live_row.get('medical')),
+        ]
+        gross_monthly = _d(live_row.get('gross_monthly'))
+        total_allowances = _money(gross_monthly - basic_salary)
+        deductions = [
+            ('PAYE / Income Tax', live_row.get('paye_monthly')),
+            ('Employee Pension', _money(_d(live_row.get('annual_pension_employee')) / 12)),
+            ('NHF', _money(_d(live_row.get('annual_nhf')) / 12)),
+            ('NHIS', _money(_d(live_row.get('annual_nhis')) / 12)),
+            ('Other Deductions', live_row.get('other_deductions_monthly')),
+        ]
+        total_deductions = _d(live_row.get('total_deductions_monthly'))
+        net_salary = _d(live_row.get('net_monthly'))
+        annual_gross = _d(live_row.get('annual_gross'))
+        annual_pension_employee = _d(live_row.get('annual_pension_employee'))
+        annual_nhis = _d(live_row.get('annual_nhis'))
+        annual_nhf = _d(live_row.get('annual_nhf'))
+        taxable_income_annual = _d(live_row.get('taxable_income_annual'))
+        paye_annual = _d(live_row.get('paye_annual'))
+        employer_pension_annual = _d(live_row.get('annual_pension_employer'))
+        payment = {
+            'bank_name': 'N/A',
+            'bank_account': 'N/A',
+            'status': 'pending',
+            'reference': 'N/A',
+        }
+
+    return {
+        'id': staff.id,
+        'name': staff.name,
+        'email': staff.email,
+        'phone': staff.phone or 'N/A',
+        'employee_id': staff.employee_id or 'N/A',
+        'role': staff.role or 'N/A',
+        'department': department,
+        'gender': staff.gender or 'N/A',
+        'date_of_birth': _format_date(staff.date_of_birth),
+        'date_of_employment': _format_date(staff.date_of_employment),
+        'payroll_period': payroll_period,
+        'batch_name': batch.batch_name if batch else 'Not generated',
+        'batch_status': batch.status.value if batch and hasattr(batch.status, 'value') else (batch.status if batch else 'draft'),
+        'date_generated': datetime.now().strftime('%Y-%m-%d'),
+        'basic_salary': _format_money(basic_salary),
+        'allowances': [(label, _format_money(amount)) for label, amount in allowances if _d(amount) > 0],
+        'deductions_list': [(label, _format_money(amount)) for label, amount in deductions if _d(amount) > 0],
+        'total_allowances': _format_money(total_allowances),
+        'gross_salary': _format_money(gross_monthly),
+        'total_deductions': _format_money(total_deductions),
+        'net_salary': _format_money(net_salary),
+        'annual_gross': _format_money(annual_gross),
+        'annual_pension_employee': _format_money(annual_pension_employee),
+        'annual_pension_employer': _format_money(employer_pension_annual),
+        'annual_nhis': _format_money(annual_nhis),
+        'annual_nhf': _format_money(annual_nhf),
+        'house_rent_relief_annual': _format_money(NIGERIA_PAYROLL_RULES_2026['house_rent_relief_annual']),
+        'tax_relief_annual': _format_money(NIGERIA_PAYROLL_RULES_2026['tax_relief_annual']),
+        'taxable_income_annual': _format_money(taxable_income_annual),
+        'paye_annual': _format_money(paye_annual),
+        'payment': payment,
+        'next_of_kin': {
+            'name': primary_nok.full_name if primary_nok else 'N/A',
+            'relationship': primary_nok.relationship if primary_nok else 'N/A',
+            'phone': primary_nok.phone if primary_nok else 'N/A',
+            'email': primary_nok.email if primary_nok else 'N/A',
+        },
+    }
+
+
 def _normalize_upload_key(name):
     return ''.join(ch for ch in str(name or '').lower() if ch.isalnum())
 
@@ -2842,16 +2979,7 @@ def view_salary_slip(staff_id):
     """View salary slip for staff"""
     try:
         staff = User.query.get_or_404(staff_id)
-        
-        slip_data = {
-            'id': staff.id,
-            'name': staff.name,
-            'email': staff.email,
-            'date_generated': datetime.now().strftime('%Y-%m-%d'),
-            'basic_salary': f"{float(staff.basic_salary or 0):,.2f}",
-            'deductions': f"{float(staff.default_deductions or 0):,.2f}",
-            'net_salary': f"{(float(staff.basic_salary or 0) - float(staff.default_deductions or 0)):,.2f}"
-        }
+        slip_data = _build_salary_slip_data(staff)
         
         return render_template('hr/payroll/slip.html', slip=slip_data)
     except Exception as e:

@@ -140,9 +140,9 @@ class GLPostingEngine:
             total_performance = sum(r.performance_allowance for r in records)
             total_gross = sum(r.gross_salary for r in records)
             
-            total_tax = sum(r.tax_amount for r in records)
-            total_pension = sum(r.pension_amount for r in records)
-            total_insurance = sum(r.insurance_amount for r in records)
+            total_tax = sum(r.tax_deduction for r in records)
+            total_pension = sum(r.pension_deduction for r in records)
+            total_insurance = sum(r.insurance_deduction for r in records)
             total_loan = sum(r.loan_deduction for r in records)
             total_deductions = sum(r.total_deductions for r in records)
             total_net = sum(r.net_salary for r in records)

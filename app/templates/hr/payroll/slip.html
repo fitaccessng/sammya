@@ -8,108 +8,183 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-lg-8 offset-lg-2">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Salary Slip</h5>
-                    <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
-                        <i class='bx bxs-printer'></i> Print
-                    </button>
+<style>
+    .payslip-shell { max-width: 1100px; margin: 0 auto; }
+    .payslip-card { border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08); overflow: hidden; }
+    .payslip-header { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 24px; }
+    .payslip-title { color: #111827; font-weight: 800; margin: 0; }
+    .info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .info-box { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; min-height: 72px; }
+    .info-box small { display: block; color: #64748b; font-weight: 700; text-transform: uppercase; font-size: 11px; margin-bottom: 4px; }
+    .info-box strong { color: #0f172a; font-size: 14px; overflow-wrap: anywhere; }
+    .section-title { font-size: 15px; font-weight: 800; color: #111827; margin-bottom: 12px; }
+    .money-table th, .money-table td { vertical-align: middle; }
+    .money-table td:last-child, .money-table th:last-child { text-align: right; white-space: nowrap; }
+    .net-panel { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px 20px; }
+    .net-panel strong { font-size: 28px; color: #1d4ed8; }
+    @media (max-width: 992px) { .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 576px) {
+        .info-grid { grid-template-columns: 1fr; }
+        .payslip-header { padding: 18px; }
+        .net-panel strong { font-size: 22px; }
+    }
+    @media print {
+        .no-print, .sidebar, nav, header { display: none !important; }
+        .container-fluid { padding: 0 !important; }
+        .payslip-card { box-shadow: none; border-color: #cbd5e1; }
+    }
+</style>
+
+<div class="container-fluid py-3">
+    <div class="payslip-shell">
+        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+            <div>
+                <h4 class="mb-1">Salary Slip</h4>
+                <p class="text-muted mb-0">Complete payroll details for {{ slip.name }}</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class='bx bxs-printer'></i> Print
+                </button>
+                <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
+                    <i class='bx bxs-left-arrow'></i> Back
+                </a>
+            </div>
+        </div>
+
+        <div class="card payslip-card">
+            <div class="payslip-header">
+                <div class="d-flex flex-wrap justify-content-between gap-3">
+                    <div>
+                        <h2 class="payslip-title">Sammya ERP</h2>
+                        <p class="text-muted mb-0">Employee Payslip</p>
+                    </div>
+                    <div class="text-md-end">
+                        <div class="fw-bold text-dark">Period: {{ slip.payroll_period }}</div>
+                        <div class="text-muted small">Generated: {{ slip.date_generated }}</div>
+                        <div class="text-muted small">Batch: {{ slip.batch_name }} / {{ slip.batch_status }}</div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <!-- Slip Header -->
-                    <div class="text-center mb-4 pb-3 border-bottom">
-                        <h4>FitAccess</h4>
-                        <p class="text-muted">Salary Slip</p>
-                        <small class="text-muted">{{ slip.date_generated }}</small>
-                    </div>
+            </div>
 
-                    <!-- Staff Information -->
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Staff Name</label>
-                            <p class="h6">{{ slip.name }}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-muted">Email</label>
-                            <p class="h6">{{ slip.email }}</p>
-                        </div>
-                    </div>
+            <div class="card-body p-4">
+                <div class="info-grid mb-4">
+                    <div class="info-box"><small>Staff Name</small><strong>{{ slip.name }}</strong></div>
+                    <div class="info-box"><small>Employee ID</small><strong>{{ slip.employee_id }}</strong></div>
+                    <div class="info-box"><small>Email</small><strong>{{ slip.email }}</strong></div>
+                    <div class="info-box"><small>Phone</small><strong>{{ slip.phone }}</strong></div>
+                    <div class="info-box"><small>Department</small><strong>{{ slip.department }}</strong></div>
+                    <div class="info-box"><small>Role</small><strong>{{ slip.role }}</strong></div>
+                    <div class="info-box"><small>Gender</small><strong>{{ slip.gender }}</strong></div>
+                    <div class="info-box"><small>Date Employed</small><strong>{{ slip.date_of_employment }}</strong></div>
+                </div>
 
-                    <!-- Salary Details -->
-                    <div class="table-responsive mb-4">
-                        <table class="table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Earnings</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Basic Salary</strong></td>
-                                    <td>₦{{ slip.basic_salary }}</td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td><strong>Total Earnings</strong></td>
-                                    <td><strong>₦{{ slip.basic_salary }}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <!-- Deductions -->
-                    <div class="table-responsive mb-4">
-                        <table class="table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Deductions</th>
-                                    <th>Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>Standard Deductions</td>
-                                    <td>₦{{ slip.deductions }}</td>
-                                </tr>
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-light">
-                                    <td><strong>Total Deductions</strong></td>
-                                    <td><strong>₦{{ slip.deductions }}</strong></td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-
-                    <!-- Net Salary -->
-                    <div class="alert alert-info">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Net Salary (After Deductions)</strong>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <strong>₦{{ slip.net_salary }}</strong>
-                            </div>
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="section-title">Earnings</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm money-table">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Basic Salary</strong></td>
+                                        <td>₦{{ slip.basic_salary }}</td>
+                                    </tr>
+                                    {% for label, amount in slip.allowances %}
+                                    <tr>
+                                        <td>{{ label }}</td>
+                                        <td>₦{{ amount }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Total Allowances</th>
+                                        <th>₦{{ slip.total_allowances }}</th>
+                                    </tr>
+                                    <tr>
+                                        <th>Gross Salary</th>
+                                        <th>₦{{ slip.gross_salary }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </div>
                     </div>
 
-                    <!-- Actions -->
-                    <div class="d-flex gap-2 mt-4">
-                        <button class="btn btn-primary" onclick="window.print()">
-                            <i class='bx bxs-printer'></i> Print Slip
-                        </button>
-                        <button class="btn btn-outline-primary" onclick="window.print()">
-                            <i class='bx bxs-download'></i> Download PDF
-                        </button>
-                        <a href="{{ url_for('hr.payroll') }}" class="btn btn-secondary">
-                            <i class='bx bxs-left-arrow'></i> Back
-                        </a>
+                    <div class="col-lg-6">
+                        <h6 class="section-title">Deductions</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm money-table">
+                                <tbody>
+                                    {% if slip.deductions_list %}
+                                        {% for label, amount in slip.deductions_list %}
+                                        <tr>
+                                            <td>{{ label }}</td>
+                                            <td class="text-danger">₦{{ amount }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td>No deductions recorded</td>
+                                            <td>₦0.00</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Total Deductions</th>
+                                        <th class="text-danger">₦{{ slip.total_deductions }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
+                </div>
+
+                <div class="net-panel d-flex flex-wrap justify-content-between align-items-center gap-2 my-4">
+                    <div>
+                        <div class="fw-bold text-primary">Net Salary Payable</div>
+                        <div class="text-muted small">Gross salary less deductions and adjustments</div>
+                    </div>
+                    <strong>₦{{ slip.net_salary }}</strong>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <h6 class="section-title">Annual Tax Summary</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm money-table">
+                                <tbody>
+                                    <tr><td>Annual Gross</td><td>₦{{ slip.annual_gross }}</td></tr>
+                                    <tr><td>Employee Pension Annual</td><td>₦{{ slip.annual_pension_employee }}</td></tr>
+                                    <tr><td>Employer Pension Annual</td><td>₦{{ slip.annual_pension_employer }}</td></tr>
+                                    <tr><td>Annual NHF</td><td>₦{{ slip.annual_nhf }}</td></tr>
+                                    <tr><td>Annual NHIS</td><td>₦{{ slip.annual_nhis }}</td></tr>
+                                    <tr><td>House Rent Relief</td><td>₦{{ slip.house_rent_relief_annual }}</td></tr>
+                                    <tr><td>Tax Relief</td><td>₦{{ slip.tax_relief_annual }}</td></tr>
+                                    <tr><td>Taxable Income Annual</td><td>₦{{ slip.taxable_income_annual }}</td></tr>
+                                    <tr><td>PAYE Annual</td><td>₦{{ slip.paye_annual }}</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <h6 class="section-title">Payment And Next Of Kin</h6>
+                        <div class="info-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+                            <div class="info-box"><small>Bank Name</small><strong>{{ slip.payment.bank_name }}</strong></div>
+                            <div class="info-box"><small>Bank Account</small><strong>{{ slip.payment.bank_account }}</strong></div>
+                            <div class="info-box"><small>Payment Status</small><strong>{{ slip.payment.status }}</strong></div>
+                            <div class="info-box"><small>Payment Reference</small><strong>{{ slip.payment.reference }}</strong></div>
+                            <div class="info-box"><small>NOK Name</small><strong>{{ slip.next_of_kin.name }}</strong></div>
+                            <div class="info-box"><small>NOK Relationship</small><strong>{{ slip.next_of_kin.relationship }}</strong></div>
+                            <div class="info-box"><small>NOK Phone</small><strong>{{ slip.next_of_kin.phone }}</strong></div>
+                            <div class="info-box"><small>NOK Email</small><strong>{{ slip.next_of_kin.email }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top text-center text-muted small">
+                    This payslip was generated electronically from Sammya ERP payroll records.
                 </div>
             </div>
         </div>
