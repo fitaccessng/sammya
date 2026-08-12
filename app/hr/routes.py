@@ -66,12 +66,12 @@ def _staff_form_data():
         'managers': User.query.filter_by(is_active=True).order_by(User.name).all(),
         'role_options': _staff_role_options(),
         'template_headers': [
-            'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
+            'last_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
             'employee_id', 'department', 'position', 'employment_type', 'joining_date',
             'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
             'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
-            'deduction_type_1', 'deduction_amount_1', 'deduction_type_2',
-            'deduction_amount_2', 'Net'
+            'deduction_type_1', ' deduction_amount_1 ', 'deduction_type_2',
+            ' deduction_amount_2 ', ' Net '
         ]
     }
 
@@ -107,21 +107,20 @@ PAYROLL_COMPONENT_ALLOCATION = {
 }
 
 NIGERIA_PAYROLL_RULES_2026 = {
-    'employee_pension_rate': Decimal('0.08'),
+    'employee_pension_rate': Decimal('0.10'),
     'employer_pension_rate': Decimal('0.10'),
-    'nhf_rate': Decimal('0.025'),
+    'nhf_rate': Decimal('0.02'),
     'nhis_rate': Decimal('0.02'),
     'house_rent_relief_annual': Decimal('500000'),
     'tax_relief_annual': Decimal('800000'),
-    'minimum_tax_rate': Decimal('0.01'),
 }
 
 PITA_PROGRESSIVE_BANDS = [
-    (Decimal('300000'), Decimal('0.07')),
-    (Decimal('300000'), Decimal('0.11')),
-    (Decimal('500000'), Decimal('0.15')),
-    (Decimal('500000'), Decimal('0.19')),
-    (Decimal('1600000'), Decimal('0.21')),
+    (Decimal('800000'), Decimal('0')),
+    (Decimal('2200000'), Decimal('0.15')),
+    (Decimal('9000000'), Decimal('0.18')),
+    (Decimal('13000000'), Decimal('0.21')),
+    (Decimal('25000000'), Decimal('0.23')),
 ]
 
 
@@ -147,10 +146,9 @@ def _calc_paye_annual(taxable_income_annual, annual_gross):
         remaining -= taxable_in_band
 
     if remaining > 0:
-        tax_due += remaining * Decimal('0.24')
+        tax_due += remaining * Decimal('0.25')
 
-    minimum_tax = gross * NIGERIA_PAYROLL_RULES_2026['minimum_tax_rate']
-    return _money(max(tax_due, minimum_tax if gross > 0 else Decimal('0')))
+    return _money(tax_due if gross > 0 else Decimal('0'))
 
 
 def _extract_manual_deductions(compensation):
@@ -226,13 +224,13 @@ def _build_staff_payroll_row(staff):
     basic, housing, transport, utility, meal, medical, gross = _resolve_allowance_components(staff, compensation)
     manual, has_override, other_deductions_monthly = _extract_manual_deductions(compensation)
 
-    pensionable_monthly = _money(basic + housing + transport)
+    pensionable_monthly = basic
     annual_gross = _money(gross * 12)
 
     pension_employer_annual = _money((pensionable_monthly * 12) * NIGERIA_PAYROLL_RULES_2026['employer_pension_rate'])
     pension_employee_annual = _money((pensionable_monthly * 12) * NIGERIA_PAYROLL_RULES_2026['employee_pension_rate'])
     nhf_annual = _money((basic * 12) * NIGERIA_PAYROLL_RULES_2026['nhf_rate'])
-    nhis_annual = _money(annual_gross * NIGERIA_PAYROLL_RULES_2026['nhis_rate'])
+    nhis_annual = _money((basic * 12) * NIGERIA_PAYROLL_RULES_2026['nhis_rate'])
 
     if has_override['pension_employee']:
         pension_employee_annual = _money(manual['pension_employee'] * 12)
@@ -3361,37 +3359,31 @@ def download_import_template():
         import pandas as pd
         from datetime import datetime
         
-        # Create sample data using the staff-list template layout.
-        template_data = {
-            'first_name': ['John', 'Jane'],
-            'last_name': ['Doe', 'Smith'],
-            'email': ['john.doe@company.com', 'jane.smith@company.com'],
-            'phone_number': ['+234-801-234-5678', '+234-802-345-6789'],
-            'date_of_birth': ['1990-01-15', '1992-03-22'],
-            'gender': ['Male', 'Female'],
-            'employee_id': ['EMP001', 'EMP002'],
-            'department': ['HR', 'Finance'],
-            'position': ['HR Manager', 'Finance Officer'],
-            'employment_type': ['Full-time', 'Full-time'],
-            'joining_date': ['2026-01-15', '2026-02-01'],
-            'basic_salary': [150000, 120000],
-            'nok_full_name': ['Mary Doe', 'Tom Smith'],
-            'nok_relationship': ['Spouse', 'Parent'],
-            'nok_phone': ['+234-801-111-2222', '+234-802-333-4444'],
-            'nok_email': ['mary.doe@example.com', 'tom.smith@example.com'],
-            'nok_address': ['Lagos', 'Abuja'],
-            'nok_city': ['Lagos', 'Abuja'],
-            'nok_state': ['Lagos', 'FCT'],
-            'nok_is_primary': ['yes', 'yes'],
-            'allowances': [20000, 15000],
-            'deduction_type_1': ['Tax', 'Tax'],
-            'deduction_amount_1': [5000, 4000],
-            'deduction_type_2': ['Pension', 'Pension'],
-            'deduction_amount_2': [8000, 6500],
-            'Net': [157000, 124500]
-        }
+        # Keep the visible headers exactly like the submitted Sammya staff sheet.
+        template_headers = [
+            'last_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
+            'employee_id', 'department', 'position', 'employment_type', 'joining_date',
+            'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+            'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
+            'deduction_type_1', ' deduction_amount_1 ', 'deduction_type_2',
+            ' deduction_amount_2 ', ' Net '
+        ]
+        template_rows = [
+            [
+                'John', 'Doe', 'john.doe@company.com', '+234-801-234-5678', '1990-01-15',
+                'Male', 'EMP001', 'HR', 'HR Manager', 'Full-time', '2026-01-15',
+                150000, 'Mary Doe', 'Spouse', '+234-801-111-2222', 'mary.doe@example.com',
+                'Lagos', 'Lagos', 'Lagos', 'yes', 20000, 'PAYE', 0, 'Pension', 15000, 155000
+            ],
+            [
+                'Jane', 'Smith', 'jane.smith@company.com', '+234-802-345-6789', '1992-03-22',
+                'Female', 'EMP002', 'Finance', 'Finance Officer', 'Full-time', '2026-02-01',
+                120000, 'Tom Smith', 'Parent', '+234-802-333-4444', 'tom.smith@example.com',
+                'Abuja', 'Abuja', 'FCT', 'yes', 15000, 'PAYE', 0, 'Pension', 12000, 123000
+            ]
+        ]
         
-        df = pd.DataFrame(template_data)
+        df = pd.DataFrame(template_rows, columns=template_headers)
         
         # Create Excel file in memory
         output = io.BytesIO()

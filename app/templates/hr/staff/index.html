@@ -196,30 +196,18 @@
                     </div>
 
                     <div class="alert alert-info" role="alert">
-                        <h6 class="alert-heading mb-2">Required Column Headers:</h6>
-                        <div class="row small">
-                            <div class="col-md-6">
-                                <strong>Personal Information:</strong>
-                                <ul class="mb-2">
-                                    <li><code>first_name</code></li>
-                                    <li><code>last_name</code></li>
-                                    <li><code>email</code></li>
-                                    <li><code>phone_number</code></li>
-                                    <li><code>date_of_birth</code> (YYYY-MM-DD)</li>
-                                    <li><code>gender</code></li>
-                                </ul>
-                            </div>
-                            <div class="col-md-6">
-                                <strong>Employment Information:</strong>
-                                <ul class="mb-2">
-                                    <li><code>employee_id</code></li>
-                                    <li><code>department</code></li>
-                                    <li><code>position</code></li>
-                                    <li><code>employment_type</code></li>
-                                    <li><code>joining_date</code> (YYYY-MM-DD)</li>
-                                    <li><code>basic_salary</code></li>
-                                </ul>
-                            </div>
+                        <h6 class="alert-heading mb-2">Template Heading Order:</h6>
+                        <div class="d-flex flex-wrap gap-2 small">
+                            {% for header in [
+                                'last_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'gender',
+                                'employee_id', 'department', 'position', 'employment_type', 'joining_date',
+                                'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+                                'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
+                                'deduction_type_1', ' deduction_amount_1 ', 'deduction_type_2',
+                                ' deduction_amount_2 ', ' Net '
+                            ] %}
+                                <code class="bg-white border rounded px-2 py-1">{{ header }}</code>
+                            {% endfor %}
                         </div>
                     </div>
 
