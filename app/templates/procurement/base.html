@@ -233,7 +233,7 @@
 
             <section class="p-4 md:p-8">
                 {% block top_actions %}{% endblock %}
-                {% block main_content %}{% endblock %}
+                {% block main_content %}{% block content %}{% endblock %}{% endblock %}
             </section>
         </main>
     </div>

@@ -259,7 +259,7 @@
 
             <!-- Main Workspace Block -->
             <section class="p-4 md:p-8">
-                {% block qs_content %}{% endblock %}
+                {% block qs_content %}{% block content %}{% endblock %}{% endblock %}
             </section>
 
             <!-- Footer -->

@@ -290,7 +290,7 @@
 
             <!-- Page Content Area -->
             <div class="px-6 pb-8">
-                {% block finance_content %}{% endblock %}
+                {% block finance_content %}{% block content %}{% endblock %}{% endblock %}
             </div>
         </main>
 
