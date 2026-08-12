@@ -98,6 +98,101 @@
         {% endif %}
     </div>
 
+    <!-- Submitted Entity Details -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-slate-900">
+                    <i class="fas fa-database mr-2"></i>Complete Submitted Details
+                </h2>
+                <p class="text-sm text-slate-600 mt-1">{{ entity_detail.title }}</p>
+            </div>
+            {% if entity_detail.found %}
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Record Found</span>
+            {% else %}
+                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Details Limited</span>
+            {% endif %}
+        </div>
+
+        {% if entity_detail.message %}
+            <div class="p-6">
+                <div class="p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-sm">
+                    {{ entity_detail.message }}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if entity_detail.fields %}
+            <div class="p-6">
+                <h3 class="text-sm font-semibold text-slate-900 mb-3">Main Record Fields</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {% for field in entity_detail.fields %}
+                        <div class="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                            <div class="text-xs font-semibold uppercase text-slate-500">{{ field.label }}</div>
+                            <div class="mt-1 text-sm text-slate-900 break-words">{{ field.value }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if entity_detail.related_sections %}
+            <div class="border-t border-slate-200 p-6 space-y-6">
+                <h3 class="text-sm font-semibold text-slate-900">Linked Records And Line Items</h3>
+                {% for section in entity_detail.related_sections %}
+                    <div class="border border-slate-200 rounded-lg overflow-hidden">
+                        <div class="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                            <h4 class="font-semibold text-slate-900">{{ section.title }} ({{ section.items|length }})</h4>
+                        </div>
+                        <div class="divide-y divide-slate-200">
+                            {% for item in section.items %}
+                                <details class="p-4" {% if loop.first %}open{% endif %}>
+                                    <summary class="cursor-pointer font-semibold text-slate-800">{{ item.title }}</summary>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 mt-4">
+                                        {% for field in item.fields %}
+                                            <div class="rounded border border-slate-200 p-3">
+                                                <div class="text-xs font-semibold uppercase text-slate-500">{{ field.label }}</div>
+                                                <div class="mt-1 text-sm text-slate-900 break-words">{{ field.value }}</div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </details>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if entity_detail.approval_history %}
+            <div class="border-t border-slate-200 p-6">
+                <h3 class="text-sm font-semibold text-slate-900 mb-3">Approval History For This Submission</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead class="bg-slate-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left font-semibold text-slate-700">Time</th>
+                                <th class="px-4 py-2 text-left font-semibold text-slate-700">Action</th>
+                                <th class="px-4 py-2 text-left font-semibold text-slate-700">Actor</th>
+                                <th class="px-4 py-2 text-left font-semibold text-slate-700">Comment</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            {% for history in entity_detail.approval_history %}
+                                <tr>
+                                    <td class="px-4 py-2 text-slate-700">{{ history.timestamp.strftime('%d %b %Y %H:%M') if history.timestamp else 'N/A' }}</td>
+                                    <td class="px-4 py-2 text-slate-900 font-semibold">{{ history.action|replace('_', ' ')|title }}</td>
+                                    <td class="px-4 py-2 text-slate-700">{{ history.actor.name if history.actor else 'Unknown' }}</td>
+                                    <td class="px-4 py-2 text-slate-700">{{ history.comment or 'N/A' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
     <!-- Messages Section -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">

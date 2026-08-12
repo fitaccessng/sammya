@@ -15,9 +15,167 @@ from app.excel_import import StaffImportManager
 from app.utils import ROLE_GROUPS, normalize_role, valid_signup_roles
 from datetime import datetime, timedelta
 from sqlalchemy import desc, func
+from sqlalchemy.inspection import inspect as sa_inspect
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
+
+
+def _format_admin_value(value):
+    """Format values for admin review tables without losing raw meaning."""
+    if value is None:
+        return 'N/A'
+    if hasattr(value, 'value'):
+        return str(value.value).replace('_', ' ').title()
+    if isinstance(value, datetime):
+        return value.strftime('%d %b %Y %H:%M')
+    if hasattr(value, 'strftime'):
+        return value.strftime('%d %b %Y')
+    return value
+
+
+def _humanize_field_name(name):
+    return str(name or '').replace('_', ' ').title()
+
+
+def _model_fields(obj):
+    fields = []
+    if not obj:
+        return fields
+    mapper = sa_inspect(obj.__class__)
+    for column in mapper.columns:
+        fields.append({
+            'label': _humanize_field_name(column.key),
+            'name': column.key,
+            'value': _format_admin_value(getattr(obj, column.key, None)),
+        })
+    return fields
+
+
+def _relation_preview(obj, relation_name, limit=100):
+    if not obj or not hasattr(obj, relation_name):
+        return []
+    relation = getattr(obj, relation_name)
+    if relation is None:
+        return []
+    if hasattr(relation, 'limit') and hasattr(relation, 'all'):
+        rows = relation.limit(limit).all()
+    elif isinstance(relation, list):
+        rows = relation[:limit]
+    else:
+        rows = [relation]
+    return [
+        {
+            'title': f'{row.__class__.__name__} #{getattr(row, "id", "")}'.strip(),
+            'fields': _model_fields(row),
+        }
+        for row in rows
+    ]
+
+
+def _approval_entity_model_map():
+    from app.models import (
+        MaterialRequest, PurchaseOrder, QCInspection, PaymentRequest, ChangeOrder,
+        BOQItem, Expense, Project, ProjectPaymentRequest, StaffImportBatch,
+        StaffImportItem, PaymentRecord, BankReconciliation, ChartOfAccount,
+        LedgerEntry, RevenueSale
+    )
+    from app.payroll_models import PayrollBatch, PayrollRecord
+
+    return {
+        'material_request': MaterialRequest,
+        'materialrequest': MaterialRequest,
+        'pr': MaterialRequest,
+        'purchase_order': PurchaseOrder,
+        'purchaseorder': PurchaseOrder,
+        'po': PurchaseOrder,
+        'qc_inspection': QCInspection,
+        'qcinspection': QCInspection,
+        'payment_request': PaymentRequest,
+        'paymentrequest': PaymentRequest,
+        'payment': PaymentRequest,
+        'project_payment_request': ProjectPaymentRequest,
+        'projectpaymentrequest': ProjectPaymentRequest,
+        'change_order': ChangeOrder,
+        'changeorder': ChangeOrder,
+        'variation': ChangeOrder,
+        'boq_item': BOQItem,
+        'boqitem': BOQItem,
+        'expense': Expense,
+        'project': Project,
+        'staff_import_batch': StaffImportBatch,
+        'staffimportbatch': StaffImportBatch,
+        'staff_import_item': StaffImportItem,
+        'staffimportitem': StaffImportItem,
+        'payroll': PayrollBatch,
+        'payroll_batch': PayrollBatch,
+        'payrollbatch': PayrollBatch,
+        'batch': PayrollBatch,
+        'payroll_record': PayrollRecord,
+        'payrollrecord': PayrollRecord,
+        'record': PayrollRecord,
+        'payment_record': PaymentRecord,
+        'paymentrecord': PaymentRecord,
+        'bankreconciliation': BankReconciliation,
+        'bank_reconciliation': BankReconciliation,
+        'chart_of_account': ChartOfAccount,
+        'chartofaccount': ChartOfAccount,
+        'manual_ledger': LedgerEntry,
+        'ledger_entry': LedgerEntry,
+        'ledgerentry': LedgerEntry,
+        'revenue_sale': RevenueSale,
+        'revenuesale': RevenueSale,
+    }
+
+
+def _resolve_approval_entity_detail(log):
+    """Load the complete submitted entity for an approval log."""
+    normalized_type = str(log.entity_type or '').strip().lower().replace('-', '_')
+    model = _approval_entity_model_map().get(normalized_type) or _approval_entity_model_map().get(normalized_type.replace('_', ''))
+    if not model:
+        return {
+            'found': False,
+            'title': f'{log.entity_type} #{log.entity_id}',
+            'message': 'No detailed model mapping exists for this approval type yet.',
+            'fields': [],
+            'related_sections': [],
+        }
+
+    obj = model.query.get(log.entity_id)
+    if not obj:
+        return {
+            'found': False,
+            'title': f'{model.__name__} #{log.entity_id}',
+            'message': 'The submitted record could not be found. It may have been deleted or migrated.',
+            'fields': [],
+            'related_sections': [],
+        }
+
+    related_sections = []
+    relationship_names = [rel.key for rel in sa_inspect(obj.__class__).relationships]
+    for relation_name in relationship_names:
+        if relation_name in {'approval_logs', 'approvals', 'audit_logs'}:
+            continue
+        rows = _relation_preview(obj, relation_name)
+        if rows:
+            related_sections.append({
+                'title': _humanize_field_name(relation_name),
+                'items': rows,
+            })
+
+    approval_history = ApprovalLog.query.filter_by(
+        entity_type=log.entity_type,
+        entity_id=log.entity_id
+    ).order_by(ApprovalLog.timestamp.desc()).all()
+
+    return {
+        'found': True,
+        'title': f'{model.__name__} #{getattr(obj, "id", log.entity_id)}',
+        'message': '',
+        'fields': _model_fields(obj),
+        'related_sections': related_sections,
+        'approval_history': approval_history,
+    }
 
 
 @bp.route('/dashboard')
@@ -43,12 +201,17 @@ def dashboard():
     
     # Get pending approvals by type
     pending_count = {}
-    from app.models import MaterialRequest, PurchaseOrder, QCInspection, PaymentRequest, ApprovalState
+    from app.models import MaterialRequest, PurchaseOrder, QCInspection, PaymentRequest, ChangeOrder, ProjectPaymentRequest, ApprovalState
+    from app.payroll_models import PayrollBatch, PayrollStatus
     pending_count['pr'] = MaterialRequest.query.filter_by(approval_state=ApprovalState.PENDING).count()
     pending_count['po'] = PurchaseOrder.query.filter_by(approval_state=ApprovalState.PENDING).count()
     pending_count['qc'] = QCInspection.query.filter_by(approval_state=ApprovalState.PENDING).count()
     pending_count['payment'] = PaymentRequest.query.filter_by(approval_state=ApprovalState.PENDING).count()
     pending_count['staff_import'] = StaffImportBatch.query.filter_by(approval_state=ApprovalState.PENDING).count()
+    pending_count['payroll'] = PayrollBatch.query.filter_by(status=PayrollStatus.HR_APPROVED).count()
+    pending_count['qs_variation'] = ChangeOrder.query.filter_by(approval_state=ApprovalState.PENDING).count()
+    pending_count['project_payment'] = ProjectPaymentRequest.query.filter_by(approval_state='pending').count()
+    pending_count['total'] = sum(pending_count.values())
     
     # Budget overview
     projects = Project.query.all()
@@ -698,9 +861,16 @@ def approval_log_detail(log_id):
     
     # Get list of users for message recipients
     all_users = User.query.filter_by(is_active=True).all()
+    entity_detail = _resolve_approval_entity_detail(log)
     
-    return render_template('admin/approval_log_detail.html', log=log, messages=messages, 
-                         all_users=all_users, now=datetime.utcnow())
+    return render_template(
+        'admin/approval_log_detail.html',
+        log=log,
+        messages=messages,
+        all_users=all_users,
+        entity_detail=entity_detail,
+        now=datetime.utcnow()
+    )
 
 
 @bp.route('/approval-logs/<int:log_id>/send-message', methods=['POST'])
