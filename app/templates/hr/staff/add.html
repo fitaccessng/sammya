@@ -8,321 +8,358 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="container-fluid py-3">
     <!-- Page Header -->
-    <div class="mb-4">
-        <h2 class="mb-1">Add New Staff Member</h2>
-        <p class="text-muted">Add staff individually or import multiple staff from Excel</p>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-2">
+        <div>
+            <h3 class="fw-bold mb-1">Add New Staff Member</h3>
+            <p class="text-muted mb-0">Add staff individually or import multiple records via Excel.</p>
+        </div>
     </div>
 
     <!-- Tabs Navigation -->
-    <ul class="nav nav-tabs mb-4" id="staffTabs" role="tablist">
+    <ul class="nav nav-pills custom-tabs mb-4 border-bottom pb-2" id="staffTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button" role="tab">
-                <i class='bx bxs-user-plus'></i> Single Staff
+            <button class="nav-link active px-4 py-2 d-flex align-items-center gap-2" id="single-tab" data-bs-toggle="tab" data-bs-target="#single" type="button" role="tab">
+                <i class='bx bxs-user-plus fs-5'></i> Single Staff
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab">
-                <i class='bx bxs-file-import'></i> Import from Excel
+            <button class="nav-link px-4 py-2 d-flex align-items-center gap-2" id="import-tab" data-bs-toggle="tab" data-bs-target="#import" type="button" role="tab">
+                <i class='bx bxs-file-import fs-5'></i> Import from Excel
             </button>
         </li>
     </ul>
 
     <!-- Tab Content -->
     <div class="tab-content" id="staffTabContent">
+        
         <!-- Single Staff Tab -->
-        <div class="tab-pane fade show active" id="single" role="tabpanel">
-    <!-- Form Card -->
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('hr.add_staff') }}" enctype="multipart/form-data">
-                        <!-- Personal Information Section -->
-                        <h5 class="mb-4 border-bottom pb-3">Personal Information</h5>
+        <div class="tab-pane fade show active" id="single" role="tabpanel" aria-labelledby="single-tab">
+            <form method="POST" action="{{ url_for('hr.add_staff') }}" enctype="multipart/form-data">
+                <div class="row g-4">
+                    <!-- Main Form Area -->
+                    <div class="col-12 col-lg-8">
                         
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">First Name *</label>
-                                <input type="text" name="first_name" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Last Name *</label>
-                                <input type="text" name="last_name" class="form-control" required>
-                            </div>
-                        </div>
+                        <!-- Personal Information -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-semibold text-primary mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-user-detail'></i> Personal Information
+                                </h5>
+                                <hr class="text-secondary opacity-25 mb-4">
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Email *</label>
-                                <input type="email" name="email" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Phone Number</label>
-                                <input type="tel" name="phone_number" class="form-control">
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Date of Birth</label>
-                                <input type="date" name="date_of_birth" class="form-control">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Gender</label>
-                                <select name="gender" class="form-select">
-                                    <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">First Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="first_name" class="form-control" required placeholder="e.g. John">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Last Name <span class="text-danger">*</span></label>
+                                        <input type="text" name="last_name" class="form-control" required placeholder="e.g. Doe">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Email <span class="text-danger">*</span></label>
+                                        <input type="email" name="email" class="form-control" required placeholder="john.doe@example.com">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Phone Number</label>
+                                        <input type="tel" name="phone_number" class="form-control" placeholder="+1 234 567 890">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Date of Birth</label>
+                                        <input type="date" name="date_of_birth" class="form-control">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Gender</label>
+                                        <select name="gender" class="form-select">
+                                            <option value="">Select Gender</option>
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Employment Information -->
-                        <h5 class="mb-4 border-bottom pb-3 mt-5">Employment Information</h5>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-semibold text-primary mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-briefcase'></i> Employment Information
+                                </h5>
+                                <hr class="text-secondary opacity-25 mb-4">
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Employee ID *</label>
-                                <input type="text" name="employee_id" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Department *</label>
-                                <select name="department" class="form-select" required>
-                                    <option value="">Select Department</option>
-                                    {% for dept in data.departments %}
-                                        <option value="{{ dept }}">{{ dept }}</option>
-                                    {% endfor %}
-                                </select>
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Employee ID <span class="text-danger">*</span></label>
+                                        <input type="text" name="employee_id" class="form-control" required placeholder="EMP-001">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Department <span class="text-danger">*</span></label>
+                                        <select name="department" class="form-select" required>
+                                            <option value="">Select Department</option>
+                                            {% for dept in data.departments %}
+                                                <option value="{{ dept }}">{{ dept }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Position <span class="text-danger">*</span></label>
+                                        <input type="text" name="position" class="form-control" required placeholder="Software Engineer">
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Employment Type <span class="text-danger">*</span></label>
+                                        <select name="employment_type" class="form-select" required>
+                                            <option value="">Select Type</option>
+                                            <option value="Full-time">Full-time</option>
+                                            <option value="Part-time">Part-time</option>
+                                            <option value="Contract">Contract</option>
+                                            <option value="Intern">Intern</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Date of Joining <span class="text-danger">*</span></label>
+                                        <input type="date" name="joining_date" class="form-control" required>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Manager</label>
+                                        <select name="manager_id" class="form-select">
+                                            <option value="">Select Manager</option>
+                                            {% for manager in data.managers %}
+                                                <option value="{{ manager.id }}">{{ manager.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Position *</label>
-                                <input type="text" name="position" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Employment Type *</label>
-                                <select name="employment_type" class="form-select" required>
-                                    <option value="">Select Type</option>
-                                    <option value="Full-time">Full-time</option>
-                                    <option value="Part-time">Part-time</option>
-                                    <option value="Contract">Contract</option>
-                                    <option value="Intern">Intern</option>
-                                </select>
+                        <!-- Compensation & Status -->
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-body p-4">
+                                <h5 class="fw-semibold text-primary mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-wallet'></i> Compensation & Profile
+                                </h5>
+                                <hr class="text-secondary opacity-25 mb-4">
+
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Basic Salary <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" name="basic_salary" class="form-control" step="0.01" required placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Pay Frequency <span class="text-danger">*</span></label>
+                                        <select name="pay_frequency" class="form-select" required>
+                                            <option value="">Select Frequency</option>
+                                            <option value="Monthly">Monthly</option>
+                                            <option value="Bi-weekly">Bi-weekly</option>
+                                            <option value="Weekly">Weekly</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Status <span class="text-danger">*</span></label>
+                                        <select name="status" class="form-select" required>
+                                            <option value="Active">Active</option>
+                                            <option value="Inactive">Inactive</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label class="form-label fw-medium">Profile Photo</label>
+                                        <input type="file" name="photo" class="form-control" accept="image/*">
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Date of Joining *</label>
-                                <input type="date" name="joining_date" class="form-control" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Manager</label>
-                                <select name="manager_id" class="form-select">
-                                    <option value="">Select Manager</option>
-                                    {% for manager in data.managers %}
-                                        <option value="{{ manager.id }}">{{ manager.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Compensation -->
-                        <h5 class="mb-4 border-bottom pb-3 mt-5">Compensation</h5>
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Basic Salary *</label>
-                                <input type="number" name="basic_salary" class="form-control" step="0.01" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Pay Frequency *</label>
-                                <select name="pay_frequency" class="form-select" required>
-                                    <option value="">Select Frequency</option>
-                                    <option value="Monthly">Monthly</option>
-                                    <option value="Bi-weekly">Bi-weekly</option>
-                                    <option value="Weekly">Weekly</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Status -->
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Status *</label>
-                                <select name="status" class="form-select" required>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Profile Photo</label>
-                                <input type="file" name="photo" class="form-control" accept="image/*">
-                            </div>
-                        </div>
-
-                        <!-- Form Actions -->
-                        <div class="d-flex gap-2 justify-content-end">
-                            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-secondary">
-                                <i class='bx bxs-x-circle'></i> Cancel
+                        <!-- Action Buttons -->
+                        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end mb-4">
+                            <a href="{{ url_for('hr.staff_list') }}" class="btn btn-light border px-4 py-2 order-2 order-sm-1">
+                                <i class='bx bxs-x-circle me-1'></i> Cancel
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class='bx bxs-save'></i> Add Staff
+                            <button type="submit" class="btn btn-primary px-4 py-2 order-1 order-sm-2">
+                                <i class='bx bxs-save me-1'></i> Add Staff
                             </button>
                         </div>
-                    </form>
-                </div>
-            </div>
-        </div>
+                    </div>
 
-        <!-- Info Sidebar -->
-        <div class="col-lg-4">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class='bx bxs-info-circle'></i> Form Tips
-                    </h5>
-                    <ul class="small text-muted">
-                        <li class="mb-2">All fields marked with <span class="text-danger">*</span> are required</li>
-                        <li class="mb-2">Employee ID must be unique</li>
-                        <li class="mb-2">Email will be used for login and notifications</li>
-                        <li class="mb-2">Basic salary is the base compensation amount</li>
-                        <li class="mb-2">Department must be selected from existing departments</li>
-                        <li class="mb-2">Joining date should be the first day of employment</li>
-                    </ul>
+                    <!-- Single Staff Sidebar -->
+                    <div class="col-12 col-lg-4">
+                        <div class="card border-0 shadow-sm sticky-top" style="top: 1rem; z-index: 10;">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark">
+                                    <i class='bx bxs-info-circle text-primary fs-5'></i> Form Guidance
+                                </h6>
+                                <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-check text-success fs-6 mt-1'></i>
+                                        <span>Fields marked with <span class="text-danger fw-bold">*</span> are required.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-check text-success fs-6 mt-1'></i>
+                                        <span><strong>Employee ID</strong> must be unique across the organization.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-check text-success fs-6 mt-1'></i>
+                                        <span><strong>Email</strong> address will serve as the login ID for system access.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-check text-success fs-6 mt-1'></i>
+                                        <span>Make sure to assign a manager to setup reporting hierarchies correctly.</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            </form>
         </div>
 
         <!-- Excel Import Tab -->
-        <div class="tab-pane fade" id="import" role="tabpanel">
-    <div class="row">
-        <div class="col-lg-8">
-            <!-- Upload Card -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Upload Excel File</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('hr.import_staff') }}" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Batch Name (Optional)</label>
-                            <input type="text" name="batch_name" class="form-control" 
-                                   placeholder="e.g., 'Q1 2026 Hiring' or leave blank for auto-generated name">
-                            <small class="text-muted">A descriptive name to identify this import batch</small>
+        <div class="tab-pane fade" id="import" role="tabpanel" aria-labelledby="import-tab">
+            <div class="row g-4">
+                <!-- Upload Main Area -->
+                <div class="col-12 col-lg-8">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white border-bottom p-4">
+                            <h5 class="fw-semibold text-primary mb-0 d-flex align-items-center gap-2">
+                                <i class='bx bxs-cloud-upload'></i> Upload Excel File
+                            </h5>
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Excel File *</label>
-                            <div class="input-group">
-                                <input type="file" name="excel_file" class="form-control" 
-                                       accept=".xlsx,.xls" required id="fileInput">
-                                <span class="input-group-text">
-                                    <i class='bx bxs-file-excel'></i>
-                                </span>
-                            </div>
-                            <small class="text-muted">Supported formats: .xlsx, .xls (Maximum 10MB)</small>
-                        </div>
-
-                        <div class="alert alert-info" role="alert">
-                            <h6 class="alert-heading mb-2">Required Column Headers:</h6>
-                            <div class="row small">
-                                <div class="col-md-6">
-                                    <ul class="mb-0">
-                                        <li><code>first_name</code></li>
-                                        <li><code>last_name</code></li>
-                                        <li><code>email</code></li>
-                                        <li><code>phone_number</code></li>
-                                        <li><code>date_of_birth</code></li>
-                                        <li><code>gender</code></li>
-                                    </ul>
+                        <div class="card-body p-4">
+                            <form method="POST" action="{{ url_for('hr.import_staff') }}" enctype="multipart/form-data">
+                                <div class="mb-4">
+                                    <label class="form-label fw-medium">Batch Name <span class="text-muted fw-normal">(Optional)</span></label>
+                                    <input type="text" name="batch_name" class="form-control" 
+                                           placeholder="e.g. Q1 Hiring Batch">
+                                    <div class="form-text">Give this import batch a friendly name to identify it later.</div>
                                 </div>
-                                <div class="col-md-6">
-                                    <ul class="mb-0">
-                                        <li><code>employee_id</code></li>
-                                        <li><code>department</code></li>
-                                        <li><code>position</code></li>
-                                        <li><code>employment_type</code></li>
-                                        <li><code>joining_date</code></li>
-                                        <li><code>basic_salary</code></li>
-                                    </ul>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-medium">Excel File <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="file" name="excel_file" class="form-control" 
+                                               accept=".xlsx,.xls" required id="fileInput">
+                                        <span class="input-group-text bg-light text-success">
+                                            <i class='bx bxs-file-excel fs-5'></i>
+                                        </span>
+                                    </div>
+                                    <div class="form-text">Supported formats: .xlsx, .xls (Max file size: 10MB)</div>
                                 </div>
+
+                                <!-- Required Columns Box -->
+                                <div class="card bg-light border-0 mb-4">
+                                    <div class="card-body p-3">
+                                        <h6 class="fw-semibold text-dark mb-2">Required Column Headers</h6>
+                                        <div class="row g-2 small">
+                                            <div class="col-12 col-sm-6">
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    <span class="badge bg-white text-dark border">first_name</span>
+                                                    <span class="badge bg-white text-dark border">last_name</span>
+                                                    <span class="badge bg-white text-dark border">email</span>
+                                                    <span class="badge bg-white text-dark border">phone_number</span>
+                                                    <span class="badge bg-white text-dark border">date_of_birth</span>
+                                                    <span class="badge bg-white text-dark border">gender</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-sm-6">
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    <span class="badge bg-white text-dark border">employee_id</span>
+                                                    <span class="badge bg-white text-dark border">department</span>
+                                                    <span class="badge bg-white text-dark border">position</span>
+                                                    <span class="badge bg-white text-dark border">employment_type</span>
+                                                    <span class="badge bg-white text-dark border">joining_date</span>
+                                                    <span class="badge bg-white text-dark border">basic_salary</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-warning border-0 d-flex align-items-center gap-2 mb-4" role="alert">
+                                    <i class='bx bxs-info-circle fs-4 flex-shrink-0'></i> 
+                                    <div class="small">
+                                        <strong>Note:</strong> Data will be validated and shown in preview mode before final record insertion into the system.
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                                    <button type="reset" class="btn btn-light border px-4 py-2 order-2 order-sm-1">
+                                        <i class='bx bxs-x-circle me-1'></i> Clear
+                                    </button>
+                                    <button type="submit" class="btn btn-primary px-4 py-2 order-1 order-sm-2">
+                                        <i class='bx bxs-upload me-1'></i> Upload & Preview
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Excel Import Info Sidebar -->
+                <div class="col-12 col-lg-4">
+                    <div class="d-flex flex-column gap-3">
+                        
+                        <!-- Import Template Card -->
+                        <div class="card border-0 shadow-sm bg-primary bg-gradient text-white">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-2 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-file-export fs-4'></i> Excel Template
+                                </h6>
+                                <p class="small opacity-75 mb-3">Use our pre-formatted template to ensure column headers and formats line up properly.</p>
+                                <a href="{{ url_for('hr.download_import_template') }}" class="btn btn-light text-primary w-100 fw-medium">
+                                    <i class='bx bxs-download me-1'></i> Download Template
+                                </a>
                             </div>
                         </div>
 
-                        <div class="alert alert-warning" role="alert">
-                            <i class='bx bxs-info-circle'></i> 
-                            <strong>Note:</strong> The Excel file will be validated and previewed before final import. You can review and correct any errors before submission.
+                        <!-- Import Guidelines -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-bulb text-warning fs-5'></i> Quick Formatting Rules
+                                </h6>
+                                <ul class="list-unstyled text-secondary small mb-0 d-flex flex-column gap-2">
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-chevron-right text-primary fs-5'></i>
+                                        <span><strong>Date Format:</strong> Use <code>YYYY-MM-DD</code>.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-chevron-right text-primary fs-5'></i>
+                                        <span><strong>Departments:</strong> HR, Finance, Procurement, QC, QS, Admin, Projects.</span>
+                                    </li>
+                                    <li class="d-flex align-items-start gap-2">
+                                        <i class='bx bx-chevron-right text-primary fs-5'></i>
+                                        <span><strong>Employment Types:</strong> Full-time, Part-time, Contract, Intern.</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
 
-                        <!-- Form Actions -->
-                        <div class="d-flex gap-2 justify-content-end">
-                            <button type="reset" class="btn btn-secondary">
-                                <i class='bx bxs-x-circle'></i> Clear
-                            </button>
-                            <button type="submit" class="btn btn-primary">
-                                <i class='bx bxs-upload'></i> Upload & Preview
-                            </button>
+                        <!-- Process Steps -->
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class='bx bxs-check-shield text-success fs-5'></i> Import Workflow
+                                </h6>
+                                <ol class="ps-3 small text-secondary mb-0 d-flex flex-column gap-2">
+                                    <li>Upload completed spreadsheet.</li>
+                                    <li>Preview validation results for missing fields or duplicates.</li>
+                                    <li>Submit batch for admin verification.</li>
+                                    <li>Staff accounts are automatically generated on approval.</li>
+                                </ol>
+                            </div>
                         </div>
-                    </form>
+
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Excel Import Info Sidebar -->
-        <div class="col-lg-4">
-            <div class="card bg-light">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class='bx bxs-info-circle'></i> Import Tips
-                    </h5>
-                    <ul class="small text-muted">
-                        <li class="mb-2">Prepare an Excel file with staff data</li>
-                        <li class="mb-2">Include all required column headers</li>
-                        <li class="mb-2">Date format: YYYY-MM-DD (e.g., 2026-02-02)</li>
-                        <li class="mb-2">Valid departments: HR, Finance, Procurement, QC, QS, Admin, Projects</li>
-                        <li class="mb-2">Valid employment types: Full-time, Part-time, Contract, Intern</li>
-                        <li class="mb-2">All records will require admin approval before final import</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class='bx bxs-file-export'></i> Template
-                    </h5>
-                    <p class="small text-muted mb-3">Download a template Excel file to get started</p>
-                    <a href="{{ url_for('hr.download_import_template') }}" class="btn btn-outline-primary btn-sm w-100">
-                        <i class='bx bxs-download'></i> Download Template
-                    </a>
-                </div>
-            </div>
-
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title mb-3">
-                        <i class='bx bxs-check-shield'></i> Approval Workflow
-                    </h5>
-                    <ol class="small text-muted">
-                        <li>Upload Excel file</li>
-                        <li>Preview validation results</li>
-                        <li>Submit for admin approval</li>
-                        <li>Admin reviews and approves</li>
-                        <li>Accounts created automatically</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
-        </div>
     </div>
 </div>
 {% endblock %}

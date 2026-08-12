@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         :root {
             --panel: #0f172a;
@@ -28,12 +29,7 @@
             background: rgba(100, 116, 139, 0.5);
             border-radius: 999px;
         }
-        body {
-            background:
-                radial-gradient(circle at 15% 10%, rgba(14, 165, 233, 0.08), transparent 35%),
-                radial-gradient(circle at 85% 5%, rgba(34, 197, 94, 0.08), transparent 30%),
-                var(--bg);
-        }
+        body { background: var(--bg); }
 
         /* Custom navigation link styles for high reliability and smooth hover/active transitions */
         .nav-link {
@@ -261,7 +257,7 @@
             {% endwith %}
 
             <!-- Main Page Content -->
-            <section class="p-4 md:p-8">
+            <section class="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
                 {% block content %}{% endblock %}
             </section>
 
