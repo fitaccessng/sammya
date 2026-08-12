@@ -5,8 +5,28 @@
 
 {% block extra_css %}
 <style>
-    .stat-card { @apply relative overflow-hidden rounded-xl bg-white shadow-sm border border-slate-200 hover:shadow-lg hover:scale-105 transition-all duration-300; }
-    .stat-icon { @apply absolute -right-4 -bottom-4 text-slate-100 opacity-20 text-6xl; }
+    .stat-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 0.75rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+        transition: box-shadow 200ms ease, transform 200ms ease;
+    }
+    .stat-card:hover {
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        transform: translateY(-2px);
+    }
+    .stat-icon {
+        position: absolute;
+        right: -1rem;
+        bottom: -1rem;
+        color: #f1f5f9;
+        opacity: 0.2;
+        font-size: 3.75rem;
+        line-height: 1;
+    }
 </style>
 {% endblock %}
 
