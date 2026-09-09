@@ -38,11 +38,12 @@ def resolve_database_url(config_name='development'):
 
 def should_auto_create_tables(config_name='development'):
     """Create tables automatically on startup unless explicitly disabled."""
-    return (
-        config_name != 'production'
-        or _env_flag('AUTO_CREATE_TABLES', default=False)
-        or _env_flag('CREATE_TABLES_ON_STARTUP', default=True)
-    )
+    if config_name == 'production':
+        return (
+            _env_flag('AUTO_CREATE_TABLES', default=False)
+            or _env_flag('CREATE_TABLES_ON_STARTUP', default=False)
+        )
+    return _env_flag('CREATE_TABLES_ON_STARTUP', default=True)
 
 
 def create_app(config_name='development'):

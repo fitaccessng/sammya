@@ -5,7 +5,7 @@ Dry-run by default:
     python scripts/sync_staff_from_excel.py "/path/to/SAMMYA ERP STAFF LIST.xlsx"
 
 Apply changes:
-    DATABASE_URL="postgresql://..." python scripts/sync_staff_from_excel.py "/path/to/SAMMYA ERP STAFF LIST.xlsx" --apply
+    DATABASE_URL="postgresql://..." python scripts/sync_staff_from_excel.py "/path/to/SAMMYA ERP STAFF LIST.xlsx" --apply --confirm-production-update
 """
 
 from __future__ import annotations
@@ -287,11 +287,18 @@ def main() -> int:
     parser.add_argument("excel_file", type=Path)
     parser.add_argument("--apply", action="store_true", help="Commit changes. Without this, the transaction is rolled back.")
     parser.add_argument("--create-missing", action="store_true", help="Create staff rows that do not already exist.")
+    parser.add_argument(
+        "--confirm-production-update",
+        action="store_true",
+        help="Required with --apply when --config=production.",
+    )
     parser.add_argument("--config", default="production", choices=["development", "production"])
     args = parser.parse_args()
 
     if not args.excel_file.exists():
         raise SystemExit(f"Excel file not found: {args.excel_file}")
+    if args.apply and args.config == "production" and not args.confirm_production_update:
+        raise SystemExit("--confirm-production-update is required for production --apply runs.")
 
     df = pd.read_excel(args.excel_file)
     df.columns = df.columns.str.lower().str.strip()

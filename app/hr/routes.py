@@ -1062,6 +1062,87 @@ def staff_list():
         flash("Error loading staff list", "error")
         return redirect(url_for('hr.hr_home'))
 
+
+@bp.route('/staff/export')
+@login_required
+@hr_required
+def export_staff():
+    """Export staff records in the same shape accepted by the controlled sync script."""
+    try:
+        import pandas as pd
+
+        rows = []
+        staff_members = User.query.order_by(User.employee_id, User.name).all()
+        for staff in staff_members:
+            compensation = StaffCompensation.query.filter_by(user_id=staff.id).first()
+            deductions = (
+                PayrollDeduction.query.filter_by(compensation_id=compensation.id)
+                .order_by(PayrollDeduction.id)
+                .limit(2)
+                .all()
+                if compensation else []
+            )
+            nok = NextOfKin.query.filter_by(user_id=staff.id, is_primary=True).first()
+
+            deduction_1 = deductions[0] if len(deductions) > 0 else None
+            deduction_2 = deductions[1] if len(deductions) > 1 else None
+            basic_salary = compensation.basic_salary if compensation else staff.basic_salary
+            allowances = compensation.allowances if compensation else 0
+            net_salary = (compensation.get_net_salary() if compensation else float(basic_salary or 0))
+
+            rows.append({
+                'last_name': '',
+                'last_name.1': staff.name,
+                'email': staff.email,
+                'phone_number': staff.phone,
+                'date_of_birth': staff.date_of_birth,
+                'gender': staff.gender,
+                'employee_id': staff.employee_id,
+                'department': staff.department,
+                'position': staff.position,
+                'employment_type': staff.employment_type,
+                'joining_date': staff.date_of_employment,
+                'basic_salary': basic_salary,
+                'nok_full_name': nok.full_name if nok else None,
+                'nok_relationship': nok.relationship if nok else None,
+                'nok_phone': nok.phone if nok else None,
+                'nok_email': nok.email if nok else None,
+                'nok_address': nok.address if nok else None,
+                'nok_city': nok.city if nok else None,
+                'nok_state': nok.state if nok else None,
+                'nok_is_primary': 'yes' if nok else '',
+                'allowances': allowances,
+                'deduction_type_1': deduction_1.deduction_type if deduction_1 else None,
+                'deduction_amount_1': deduction_1.amount if deduction_1 else 0,
+                'deduction_type_2': deduction_2.deduction_type if deduction_2 else None,
+                'deduction_amount_2': deduction_2.amount if deduction_2 else 0,
+                'net': net_salary,
+            })
+
+        output = io.BytesIO()
+        columns = [
+            'last_name', 'last_name.1', 'email', 'phone_number', 'date_of_birth', 'gender',
+            'employee_id', 'department', 'position', 'employment_type', 'joining_date',
+            'basic_salary', 'nok_full_name', 'nok_relationship', 'nok_phone', 'nok_email',
+            'nok_address', 'nok_city', 'nok_state', 'nok_is_primary', 'allowances',
+            'deduction_type_1', 'deduction_amount_1', 'deduction_type_2',
+            'deduction_amount_2', 'net'
+        ]
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            pd.DataFrame(rows, columns=columns).to_excel(writer, sheet_name='Staff', index=False)
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=f'staff_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx',
+        )
+    except Exception as e:
+        current_app.logger.error(f"Staff Export Error: {str(e)}")
+        flash("Error exporting staff list", "error")
+        return redirect(url_for('hr.staff_list'))
+
 @bp.route('/staff/<int:staff_id>')
 @login_required
 @hr_required
