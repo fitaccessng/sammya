@@ -23,7 +23,7 @@ from app.models import (
     StaffImportBatch, StaffImportItem, StaffCompensation, PayrollDeduction,
     DepartmentAccess, LeaveRequest
 )
-from app.utils import ROLE_GROUPS, role_required, Roles, normalize_role
+from app.utils import ROLE_GROUPS, role_required, Roles, normalize_role, normalize_department, sync_department_access_for_user
 from app.excel_import import StaffExcelParser, StaffImportManager, ExcelImportError
 
 # Create blueprint
@@ -1249,6 +1249,14 @@ def edit_staff(staff_id):
             staff.email = new_email
             staff.role = normalize_role(request.form.get('role', staff.role)) or staff.role
             staff.is_active = request.form.get('is_active') == 'on'
+
+            # Keep user.department and DepartmentAccess in sync when admins/HR edit staff department.
+            requested_department = request.form.get('department')
+            if requested_department:
+                staff.department = normalize_department(requested_department)
+                sync_department_access_for_user(staff, requested_department)
+            else:
+                staff.department = None
             
             # Personal Information
             staff.phone = request.form.get('phone') or None
@@ -1285,11 +1293,13 @@ def edit_staff(staff_id):
             compensation.allowances = _parse_money(request.form.get('allowances'), float(compensation.allowances or 0))
             compensation.calculate_gross_salary()
 
+            # Keep department access records aligned with the user's primary department field.
             department = request.form.get('department')
             if department:
-                access = DepartmentAccess.query.filter_by(user_id=staff.id, department=department).first()
+                normalized_department = normalize_department(department)
+                access = DepartmentAccess.query.filter_by(user_id=staff.id, department=normalized_department).first()
                 if not access:
-                    access = DepartmentAccess(user_id=staff.id, department=department, access_level='view', is_active=True)
+                    access = DepartmentAccess(user_id=staff.id, department=normalized_department, access_level='view', is_active=True)
                     db.session.add(access)
 
             deduction_deletes = request.form.getlist('deduction_delete[]')

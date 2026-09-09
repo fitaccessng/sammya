@@ -12,7 +12,7 @@ from app.models import (
 )
 from app.auth.decorators import role_required
 from app.excel_import import StaffImportManager
-from app.utils import ROLE_GROUPS, normalize_role, valid_signup_roles
+from app.utils import ROLE_GROUPS, normalize_role, valid_signup_roles, normalize_department, sync_department_access_for_user
 from datetime import datetime, timedelta
 from sqlalchemy import desc, func
 from sqlalchemy.inspection import inspect as sa_inspect
@@ -347,6 +347,7 @@ def edit_user(user_id):
         name = request.form.get('name', user.name).strip()
         email = request.form.get('email', user.email).strip().lower()
         new_role = normalize_role(request.form.get('role', user.role))
+        new_department = request.form.get('department')
 
         if not name or not email:
             flash('Name and email are required.', 'danger')
@@ -368,7 +369,9 @@ def edit_user(user_id):
         user.email = email
         user.role = new_role
         user.is_active = request.form.get('is_active') == 'on'
-        
+        user.department = normalize_department(new_department) if new_department else None
+        sync_department_access_for_user(user, user.department)
+
         db.session.commit()
         flash(f'User {user.email} updated successfully.', 'success')
         return redirect(url_for('admin.users'))

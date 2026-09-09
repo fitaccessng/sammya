@@ -30,8 +30,8 @@ def dashboard():
     if not current_user.is_authenticated:
         flash('Please log in to access the dashboard.', 'warning')
         return redirect(url_for('auth.login'))
-    
-    return redirect(dashboard_url_for_role(current_user.role))
+
+    return redirect(dashboard_url_for_role(current_user.role, current_user.department))
 
 
 @main_bp.route('/signup', methods=['GET', 'POST'])
@@ -118,7 +118,7 @@ def login():
                 login_user(user)
                 session.permanent = True
                 flash(f"Welcome back, {user.name}!", "success")
-                return redirect(url_for('main.dashboard'))
+                return redirect(dashboard_url_for_role(user.role, user.department))
             else:
                 flash("Invalid email or password", "error")
                 return render_template("auth/login.html")

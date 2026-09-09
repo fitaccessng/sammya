@@ -5,7 +5,7 @@ Authentication routes (login, logout, registration).
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, current_user
 from app.models import db, User
-from app.utils import ROLE_GROUPS, dashboard_url_for_role, normalize_role, valid_signup_roles
+from app.utils import ROLE_GROUPS, dashboard_url_for_role, normalize_role, valid_signup_roles, resolve_dashboard_endpoint_for_role
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -28,8 +28,8 @@ def login():
         
         if user and user.check_password(password) and user.is_active:
             login_user(user, remember=request.form.get('remember', False))
-            # Redirect to role-specific dashboard
-            next_page = get_dashboard_for_role(user.role)
+            # Redirect to role-specific dashboard that also obeys the employee department
+            next_page = dashboard_url_for_role(user.role, user.department)
             return redirect(next_page)
         else:
             flash('Invalid email or password.', 'danger')
@@ -37,9 +37,9 @@ def login():
     return render_template('auth/login.html')
 
 
-def get_dashboard_for_role(role):
-    """Get the appropriate dashboard URL for the user's role."""
-    return dashboard_url_for_role(role)
+def get_dashboard_for_role(role, department=None):
+    """Get the appropriate dashboard URL for the user's role and department."""
+    return dashboard_url_for_role(role, department)
 
 
 @bp.route('/logout')

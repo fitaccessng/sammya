@@ -9,6 +9,45 @@ from flask_login import current_user
 from flask_mail import Mail, Message
 from werkzeug.routing import BuildError
 
+DEPARTMENT_ALIASES = {
+    'hr': 'HR', 'human resources': 'HR', 'human resource': 'HR', 'human_resources': 'HR',
+    'finance': 'Finance', 'accounting': 'Finance', 'accounts': 'Finance', 'accounts_payable': 'Finance',
+    'procurement': 'Procurement',
+    'cost control': 'Cost Control', 'cost_control': 'Cost Control', 'costcontrol': 'Cost Control',
+    'projects': 'Projects', 'project': 'Projects', 'project management': 'Projects',
+    'qs': 'QS', 'quality and safety': 'QS', 'quality & safety': 'QS', 'quality_control': 'QS',
+    'admin': 'Admin', 'administration': 'Admin',
+}
+
+DEPARTMENT_DASHBOARD_ENDPOINTS = {
+    'HR': 'hr.hr_home',
+    'Finance': 'finance.finance_home',
+    'Procurement': 'procurement.dashboard',
+    'Cost Control': 'cost_control.dashboard',
+    'Projects': 'project.dashboard',
+    'QS': 'qs_dashboard.dashboard',
+    'Admin': 'admin.dashboard',
+}
+
+ROLE_DEPARTMENT_DASHBOARD_ENDPOINTS = {
+    ('hr_manager', 'HR'): 'hr.hr_home',
+    ('hr_staff', 'HR'): 'hr.hr_home',
+    ('finance_manager', 'Finance'): 'finance.finance_home',
+    ('accounts_payable', 'Finance'): 'finance.finance_home',
+    ('hq_finance', 'Finance'): 'finance.finance_home',
+    ('procurement_manager', 'Procurement'): 'procurement.dashboard',
+    ('procurement_staff', 'Procurement'): 'procurement.dashboard',
+    ('hq_procurement', 'Procurement'): 'procurement.dashboard',
+    ('cost_control_manager', 'Cost Control'): 'cost_control.dashboard',
+    ('cost_control_staff', 'Cost Control'): 'cost_control.dashboard',
+    ('project_manager', 'Projects'): 'project.dashboard',
+    ('project_staff', 'Projects'): 'project.staff_dashboard',
+    ('qs_manager', 'QS'): 'qs_dashboard.dashboard',
+    ('qs_staff', 'QS'): 'qs_dashboard.dashboard',
+    ('admin', 'Admin'): 'admin.dashboard',
+    ('super_hq', 'Admin'): 'admin.dashboard',
+}
+
 
 class Roles(str, Enum):
     """Application role definitions."""
@@ -269,15 +308,71 @@ def normalize_role(role):
     return ROLE_ALIASES.get(normalized, normalized)
 
 
-def dashboard_url_for_role(role, fallback_endpoint='main.account_settings'):
-    """Return the dashboard URL that matches a user's assigned role."""
+def normalize_department(department):
+    """Normalize the stored department string to one of the canonical department labels."""
+    if not department:
+        return None
+
+    raw = str(department).strip()
+    lowered = raw.lower().replace('&', 'and').replace('-', ' ')
+    lowered = ' '.join(lowered.split())
+    normalized = lowered.replace(' and ', ' ')
+    normalized = '_'.join(normalized.split())
+    if normalized in DEPARTMENT_ALIASES:
+        return DEPARTMENT_ALIASES[normalized]
+
+    # direct canonical department values already match the table labels
+    for known in DEPARTMENT_DASHBOARD_ENDPOINTS:
+        if raw.strip().lower() == known.lower():
+            return known
+
+    return raw.strip().title() if raw.strip() else None
+
+
+def resolve_dashboard_endpoint_for_role(role, department=None, fallback_endpoint='main.account_settings'):
+    """Return the first dashboard endpoint that best fits the user role plus department."""
     normalized_role = normalize_role(role)
-    endpoint = ROLE_DASHBOARD_ENDPOINTS.get(normalized_role, fallback_endpoint)
+    normalized_department = normalize_department(department)
+
+    pair_key = (normalized_role, normalized_department)
+    if pair_key in ROLE_DEPARTMENT_DASHBOARD_ENDPOINTS:
+        return ROLE_DEPARTMENT_DASHBOARD_ENDPOINTS[pair_key]
+
+    if normalized_department and normalized_department in DEPARTMENT_DASHBOARD_ENDPOINTS:
+        # Department-only conscious fallback for users whose role is already department-specific.
+        fallback_endpoint_from_department = DEPARTMENT_DASHBOARD_ENDPOINTS.get(normalized_department)
+        if fallback_endpoint_from_department:
+            return fallback_endpoint_from_department
+
+    return ROLE_DASHBOARD_ENDPOINTS.get(normalized_role, fallback_endpoint)
+
+
+def sync_department_access_for_user(user, department):
+    """Synchronize the user.department column and the DepartmentAccess record when HR/Admin changes staff department."""
+    from app.models import DepartmentAccess, db
+
+    normalized_department = normalize_department(department)
+    if user is None:
+        return
+
+    if normalized_department:
+        user.department = normalized_department
+        existing = DepartmentAccess.query.filter_by(user_id=user.id, department=normalized_department, is_active=True).first()
+        if not existing:
+            db.session.add(DepartmentAccess(user_id=user.id, department=normalized_department, access_level='view', is_active=True))
+    else:
+        user.department = None
+
+
+def dashboard_url_for_role(role, department=None, fallback_endpoint='main.account_settings'):
+    """Return the dashboard URL that matches a user's assigned role and department, if available."""
+    normalized_role = normalize_role(role)
+    endpoint = resolve_dashboard_endpoint_for_role(normalized_role, department, fallback_endpoint)
     try:
         return url_for(endpoint)
     except BuildError:
         current_app.logger.error(
-            f"Invalid dashboard endpoint mapping for role '{role}': {endpoint}"
+            f"Invalid dashboard endpoint mapping for role '{role}' and department '{department}': {endpoint}"
         )
         return url_for(fallback_endpoint)
 
