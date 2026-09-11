@@ -207,11 +207,8 @@ class StaffExcelParser:
     
     @staticmethod
     def prepare_password(email: str) -> str:
-        """Generate a default password based on email."""
-        # Password format: FirstPart@123 (e.g., john@company.com -> john@123)
-        local_part = email.split('@')[0]
-        default_password = f"{local_part}@{datetime.now().year}"
-        return default_password
+        """Return the consistent default password used for HR-created accounts."""
+        return '12345678'
     
     @staticmethod
     def validate_and_normalize_row(row: pd.Series, row_index: int) -> Tuple[bool, Dict, str]:

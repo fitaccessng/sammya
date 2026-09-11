@@ -1,4 +1,9 @@
 from app.utils import normalize_department, department_dashboard_endpoint
+from app.excel_import import StaffExcelParser
+
+
+def test_staff_excel_default_password_is_shared_for_hr_created_accounts():
+    assert StaffExcelParser.prepare_password('any.staff@example.com') == '12345678'
 
 
 def test_department_endpoint_resolution_for_known_departments():

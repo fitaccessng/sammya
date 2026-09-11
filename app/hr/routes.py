@@ -2727,7 +2727,7 @@ def add_staff():
                 manager_id=request.form.get('manager_id') or None,
                 basic_salary=basic_salary
             )
-            user.set_password(StaffExcelParser.prepare_password(email))
+            user.set_password('12345678')
             db.session.add(user)
             db.session.flush()
 
