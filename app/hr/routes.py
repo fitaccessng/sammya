@@ -15,7 +15,6 @@ import os
 import re
 import calendar
 from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash
 
 # Import models
 from app.models import (
@@ -662,7 +661,7 @@ def _find_or_create_staff_for_payroll_upload(normalized_row):
             is_active=True,
             employee_id=employee_id or None
         )
-        staff.password_hash = generate_password_hash('TempPass123!', method='pbkdf2:sha256')
+        staff.set_password('12345678')
         db.session.add(staff)
         db.session.flush()
         created = True
