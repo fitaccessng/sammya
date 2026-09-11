@@ -329,6 +329,14 @@ def normalize_department(department):
     return raw.strip().title() if raw.strip() else None
 
 
+def department_dashboard_endpoint(department):
+    """Return the canonical dashboard endpoint key for a department label or alias."""
+    normalized_department = normalize_department(department)
+    if normalized_department and normalized_department in DEPARTMENT_DASHBOARD_ENDPOINTS:
+        return DEPARTMENT_DASHBOARD_ENDPOINTS[normalized_department]
+    return None
+
+
 def resolve_dashboard_endpoint_for_role(role, department=None, fallback_endpoint='main.account_settings'):
     """Return the first dashboard endpoint that best fits the user role plus department."""
     normalized_role = normalize_role(role)

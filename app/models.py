@@ -703,6 +703,57 @@ class LeaveRequest(db.Model):
     reviewer = db.relationship('User', foreign_keys=[reviewed_by], backref='leave_reviews')
 
 
+class PerformanceReview(db.Model):
+    """Readable HR performance review record available to the staff member themselves."""
+    __tablename__ = 'performance_review'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    ranking = db.Column(db.String(50), default='Unranked')
+    rating = db.Column(db.Numeric(5, 2), default=0)
+    comments = db.Column(db.Text)
+    status = db.Column(db.String(20), default='published')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    reviewed_user = db.relationship('User', foreign_keys=[user_id], backref='performance_reviews_received')
+    reviewer = db.relationship('User', foreign_keys=[reviewer_id], backref='performance_reviews_written')
+
+
+class StaffQuery(db.Model):
+    """HR-to-staff query or complaint record with optional staff replies."""
+    __tablename__ = 'staff_query'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    category = db.Column(db.String(80), default='General')
+    priority = db.Column(db.String(40), default='Medium')
+    status = db.Column(db.String(40), default='Open')
+    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    employee = db.relationship('User', foreign_keys=[user_id], backref='staff_queries_received')
+    creator = db.relationship('User', foreign_keys=[created_by_id], backref='staff_queries_created')
+    replies = db.relationship('StaffQueryReply', backref='staff_query', cascade='all, delete-orphan')
+
+
+class StaffQueryReply(db.Model):
+    """Reply chain stored for a staff query."""
+    __tablename__ = 'staff_query_reply'
+
+    id = db.Column(db.Integer, primary_key=True)
+    query_id = db.Column(db.Integer, db.ForeignKey('staff_query.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    author = db.relationship('User', foreign_keys=[user_id], backref='staff_query_replies')
+
+
 class ChartOfAccount(db.Model):
     """Chart of accounts for bookkeeping."""
     __tablename__ = 'chart_of_account'
