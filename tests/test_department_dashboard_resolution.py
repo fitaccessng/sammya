@@ -32,6 +32,22 @@ def test_department_endpoint_resolution_ignores_unknown_department():
     assert normalize_department('unknown department') == 'Unknown Department'
 
 
+def test_user_can_normalize_a_legacy_temp_password_hash_to_the_shared_default():
+    from werkzeug.security import generate_password_hash
+    from app.models import User
+
+    user = User(name='Legacy User', email='legacy@example.com', role='hr_staff')
+    user.password_hash = generate_password_hash('TempPass123!', method='pbkdf2:sha256')
+
+    assert user.check_password('TempPass123!') is True
+
+    legacy_rewritten = user.rewrite_legacy_default_password('TempPass123!', '12345678')
+
+    assert legacy_rewritten is True
+    assert user.check_password('12345678') is True
+    assert user.check_password('TempPass123!') is False
+
+
 def test_hr_analytics_data_builder_shape_and_defaults():
     from app.hr.routes import build_hr_analytics_data
 

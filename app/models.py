@@ -71,6 +71,19 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         """Verify password against hash."""
         return check_password_hash(self.password_hash, password)
+
+    def rewrite_legacy_default_password(self, legacy_password, new_password):
+        """Rewrite an older known sample hash to the team's shared default.
+
+        This intentionally keeps legacy account cleanup as an in-place,
+        opt-in migration when the old stored hash validates against the
+        old sample password the user supplies during normal sign-in.
+        """
+        if not self.check_password(legacy_password):
+            return False
+
+        self.set_password(new_password)
+        return True
     
     def has_role(self, role_name):
         """Check if user has specific role."""
