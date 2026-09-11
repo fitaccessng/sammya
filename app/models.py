@@ -6,7 +6,7 @@ Implements role-based approvals, workflows, and audit trails.
 from datetime import datetime
 from enum import Enum
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect, text, func
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -27,6 +27,17 @@ class ApprovalState(str, Enum):
 class User(UserMixin, db.Model):
     """User account with role and project assignments."""
     __tablename__ = 'user'
+
+    @staticmethod
+    def normalize_email_for_lookup(email):
+        """Lower-case an email the same way HR records are written."""
+        return (email or '').strip().lower()
+
+    @staticmethod
+    def find_by_email(email):
+        """Find a user account case-insensitively for login and account lookup."""
+        normalized_email = User.normalize_email_for_lookup(email)
+        return User.query.filter(func.lower(User.email) == normalized_email).first()
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), nullable=False)

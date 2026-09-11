@@ -97,14 +97,14 @@ def login():
     
     if request.method == "POST":
         try:
-            email = request.form.get("email", "").strip()
+            email = User.normalize_email_for_lookup(request.form.get("email", ""))
             password = request.form.get("password", "").strip()
 
             if not email or not password:
                 flash("Email and password are required", "error")
                 return render_template("auth/login.html")
 
-            user = User.query.filter_by(email=email).first()
+            user = User.find_by_email(email)
             
             if not user:
                 flash("Invalid email or password", "error")
@@ -114,7 +114,13 @@ def login():
                 flash("Account is inactive. Please contact support.", "error")
                 return render_template("auth/login.html")
 
-            if user.check_password(password):
+            can_login = user.check_password(password)
+            if not can_login and password == '12345678' and user.check_password('TempPass123!'):
+                user.rewrite_legacy_default_password('TempPass123!', '12345678')
+                db.session.commit()
+                can_login = user.check_password(password)
+
+            if can_login:
                 if password == 'TempPass123!' and user.rewrite_legacy_default_password('TempPass123!', '12345678'):
                     db.session.commit()
 
@@ -122,9 +128,9 @@ def login():
                 session.permanent = True
                 flash(f"Welcome back, {user.name}!", "success")
                 return redirect(dashboard_url_for_role(user.role, user.department))
-            else:
-                flash("Invalid email or password", "error")
-                return render_template("auth/login.html")
+
+            flash("Invalid email or password", "error")
+            return render_template("auth/login.html")
                 
         except Exception as e:
             logger.error(f"Login error: {str(e)}", exc_info=True)

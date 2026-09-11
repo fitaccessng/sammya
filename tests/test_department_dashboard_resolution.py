@@ -32,6 +32,12 @@ def test_department_endpoint_resolution_ignores_unknown_department():
     assert normalize_department('unknown department') == 'Unknown Department'
 
 
+def test_user_login_email_normalization_is_case_insensitive_for_hr_accounts():
+    from app.models import User
+
+    assert User.normalize_email_for_lookup('HRStaff@Example.COM') == 'hrstaff@example.com'
+
+
 def test_user_can_normalize_a_legacy_temp_password_hash_to_the_shared_default():
     from werkzeug.security import generate_password_hash
     from app.models import User

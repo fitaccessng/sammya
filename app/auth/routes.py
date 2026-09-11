@@ -17,25 +17,31 @@ def login():
         return redirect(get_dashboard_for_role(current_user.role))
     
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
+        email = User.normalize_email_for_lookup(request.form.get('email', ''))
         password = request.form.get('password', '')
         
         if not email or not password:
             flash('Email and password are required.', 'warning')
             return redirect(url_for('auth.login'))
         
-        user = User.query.filter_by(email=email).first()
+        user = User.find_by_email(email)
         
-        if user and user.check_password(password) and user.is_active:
-            if password == 'TempPass123!' and user.rewrite_legacy_default_password('TempPass123!', '12345678'):
+        if user and user.is_active:
+            can_login = user.check_password(password)
+            if not can_login and password == '12345678' and user.check_password('TempPass123!'):
+                user.rewrite_legacy_default_password('TempPass123!', '12345678')
                 db.session.commit()
+                can_login = user.check_password(password)
 
-            login_user(user, remember=request.form.get('remember', False))
-            # Redirect to role-specific dashboard that also obeys the employee department
-            next_page = dashboard_url_for_role(user.role, user.department)
-            return redirect(next_page)
-        else:
-            flash('Invalid email or password.', 'danger')
+            if can_login:
+                if password == 'TempPass123!' and user.rewrite_legacy_default_password('TempPass123!', '12345678'):
+                    db.session.commit()
+
+                login_user(user, remember=request.form.get('remember', False))
+                next_page = dashboard_url_for_role(user.role, user.department)
+                return redirect(next_page)
+
+        flash('Invalid email or password.', 'danger')
     
     return render_template('auth/login.html')
 
