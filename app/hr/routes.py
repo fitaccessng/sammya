@@ -2483,13 +2483,14 @@ def leave_management():
         ).count()
 
         return render_template(
-            'hr/leave.html',
+            'hr/leave.html' if is_hr else 'hr/leave/staff.html',
             staff_list=staff_list,
             leave_requests=leave_requests,
             total_staff=User.query.filter_by(is_active=True).count(),
             balances=balances,
             staff_leave_balances=staff_leave_balances,
             is_hr=is_hr,
+            department=current_user.department or 'General',
             selected_year=year,
             pending_approvals=pending_approvals,
             on_leave_today=on_leave_today

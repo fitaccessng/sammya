@@ -210,18 +210,18 @@
                     <div class="flex items-start justify-between mb-3">
                         <div class="flex items-start gap-4 flex-1">
                             <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                                {{ msg.sender.name[0] }}
+                                {{ msg.sender.name[0] if msg.sender and msg.sender.name else '?' }}
                             </div>
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-1">
-                                    <p class="font-semibold text-slate-900">{{ msg.sender.name }}</p>
+                                    <p class="font-semibold text-slate-900">{{ msg.sender.name if msg.sender else 'Unknown sender' }}</p>
                                     <span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-full">{{ msg.message_type.replace('_', ' ').title() }}</span>
                                     {% if not msg.is_read %}
                                     <span class="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
                                     {% endif %}
                                 </div>
-                                <p class="text-sm text-slate-500">To: <span class="font-semibold">{{ msg.recipient.name }}</span></p>
-                                <p class="text-xs text-slate-400">{{ msg.created_at.strftime('%d %b %Y at %H:%M') }}</p>
+                                <p class="text-sm text-slate-500">To: <span class="font-semibold">{{ msg.recipient.name if msg.recipient else 'Unknown recipient' }}</span></p>
+                                <p class="text-xs text-slate-400">{{ msg.created_at.strftime('%d %b %Y at %H:%M') if msg.created_at else 'N/A' }}</p>
                             </div>
                         </div>
                     </div>
@@ -346,7 +346,7 @@
             <ul class="text-sm text-green-800 space-y-1">
                 <li><strong>Total Messages:</strong> {{ messages|length }}</li>
                 <li><strong>Unread:</strong> {{ messages|selectattr('is_read', 'equalto', False)|list|length }}</li>
-                <li><strong>Last Message:</strong> {% if messages %}{{ messages[0].created_at.strftime('%d %b %Y') }}{% else %}None{% endif %}</li>
+                <li><strong>Last Message:</strong> {% if messages and messages[0].created_at %}{{ messages[0].created_at.strftime('%d %b %Y') }}{% else %}None{% endif %}</li>
             </ul>
         </div>
     </div>

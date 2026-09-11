@@ -148,6 +148,7 @@ def _resolve_approval_entity_detail(log):
                 'message': 'No detailed model mapping exists for this approval type yet.',
                 'fields': [],
                 'related_sections': [],
+                'approval_history': [],
             }
 
         models = model_entry if isinstance(model_entry, tuple) else (model_entry,)
@@ -176,6 +177,7 @@ def _resolve_approval_entity_detail(log):
                 'message': message,
                 'fields': [],
                 'related_sections': [],
+                'approval_history': [],
             }
     except Exception as exc:
         current_app.logger.error(f"Admin approval detail resolver failed for log {getattr(log, 'id', None)}: {exc}")
@@ -185,6 +187,7 @@ def _resolve_approval_entity_detail(log):
             'message': f'Unable to load submitted details safely: {exc}',
             'fields': [],
             'related_sections': [],
+            'approval_history': [],
         }
 
     related_sections = []
@@ -873,7 +876,7 @@ Project Management System
 
 @bp.route('/approval-logs', methods=['GET'])
 @login_required
-@role_required(['admin'])
+@role_required(['admin', 'super_hq'])
 def approval_logs():
     """View all approval logs for audit trail."""
     page = request.args.get('page', 1, type=int)
@@ -897,7 +900,7 @@ def approval_logs():
 
 @bp.route('/approval-logs/<int:log_id>/details', methods=['GET'])
 @login_required
-@role_required(['admin'])
+@role_required(['admin', 'super_hq'])
 def approval_log_detail(log_id):
     """View detailed information about an approval log."""
     log = ApprovalLog.query.get_or_404(log_id)
@@ -1016,7 +1019,7 @@ This is an automated message from the approval system. Please do not reply to th
 
 @bp.route('/system-settings', methods=['GET'])
 @login_required
-@role_required(['admin'])
+@role_required(['admin', 'super_hq'])
 def system_settings():
     """System-wide settings (placeholder for configuration)."""
     return render_template('admin/system_settings.html')
