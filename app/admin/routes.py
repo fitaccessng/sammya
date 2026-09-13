@@ -438,19 +438,25 @@ def delete_user(user_id):
 
 @bp.route('/user/<int:user_id>/reset-password', methods=['POST'])
 @login_required
-@role_required(['admin'])
+@role_required(['admin', 'super_hq'])
 def reset_user_password(user_id):
-    """Allow admin to set a new password after a reset request."""
+    """Allow an administrator to assign a login password to an existing user."""
     ensure_password_reset_request_table()
     user = User.query.get_or_404(user_id)
     new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
     admin_note = request.form.get('admin_note', '').strip()
 
     if len(new_password) < 6:
         flash('New password must be at least 6 characters long.', 'danger')
         return redirect(url_for('admin.users'))
 
+    if new_password != confirm_password:
+        flash('The password and confirmation do not match.', 'danger')
+        return redirect(url_for('admin.users'))
+
     user.set_password(new_password)
+    user.is_active = True
 
     pending_requests = PasswordResetRequest.query.filter_by(
         user_id=user.id,
@@ -466,7 +472,7 @@ def reset_user_password(user_id):
             reset_request.admin_note = admin_note or 'Password changed by admin.'
 
     db.session.commit()
-    flash(f'Password updated successfully for {user.email}.', 'success')
+    flash(f'Login password assigned successfully for {user.email}. The account is active and can now sign in.', 'success')
     return redirect(url_for('admin.users'))
 
 
