@@ -7,7 +7,13 @@ import os
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_mail import Mail
-from app.models import db, User, ensure_staff_import_item_columns, ensure_staff_profile_columns
+from app.models import (
+    db,
+    User,
+    ensure_approval_message_table,
+    ensure_staff_import_item_columns,
+    ensure_staff_profile_columns,
+)
 
 DEFAULT_DATABASE_URL = 'sqlite:///fitaccess_dev.db'
 PRODUCTION_DATABASE_URL = 'postgresql://postgres:dfNKPwgXTuimHBHDZBngIUQdDuVoNYyr@thomas.proxy.rlwy.net:23519/railway'
@@ -154,6 +160,7 @@ def create_app(config_name='development'):
         with app.app_context():
             try:
                 db.create_all()
+                ensure_approval_message_table()
                 ensure_staff_profile_columns()
                 ensure_staff_import_item_columns()
             except Exception:
@@ -162,5 +169,11 @@ def create_app(config_name='development'):
         app.logger.info(
             'DATABASE_URL is not set; using the local SQLite development database.'
         )
+
+    with app.app_context():
+        try:
+            ensure_approval_message_table()
+        except Exception:
+            app.logger.exception('Approval message table initialization failed.')
     
     return app

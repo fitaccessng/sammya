@@ -904,9 +904,14 @@ def approval_logs():
 def approval_log_detail(log_id):
     """View detailed information about an approval log."""
     log = ApprovalLog.query.get_or_404(log_id)
-    messages = ApprovalMessage.query.filter_by(approval_log_id=log_id).order_by(
-        ApprovalMessage.created_at.desc()
-    ).all()
+    try:
+        messages = ApprovalMessage.query.filter_by(approval_log_id=log_id).order_by(
+            ApprovalMessage.created_at.desc()
+        ).all()
+    except SQLAlchemyError as exc:
+        db.session.rollback()
+        current_app.logger.exception('Approval messages could not be loaded for log %s', log_id)
+        messages = []
     
     # Get list of users for message recipients
     all_users = User.query.filter_by(is_active=True).all()

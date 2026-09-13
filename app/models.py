@@ -135,6 +135,11 @@ def ensure_password_reset_request_table():
     PasswordResetRequest.__table__.create(bind=db.engine, checkfirst=True)
 
 
+def ensure_approval_message_table():
+    """Create the approval message table for deployments with an older schema."""
+    ApprovalMessage.__table__.create(bind=db.engine, checkfirst=True)
+
+
 def ensure_staff_profile_columns():
     """Add staff profile columns to existing databases created before the HR form grew."""
     inspector = inspect(db.engine)
