@@ -308,7 +308,7 @@ document.getElementById('uploadBOQModal').addEventListener('click', function(e) 
                     <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition cursor-pointer" onclick="document.getElementById('boqFile').click()">
                         <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
                         <p class="text-sm text-gray-600">Click to select file or drag and drop</p>
-                        <input type="file" id="boqFile" class="hidden" accept=".xlsx,.xls,.csv" onchange="updateFileName()">
+                        <input type="file" id="boqFile" class="hidden" accept=".xlsx,.xls,.xlsm,.csv" onchange="updateFileName()">
                         <p id="fileName" class="text-xs text-gray-500 mt-2"></p>
                     </div>
                 </div>

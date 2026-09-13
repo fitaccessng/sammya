@@ -23,7 +23,7 @@ class ExcelImportError(Exception):
 class StaffExcelParser:
     """Parse and validate staff data from Excel files."""
     
-    ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+    ALLOWED_EXTENSIONS = {'xlsx', 'xls', 'xlsm'}
     REQUIRED_COLUMNS = {
         'first_name', 'last_name', 'email', 'basic_salary'
     }

@@ -1334,23 +1334,38 @@ def import_boq(project_id):
         flash('No file provided', 'error')
         return redirect(url_for('project.boq_index', project_id=project_id))
     
-    if not file.filename.endswith(('.xlsx', '.xls')):
+    if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in {'xlsx', 'xls', 'xlsm'}:
         flash('Please upload an Excel file', 'error')
         return redirect(url_for('project.boq_index', project_id=project_id))
     
     try:
         df = pd.read_excel(file)
         
+        columns = {''.join(ch for ch in str(column).lower() if ch.isalnum()): column for column in df.columns}
+        description_column = next((columns[key] for key in ('description', 'desc', 'itemdescription', 'item') if key in columns), None)
+        unit_column = next((columns[key] for key in ('unit', 'uom', 'unitofmeasurement') if key in columns), None)
+        quantity_column = next((columns[key] for key in ('quantity', 'qty', 'amount') if key in columns), None)
+        rate_column = next((columns[key] for key in ('unitrate', 'unitprice', 'rate', 'price') if key in columns), None)
+
         for idx, row in df.iterrows():
-            quantity = float(row.get('Quantity', 0) or 0)
-            unit_rate = float(row.get('Unit Rate', 0) or row.get('Unit Price', 0) or 0)
+            values = [value for value in row.tolist() if pd.notna(value) and str(value).strip()]
+            numeric_values = []
+            for value in values:
+                try:
+                    numeric_values.append(float(value))
+                except (TypeError, ValueError):
+                    continue
+            text_values = [str(value).strip() for value in values if not isinstance(value, (int, float))]
+            description = str(row[description_column]).strip() if description_column and pd.notna(row[description_column]) else next((value for value in text_values if not value.replace('.', '', 1).isdigit()), f'Imported row {idx + 1}')
+            quantity = float(row[quantity_column]) if quantity_column and pd.notna(row[quantity_column]) else (numeric_values[0] if numeric_values else 1)
+            unit_rate = float(row[rate_column]) if rate_column and pd.notna(row[rate_column]) else (numeric_values[1] if len(numeric_values) > 1 else 0)
             item = BOQItem(
                 project_id=project_id,
-                description=str(row.get('Description', '') or f'BOQ Item {idx + 1}'),
-                unit=str(row.get('Unit', '')),
+                description=description,
+                unit=str(row[unit_column]).strip() if unit_column and pd.notna(row[unit_column]) else 'item',
                 quantity=quantity,
                 unit_rate=unit_rate,
-                amount=float(row.get('Amount', 0) or (quantity * unit_rate)),
+                amount=quantity * unit_rate,
                 created_by=current_user.id
             )
             db.session.add(item)

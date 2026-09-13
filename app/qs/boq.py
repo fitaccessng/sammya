@@ -14,6 +14,31 @@ from io import BytesIO
 boq_bp = Blueprint('qs_boq', __name__)
 
 
+def _normalise_excel_column(value):
+    return ''.join(ch for ch in str(value or '').lower() if ch.isalnum())
+
+
+def _row_values(row):
+    values = [value for value in row.tolist() if pd.notna(value) and str(value).strip()]
+    text_values = [str(value).strip() for value in values if not isinstance(value, (int, float))]
+    numeric_values = []
+    for value in values:
+        try:
+            numeric_values.append(float(value))
+        except (TypeError, ValueError):
+            continue
+    description = next((value for value in text_values if not value.replace('.', '', 1).isdigit()), '')
+    return values, description, numeric_values
+
+
+def _mapped_column(df, names):
+    wanted = {_normalise_excel_column(name) for name in names}
+    for column in df.columns:
+        if _normalise_excel_column(column) in wanted:
+            return column
+    return None
+
+
 @boq_bp.route('/project/<int:project_id>/boq', methods=['GET'])
 @login_required
 @role_required([Roles.SUPER_HQ, Roles.QS_MANAGER, Roles.QS_STAFF])
@@ -251,7 +276,7 @@ def upload_boq(project_id):
             return jsonify({'success': False, 'message': 'No file selected'}), 400
         
         # Check file extension
-        allowed_extensions = {'xlsx', 'xls', 'csv'}
+        allowed_extensions = {'xlsx', 'xls', 'xlsm', 'csv'}
         file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
         
         if file_ext not in allowed_extensions:
@@ -279,24 +304,10 @@ def upload_boq(project_id):
             'category': ['category', 'type', 'category']
         }
         
-        # Map DataFrame columns
-        mapped_columns = {}
-        df_columns_lower = [col.lower().strip() for col in df.columns]
-        
-        for target_col, possible_names in column_mapping.items():
-            for col in df.columns:
-                if col.lower().strip() in possible_names:
-                    mapped_columns[target_col] = col
-                    break
-        
-        # Validate minimum required columns
-        required_columns = ['description', 'quantity', 'unit', 'unit_rate', 'amount']
-        missing = [col for col in required_columns if col not in mapped_columns]
-        if missing:
-            return jsonify({
-                'success': False, 
-                'message': f'Missing required columns: {", ".join(missing)}'
-            }), 400
+        mapped_columns = {
+            target_col: _mapped_column(df, possible_names)
+            for target_col, possible_names in column_mapping.items()
+        }
         
         # Extract and create BOQ items
         created_count = 0
@@ -305,19 +316,16 @@ def upload_boq(project_id):
         for idx, row in df.iterrows():
             try:
                 # Get values with defaults
-                bill_no = str(row[mapped_columns.get('bill_no')]).strip() if 'bill_no' in mapped_columns and pd.notna(row[mapped_columns.get('bill_no')]) else f'Bill {idx+1}'
-                item_no = str(row[mapped_columns.get('item_no')]).strip() if 'item_no' in mapped_columns and pd.notna(row[mapped_columns.get('item_no')]) else str(idx+1)
-                description = str(row[mapped_columns['description']]).strip()
-                quantity = float(row[mapped_columns['quantity']]) if pd.notna(row[mapped_columns['quantity']]) else 0
-                unit = str(row[mapped_columns['unit']]).strip()
-                unit_rate = float(row[mapped_columns['unit_rate']]) if pd.notna(row[mapped_columns['unit_rate']]) else 0
-                amount = float(row[mapped_columns['amount']]) if 'amount' in mapped_columns and pd.notna(row[mapped_columns.get('amount')]) else (quantity * unit_rate)
-                category = str(row[mapped_columns['category']]).strip() if 'category' in mapped_columns and pd.notna(row[mapped_columns.get('category')]) else 'General'
-                
-                # Validate data
-                if not description or quantity <= 0 or unit_rate < 0:
-                    error_rows.append(f"Row {idx+1}: Invalid data")
-                    continue
+                values, fallback_description, numeric_values = _row_values(row)
+                get_value = lambda key: row[mapped_columns[key]] if mapped_columns.get(key) else None
+                description = str(get_value('description') or fallback_description or f'Imported row {idx + 1}').strip()
+                quantity = float(get_value('quantity')) if get_value('quantity') is not None and pd.notna(get_value('quantity')) else (numeric_values[0] if numeric_values else 1)
+                unit = str(get_value('unit') or 'item').strip()
+                unit_rate = float(get_value('unit_rate')) if get_value('unit_rate') is not None and pd.notna(get_value('unit_rate')) else (numeric_values[1] if len(numeric_values) > 1 else 0)
+                amount = float(get_value('amount')) if get_value('amount') is not None and pd.notna(get_value('amount')) else (quantity * unit_rate)
+                bill_no = str(get_value('bill_no') or 'Imported BOQ').strip()
+                item_no = str(get_value('item_no') or idx + 1).strip()
+                category = str(get_value('category') or 'General').strip()
                 
                 # Create BOQ item
                 boq_item = BOQItem(
@@ -376,7 +384,7 @@ def upload_material_schedule(project_id):
             return jsonify({'success': False, 'message': 'No file selected'}), 400
         
         # Check file extension
-        allowed_extensions = {'xlsx', 'xls', 'csv'}
+        allowed_extensions = {'xlsx', 'xls', 'xlsm', 'csv'}
         file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
         
         if file_ext not in allowed_extensions:
@@ -407,43 +415,32 @@ def upload_material_schedule(project_id):
             'grand_total': ['grand total', 'grd total', 'total amount', 'grand_total']
         }
 
-        mapped_columns = {}
-        for target_col, possible_names in column_mapping.items():
-            for col in df.columns:
-                if col.lower().strip() in possible_names:
-                    mapped_columns[target_col] = col
-                    break
-
-        required_columns = ['description', 'material_qty', 'material_unit', 'material_rate', 'labour_qty', 'labour_unit', 'labour_rate', 'grand_total']
-        missing = [col for col in required_columns if col not in mapped_columns]
-        if missing:
-            return jsonify({
-                'success': False,
-                'message': f'Missing required columns: {", ".join(missing)}'
-            }), 400
+        mapped_columns = {
+            target_col: _mapped_column(df, possible_names)
+            for target_col, possible_names in column_mapping.items()
+        }
 
         created_count = 0
         error_rows = []
 
         for idx, row in df.iterrows():
             try:
-                item_id = str(row[mapped_columns['item_id']]).strip() if 'item_id' in mapped_columns and pd.notna(row[mapped_columns.get('item_id')]) else str(idx + 1)
-                description = str(row[mapped_columns['description']]).strip()
+                values, fallback_description, numeric_values = _row_values(row)
+                get_value = lambda key: row[mapped_columns[key]] if mapped_columns.get(key) else None
+                item_id = str(get_value('item_id') or idx + 1).strip()
+                description = str(get_value('description') or fallback_description or f'Imported row {idx + 1}').strip()
+                material_qty = float(get_value('material_qty')) if get_value('material_qty') is not None and pd.notna(get_value('material_qty')) else (numeric_values[0] if numeric_values else 0)
+                material_unit = str(get_value('material_unit') or 'item').strip()
+                material_rate = float(get_value('material_rate')) if get_value('material_rate') is not None and pd.notna(get_value('material_rate')) else (numeric_values[1] if len(numeric_values) > 1 else 0)
+                material_total = float(get_value('material_total')) if get_value('material_total') is not None and pd.notna(get_value('material_total')) else (material_qty * material_rate)
+                labour_qty = float(get_value('labour_qty')) if get_value('labour_qty') is not None and pd.notna(get_value('labour_qty')) else 0
+                labour_unit = str(get_value('labour_unit') or 'item').strip()
+                labour_rate = float(get_value('labour_rate')) if get_value('labour_rate') is not None and pd.notna(get_value('labour_rate')) else 0
+                labour_total = float(get_value('labour_total')) if get_value('labour_total') is not None and pd.notna(get_value('labour_total')) else (labour_qty * labour_rate)
+                grand_total = float(get_value('grand_total')) if get_value('grand_total') is not None and pd.notna(get_value('grand_total')) else (material_total + labour_total)
 
-                material_qty = float(row[mapped_columns['material_qty']]) if pd.notna(row[mapped_columns['material_qty']]) else 0
-                material_unit = str(row[mapped_columns['material_unit']]).strip()
-                material_rate = float(row[mapped_columns['material_rate']]) if pd.notna(row[mapped_columns['material_rate']]) else 0
-                material_total = float(row[mapped_columns['material_total']]) if 'material_total' in mapped_columns and pd.notna(row[mapped_columns.get('material_total')]) else (material_qty * material_rate)
-
-                labour_qty = float(row[mapped_columns['labour_qty']]) if pd.notna(row[mapped_columns['labour_qty']]) else 0
-                labour_unit = str(row[mapped_columns['labour_unit']]).strip()
-                labour_rate = float(row[mapped_columns['labour_rate']]) if pd.notna(row[mapped_columns['labour_rate']]) else 0
-                labour_total = float(row[mapped_columns['labour_total']]) if 'labour_total' in mapped_columns and pd.notna(row[mapped_columns.get('labour_total')]) else (labour_qty * labour_rate)
-                grand_total = float(row[mapped_columns['grand_total']]) if pd.notna(row[mapped_columns['grand_total']]) else (material_total + labour_total)
-
-                if not description or (material_qty <= 0 and labour_qty <= 0):
-                    error_rows.append(f"Row {idx+1}: Invalid data")
-                    continue
+                if material_qty <= 0 and labour_qty <= 0 and numeric_values:
+                    material_qty = numeric_values[0]
 
                 if material_qty > 0:
                     db.session.add(BOQItem(
