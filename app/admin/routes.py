@@ -919,18 +919,29 @@ def approval_log_detail(log_id):
         current_app.logger.exception('Approval messages could not be loaded for log %s', log_id)
         messages = []
     
-    # Get list of users for message recipients
-    all_users = User.query.filter_by(is_active=True).all()
+    # Get list of users for message recipients. Older deployments may not have
+    # a fully consistent user table, so the detail page can still render.
+    try:
+        all_users = User.query.filter_by(is_active=True).all()
+    except SQLAlchemyError:
+        current_app.logger.exception('Approval detail recipients could not be loaded for log %s', log_id)
+        db.session.rollback()
+        all_users = []
     entity_detail = _resolve_approval_entity_detail(log)
     
-    return render_template(
-        'admin/approval_log_detail.html',
-        log=log,
-        messages=messages,
-        all_users=all_users,
-        entity_detail=entity_detail,
-        now=datetime.utcnow()
-    )
+    try:
+        return render_template(
+            'admin/approval_log_detail.html',
+            log=log,
+            messages=messages,
+            all_users=all_users,
+            entity_detail=entity_detail,
+            now=datetime.utcnow()
+        )
+    except Exception:
+        current_app.logger.exception('Approval detail page rendering failed for log %s', log_id)
+        db.session.rollback()
+        return render_template('admin/approval_log_safe.html', log=log), 200
 
 
 @bp.route('/approval-logs/<int:log_id>/send-message', methods=['POST'])
