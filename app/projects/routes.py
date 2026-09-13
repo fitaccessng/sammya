@@ -42,7 +42,7 @@ def secure_upload_filename(filename):
 
 def check_project_access(user, project_id):
     """Check if user has access to a specific project."""
-    if user.role in ['super_hq', 'admin']:
+    if str(user.role or '').lower() in ['super_hq', 'admin']:
         return True
     
     from app.models import ProjectStaff
@@ -62,16 +62,17 @@ def check_project_access(user, project_id):
     if staff_assignment:
         return True
     
-    if user.role == 'finance':
+    if str(user.role or '').lower() == 'finance':
         return True  # Finance can see all projects
     
     return False
 
 def get_user_accessible_projects(user):
     """Get list of projects accessible to user based on role."""
-    if user.role in ['super_hq', 'admin']:
+    normalized_role = str(user.role or '').lower()
+    if normalized_role in ['super_hq', 'admin']:
         return Project.query.all()
-    elif user.role == 'project_manager':
+    elif normalized_role == 'project_manager':
         # Get projects where user is project manager OR assigned as PROJECT_MANAGER via ProjectStaff
         from app.models import ProjectStaff
         pm_projects = db.session.query(Project).filter(
@@ -89,7 +90,7 @@ def get_user_accessible_projects(user):
         # Combine and deduplicate
         all_projects = {p.id: p for p in pm_projects + staff_projects}
         return list(all_projects.values())
-    elif user.role == 'project_staff':
+    elif normalized_role == 'project_staff':
         # Get projects where user is assigned as staff via ProjectStaff
         from app.models import ProjectStaff
         return db.session.query(Project).join(
@@ -98,10 +99,16 @@ def get_user_accessible_projects(user):
             ProjectStaff.user_id == user.id,
             ProjectStaff.is_active == True
         ).all()
-    elif user.role == 'finance':
+    elif normalized_role == 'finance':
         return Project.query.all()  # Finance can see all for budget tracking
-    else:
-        return []
+
+    # QS, site, procurement, and other project-assigned roles can read the
+    # same project workspace when an active ProjectStaff assignment exists.
+    from app.models import ProjectStaff
+    return db.session.query(Project).join(ProjectStaff).filter(
+        ProjectStaff.user_id == user.id,
+        ProjectStaff.is_active == True
+    ).all()
 
 def get_user_accessible_project_ids(user):
     """Get list of accessible project IDs for user."""
@@ -625,7 +632,7 @@ def materials_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         return jsonify({'error': 'Access denied'}), 403
     
     category_filter = request.args.get('category', '')
@@ -703,7 +710,7 @@ def equipment_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         return jsonify({'error': 'Access denied'}), 403
     
     equipment = project.equipment if hasattr(project, 'equipment') else []
@@ -875,6 +882,17 @@ def create_dpr(project_id):
         return redirect(url_for('project.dashboard'))
     
     try:
+        attachment = request.files.get('dpr_file')
+        attachment_path = None
+        if attachment and attachment.filename:
+            if not allowed_file(attachment.filename):
+                flash('DPR attachment must be a supported document file.', 'error')
+                return redirect(url_for('project.dpr_index', project_id=project_id))
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            attachment_filename = secure_upload_filename(attachment.filename)
+            attachment.save(os.path.join(UPLOAD_FOLDER, attachment_filename))
+            attachment_path = attachment_filename
+
         dpr = DailyProductionReport(
             project_id=project_id,
             report_date=datetime.strptime(request.form.get('report_date'), '%Y-%m-%d'),
@@ -884,7 +902,8 @@ def create_dpr(project_id):
             work_description=request.form.get('work_description', ''),
             unit=request.form.get('unit', ''),
             staff_report=request.form.get('staff_report', ''),
-            general_remarks=request.form.get('remarks', '')
+            general_remarks=request.form.get('remarks', ''),
+            attachment_path=attachment_path
         )
         
         db.session.add(dpr)
@@ -897,6 +916,22 @@ def create_dpr(project_id):
         flash(f'Error creating DPR: {str(e)}', 'error')
         return redirect(url_for('project.dpr_index', project_id=project_id))
 
+@bp.route('/dpr/<int:dpr_id>/attachment')
+@login_required
+def download_dpr_attachment(dpr_id):
+    """Download a DPR attachment for users who can view its project."""
+    dpr = DailyProductionReport.query.get_or_404(dpr_id)
+    if not check_project_access(current_user, dpr.project_id):
+        return jsonify({'error': 'Access denied'}), 403
+    if not dpr.attachment_path:
+        return jsonify({'error': 'No attachment found'}), 404
+
+    return send_file(
+        os.path.join(UPLOAD_FOLDER, dpr.attachment_path),
+        as_attachment=True,
+        download_name=dpr.attachment_path.split('_', 1)[-1]
+    )
+
 @bp.route('/dpr/<int:dpr_id>')
 @login_required
 def view_dpr(dpr_id):
@@ -905,7 +940,7 @@ def view_dpr(dpr_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if dpr.project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if dpr.project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -986,7 +1021,7 @@ def documents_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         return jsonify({'error': 'Access denied'}), 403
     
     doc_type = request.args.get('doc_type', '')
@@ -1046,7 +1081,7 @@ def upload_document(project_id):
             document_type=request.form.get('doc_type'),
             description=request.form.get('description'),
             file_path=filepath,
-            uploaded_by=current_user.username,
+            uploaded_by=getattr(current_user, 'username', None) or current_user.name,
             upload_date=datetime.now(),
             approval_state='pending'
         )
@@ -1069,7 +1104,7 @@ def download_document(doc_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if document.project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if document.project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -1120,7 +1155,7 @@ def reports_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         return jsonify({'error': 'Access denied'}), 403
     
     dprs = project.daily_reports if hasattr(project, 'daily_reports') else []
@@ -1151,7 +1186,7 @@ def view_report(report_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if report.project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN']:
+    if report.project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -1203,7 +1238,7 @@ def analytics_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'FINANCE']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'finance']:
         return jsonify({'error': 'Access denied'}), 403
     
     evm = calculate_evm_metrics(project)
@@ -1270,7 +1305,7 @@ def boq_index(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'project_manager']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'project_manager']:
         return jsonify({'error': 'Access denied'}), 403
     
     status_filter = request.args.get('status', '')
@@ -1401,7 +1436,7 @@ def export_boq_excel(project_id):
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'project_manager']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'project_manager']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -1525,7 +1560,7 @@ def export_analytics_pdf(project_id):
     project = Project.query.get_or_404(project_id)
     
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'FINANCE']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'finance']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -1539,7 +1574,7 @@ def export_analytics_excel(project_id):
     project = Project.query.get_or_404(project_id)
     
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'FINANCE']:
+    if project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'finance']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     
@@ -1553,7 +1588,7 @@ def export_dpr(dpr_id):
     dpr = DailyProductionReport.query.get_or_404(dpr_id)
     
     accessible_ids = get_user_accessible_project_ids(current_user)
-    if dpr.project_id not in accessible_ids and current_user.role not in ['super_hq', 'ADMIN', 'project_manager']:
+    if dpr.project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin', 'project_manager']:
         flash('Access denied', 'error')
         return redirect(url_for('project.index'))
     

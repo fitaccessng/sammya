@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ department }} Leave Requests{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-6xl">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-wide text-blue-600">{{ department }} Department</p>
+                <h1 class="text-3xl font-bold text-slate-900">Leave Requests</h1>
+                <p class="mt-1 text-slate-600">Submit and track your own leave requests. HR will review them.</p>
+            </div>
+            <a href="{{ url_for('main.dashboard') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+        </div>
+
+        <div class="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="mb-4 text-lg font-semibold text-slate-900">Your {{ selected_year }} Leave Balance</h2>
+            <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
+                {% for leave_type, balance in balances.items() %}
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p class="text-xs font-semibold uppercase text-slate-500">{{ leave_type }}</p>
+                    <p class="mt-1 text-lg font-bold text-slate-900">{{ balance.remaining }} / {{ balance.allowed }}</p>
+                    <p class="text-xs text-slate-500">days remaining</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 class="mb-4 text-lg font-semibold text-slate-900">Submit Leave Request</h2>
+            <form method="POST" action="{{ url_for('hr.create_leave') }}" class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label for="leave_type" class="mb-1 block text-sm font-semibold text-slate-700">Leave Type</label>
+                    <select id="leave_type" name="leave_type" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                        {% for leave_type, balance in balances.items() %}
+                        <option value="{{ leave_type }}">{{ leave_type|title }} ({{ balance.remaining }} days remaining)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="reason" class="mb-1 block text-sm font-semibold text-slate-700">Reason</label>
+                    <input id="reason" name="reason" type="text" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Optional reason">
+                </div>
+                <div>
+                    <label for="start_date" class="mb-1 block text-sm font-semibold text-slate-700">Start Date</label>
+                    <input id="start_date" name="start_date" type="date" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                </div>
+                <div>
+                    <label for="end_date" class="mb-1 block text-sm font-semibold text-slate-700">End Date</label>
+                    <input id="end_date" name="end_date" type="date" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
+                </div>
+                <div class="md:col-span-2">
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 font-semibold text-white hover:bg-blue-700">
+                        <i class="fas fa-paper-plane"></i> Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-200 px-6 py-4">
+                <h2 class="text-lg font-semibold text-slate-900">Your Previous Requests</h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left font-semibold text-slate-700">Type</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Dates</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Days</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Reason</th></tr></thead>
+                    <tbody class="divide-y divide-slate-200">
+                    {% for leave in leave_requests.items %}
+                    <tr><td class="px-6 py-3">{{ leave.leave_type|title }}</td><td class="px-6 py-3">{{ leave.start_date }} to {{ leave.end_date }}</td><td class="px-6 py-3">{{ leave.days_requested }}</td><td class="px-6 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {% if leave.status == 'approved' %}bg-emerald-100 text-emerald-800{% elif leave.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">{{ leave.status|title }}</span></td><td class="px-6 py-3">{{ leave.reason or '-' }}</td></tr>
+                    {% else %}
+                    <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No leave requests yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

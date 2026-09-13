@@ -162,6 +162,21 @@ def ensure_staff_profile_columns():
                     connection.execute(text(f'ALTER TABLE user ADD COLUMN {column_name} {column_type}'))
 
 
+def ensure_dpr_attachment_column():
+    """Add DPR attachment storage for databases created before file sharing."""
+    inspector = inspect(db.engine)
+    existing_columns = {column['name'] for column in inspector.get_columns('daily_production_report')}
+    if 'attachment_path' in existing_columns:
+        return
+
+    dialect = db.engine.dialect.name
+    with db.engine.begin() as connection:
+        if dialect == 'postgresql':
+            connection.execute(text('ALTER TABLE daily_production_report ADD COLUMN attachment_path VARCHAR(500)'))
+        else:
+            connection.execute(text('ALTER TABLE daily_production_report ADD COLUMN attachment_path VARCHAR(500)'))
+
+
 def ensure_staff_import_item_columns():
     """Add import preview columns for template data added after early deployments."""
     inspector = inspect(db.engine)
@@ -929,6 +944,7 @@ class DailyProductionReport(db.Model):
     unit = db.Column(db.String(50))
     staff_report = db.Column(db.Text)
     general_remarks = db.Column(db.Text)
+    attachment_path = db.Column(db.String(500))
     rejection_reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

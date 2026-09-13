@@ -11,6 +11,7 @@ from app.models import (
     db,
     User,
     ensure_approval_message_table,
+    ensure_dpr_attachment_column,
     ensure_staff_import_item_columns,
     ensure_staff_profile_columns,
 )
@@ -161,6 +162,7 @@ def create_app(config_name='development'):
             try:
                 db.create_all()
                 ensure_approval_message_table()
+                ensure_dpr_attachment_column()
                 ensure_staff_profile_columns()
                 ensure_staff_import_item_columns()
             except Exception:
@@ -173,6 +175,7 @@ def create_app(config_name='development'):
     with app.app_context():
         try:
             ensure_approval_message_table()
+            ensure_dpr_attachment_column()
         except Exception:
             app.logger.exception('Approval message table initialization failed.')
     

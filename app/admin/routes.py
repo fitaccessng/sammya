@@ -6,7 +6,7 @@ System-wide configuration, user management, project management, and approval log
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import current_user, login_required
 from app.models import (
-    db, User, Project, ApprovalLog, user_projects, PaymentRecord,
+    db, User, Project, DailyProductionReport, ApprovalLog, user_projects, PaymentRecord,
     StaffImportBatch, StaffImportItem, ApprovalState, ApprovalMessage,
     PasswordResetRequest, ensure_password_reset_request_table
 )
@@ -1073,6 +1073,9 @@ def hr_activities():
     
     # Get recent activities
     recent_logs = ApprovalLog.query.order_by(ApprovalLog.timestamp.desc()).limit(20).all()
+    recent_dprs = DailyProductionReport.query.order_by(
+        DailyProductionReport.created_at.desc()
+    ).limit(20).all()
     
     return render_template(
         'admin/hr_activities.html',
@@ -2027,6 +2030,7 @@ def project_manager_activities():
         active_projects=active_projects,
         completed_projects=completed_projects,
         recent_logs=recent_logs,
+        recent_dprs=recent_dprs,
         module_name='Project Management'
     )
 

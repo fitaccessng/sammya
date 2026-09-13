@@ -113,6 +113,32 @@
 
     <!-- Project List -->
     <div class="bg-white rounded-lg shadow overflow-hidden">
+        <div class="bg-orange-600 text-white px-6 py-4 flex items-center gap-2">
+            <i class="fas fa-file-alt"></i> <h5 class="font-semibold m-0">Recent DPRs</h5>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr><th class="px-6 py-3 text-left">Project</th><th class="px-6 py-3 text-left">Date</th><th class="px-6 py-3 text-left">Created By</th><th class="px-6 py-3 text-left">Status</th><th class="px-6 py-3 text-right">Action</th></tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for dpr in recent_dprs %}
+                    <tr>
+                        <td class="px-6 py-3">{{ dpr.project.name if dpr.project else 'Unknown project' }}</td>
+                        <td class="px-6 py-3">{{ dpr.report_date.strftime('%d %b %Y') if dpr.report_date else 'N/A' }}</td>
+                        <td class="px-6 py-3">{{ dpr.created_by or 'N/A' }}</td>
+                        <td class="px-6 py-3">{{ dpr.status|title }}</td>
+                        <td class="px-6 py-3 text-right"><a href="{{ url_for('project.view_dpr', dpr_id=dpr.id) }}" class="text-blue-600 hover:text-blue-800 font-semibold">View DPR</a></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="px-6 py-6 text-center text-slate-500">No DPRs uploaded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden">
         <div class="bg-slate-800 text-white px-6 py-4 flex items-center gap-2">
             <i class="fas fa-list"></i> <h5 class="font-semibold m-0">All Projects ({{ projects.total }})</h5>
         </div>

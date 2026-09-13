@@ -20,6 +20,9 @@
         <span class="px-4 py-2 rounded-lg text-sm font-bold {% if dpr.status == 'completed' %}bg-green-100 text-green-800{% elif dpr.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %}">
             {{ dpr.status|upper }}
         </span>
+        {% if dpr.attachment_path %}
+        <a href="{{ url_for('project.download_dpr_attachment', dpr_id=dpr.id) }}" class="ml-2 px-4 py-2 rounded-lg text-sm font-bold bg-blue-100 text-blue-800 hover:bg-blue-200">Download Attachment</a>
+        {% endif %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">

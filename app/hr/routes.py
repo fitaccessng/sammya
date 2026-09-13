@@ -2482,8 +2482,14 @@ def leave_management():
             LeaveRequest.end_date >= date.today()
         ).count()
 
+        if not is_hr:
+            return redirect(url_for(
+                'hr.department_leave',
+                department_slug=(current_user.department or 'general').lower().replace(' ', '-')
+            ))
+
         return render_template(
-            'hr/leave.html' if is_hr else 'hr/leave/staff.html',
+            'hr/leave.html',
             staff_list=staff_list,
             leave_requests=leave_requests,
             total_staff=User.query.filter_by(is_active=True).count(),
@@ -2500,6 +2506,26 @@ def leave_management():
         flash("Error loading leave management", "error")
         return redirect(url_for('hr.staff_list'))
 
+@bp.route('/department-leave/<department_slug>')
+@login_required
+def department_leave(department_slug):
+    """Standalone leave page for a non-HR employee's department."""
+    role = normalize_role(current_user.role)
+    if role in [Roles.HR_MANAGER.value, Roles.HR_STAFF.value, Roles.ADMIN.value]:
+        return redirect(url_for('hr.leave_management'))
+
+    year = request.args.get('year', datetime.utcnow().year, type=int)
+    leave_requests = LeaveRequest.query.filter_by(
+        user_id=current_user.id
+    ).order_by(LeaveRequest.created_at.desc()).paginate(page=1, per_page=50)
+    return render_template(
+        'leave/department.html',
+        department=current_user.department or 'General',
+        balances=build_leave_balance(current_user.id, year),
+        leave_requests=leave_requests,
+        selected_year=year
+    )
+
 @bp.route('/leave/create', methods=['GET', 'POST'])
 @login_required
 def create_leave():
@@ -2513,22 +2539,22 @@ def create_leave():
 
             if leave_type not in LEAVE_ALLOWANCE:
                 flash("Invalid leave type selected", "error")
-                return redirect(url_for('hr.leave_management'))
+                return redirect(url_for('hr.department_leave', department_slug=(current_user.department or 'general').lower().replace(' ', '-')))
             if not start_date or not end_date:
                 flash("Start and end dates are required", "error")
-                return redirect(url_for('hr.leave_management'))
+                return redirect(url_for('hr.department_leave', department_slug=(current_user.department or 'general').lower().replace(' ', '-')))
 
             start_dt = datetime.strptime(start_date, '%Y-%m-%d').date()
             end_dt = datetime.strptime(end_date, '%Y-%m-%d').date()
             if end_dt < start_dt:
                 flash("End date must be on or after start date", "error")
-                return redirect(url_for('hr.leave_management'))
+                return redirect(url_for('hr.department_leave', department_slug=(current_user.department or 'general').lower().replace(' ', '-')))
 
             requested_days = (end_dt - start_dt).days + 1
             balance = build_leave_balance(current_user.id, start_dt.year).get(leave_type, {})
             if requested_days > int(balance.get('remaining', 0)):
                 flash(f"Insufficient leave balance. Remaining {leave_type.title()} leave: {balance.get('remaining', 0)} day(s)", "error")
-                return redirect(url_for('hr.leave_management'))
+                return redirect(url_for('hr.department_leave', department_slug=(current_user.department or 'general').lower().replace(' ', '-')))
 
             leave_request = LeaveRequest(
                 user_id=current_user.id,
@@ -2542,7 +2568,7 @@ def create_leave():
             db.session.add(leave_request)
             db.session.commit()
             flash("Leave request submitted successfully and pending HR approval.", "success")
-        return redirect(url_for('hr.leave_management'))
+        return redirect(url_for('hr.department_leave', department_slug=(current_user.department or 'general').lower().replace(' ', '-')))
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Leave create error: {str(e)}")
