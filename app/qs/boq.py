@@ -3,13 +3,17 @@ QS Bill of Quantities (BOQ) endpoints
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from app.models import Project, BOQItem, db
+from app.models import Project, BOQItem, ProjectDocument, db
 from app.utils import role_required, Roles
 from .utils import check_project_access, get_user_qs_projects
 import pandas as pd
 from werkzeug.utils import secure_filename
 import os
 from io import BytesIO
+
+ALLOWED_UPLOAD_EXTENSIONS = {
+    'csv', 'xlsx', 'xls', 'xlsm', 'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'
+}
 
 boq_bp = Blueprint('qs_boq', __name__)
 
@@ -196,6 +200,9 @@ def material_schedule(project_id):
         
         # Get all assigned projects for sidebar
         projects = get_user_qs_projects()
+        uploaded_documents = ProjectDocument.query.filter_by(
+            project_id=project_id
+        ).order_by(ProjectDocument.created_at.desc()).all()
         
         return render_template('qs/material_schedule.html',
             project=project,
@@ -205,7 +212,8 @@ def material_schedule(project_id):
             total_items=total_items,
             categories=categories,
             total_value=total_value,
-            avg_rate=avg_rate
+            avg_rate=avg_rate,
+            uploaded_documents=uploaded_documents
         )
     except Exception as e:
         current_app.logger.error(f"Error loading material schedule for project {project_id}: {str(e)}")
@@ -276,14 +284,45 @@ def upload_boq(project_id):
             return jsonify({'success': False, 'message': 'No file selected'}), 400
         
         # Check file extension
-        allowed_extensions = {'xlsx', 'xls', 'xlsm', 'csv'}
+        allowed_extensions = ALLOWED_UPLOAD_EXTENSIONS
         file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
         
         if file_ext not in allowed_extensions:
-            return jsonify({'success': False, 'message': 'File must be Excel or CSV'}), 400
+            return jsonify({'success': False, 'message': 'This file type is not allowed'}), 400
+
+        original_filename = file.filename
+        stored_filename = secure_filename(original_filename)
+        if not stored_filename:
+            return jsonify({'success': False, 'message': 'Invalid file name'}), 400
+        upload_folder = os.path.join(current_app.root_path, 'uploads', 'projects')
+        os.makedirs(upload_folder, exist_ok=True)
+        stored_filename = f"{os.urandom(8).hex()}_{stored_filename}"
+        filepath = os.path.join(upload_folder, stored_filename)
+        file.save(filepath)
+
+        uploaded_document = ProjectDocument(
+            project_id=project_id,
+            title=original_filename,
+            description='Uploaded from the QS material schedule',
+            document_type=file_ext.upper(),
+            file_path=filepath,
+            file_name=original_filename,
+            uploaded_by_id=current_user.id
+        )
+        db.session.add(uploaded_document)
+
+        if file_ext not in {'xlsx', 'xls', 'xlsm', 'csv'}:
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'File uploaded successfully: {original_filename}',
+                'created': 0,
+                'file_name': original_filename
+            })
         
         # Parse file
         try:
+            file.stream.seek(0)
             if file_ext == 'csv':
                 df = pd.read_csv(file)
             else:
@@ -491,7 +530,7 @@ def upload_material_schedule(project_id):
         
         db.session.commit()
         
-        message = f"Successfully imported {created_count} materials"
+        message = f"File uploaded successfully: {original_filename}. Imported {created_count} material(s)"
         if error_rows:
             message += f". {len(error_rows)} rows had errors"
         

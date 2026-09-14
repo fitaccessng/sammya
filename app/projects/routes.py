@@ -1032,13 +1032,13 @@ def documents_index(project_id):
     if doc_type:
         documents = [d for d in documents if d.document_type == doc_type]
     if approval_status:
-        documents = [d for d in documents if d.approval_state == approval_status]
+        documents = [d for d in documents if getattr(d, 'approval_state', '') == approval_status]
     
     doc_stats = {
         'total': len(project.documents if hasattr(project, 'documents') else []),
-        'pending': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if d.approval_state == 'pending'),
-        'approved': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if d.approval_state == 'approved'),
-        'rejected': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if d.approval_state == 'rejected')
+        'pending': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if getattr(d, 'approval_state', '') == 'pending'),
+        'approved': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if getattr(d, 'approval_state', '') == 'approved'),
+        'rejected': sum(1 for d in (project.documents if hasattr(project, 'documents') else []) if getattr(d, 'approval_state', '') == 'rejected')
     }
     
     return render_template(
@@ -1075,15 +1075,21 @@ def upload_document(project_id):
         os.makedirs(UPLOAD_FOLDER, exist_ok=True)
         file.save(filepath)
         
-        document = Document(
+        original_filename = file.filename
+        filename = secure_upload_filename(original_filename)
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        file.save(filepath)
+
+        document = ProjectDocument(
             project_id=project_id,
-            title=request.form.get('title'),
-            document_type=request.form.get('doc_type'),
+            title=(request.form.get('title') or '').strip() or original_filename,
+            document_type=request.form.get('document_type') or request.form.get('doc_type') or file.filename.rsplit('.', 1)[-1].upper(),
             description=request.form.get('description'),
             file_path=filepath,
-            uploaded_by=getattr(current_user, 'username', None) or current_user.name,
-            upload_date=datetime.now(),
-            approval_state='pending'
+            file_name=original_filename,
+            uploaded_by_id=current_user.id
         )
         
         db.session.add(document)
@@ -1100,7 +1106,7 @@ def upload_document(project_id):
 @login_required
 def download_document(doc_id):
     """Download document."""
-    document = Document.query.get_or_404(doc_id)
+    document = ProjectDocument.query.get_or_404(doc_id)
     
     # Check access
     accessible_ids = get_user_accessible_project_ids(current_user)
@@ -1114,12 +1120,29 @@ def download_document(doc_id):
         flash(f'Error downloading document: {str(e)}', 'error')
         return redirect(url_for('project.documents_index', project_id=document.project_id))
 
+@bp.route('/documents/<int:doc_id>/view')
+@login_required
+def view_document(doc_id):
+    """Open a project document in the browser when supported."""
+    document = ProjectDocument.query.get_or_404(doc_id)
+
+    accessible_ids = get_user_accessible_project_ids(current_user)
+    if document.project_id not in accessible_ids and str(current_user.role or '').lower() not in ['super_hq', 'admin']:
+        flash('Access denied', 'error')
+        return redirect(url_for('project.index'))
+
+    try:
+        return send_file(document.file_path, as_attachment=False, download_name=document.file_name or document.title)
+    except Exception as e:
+        flash(f'Error viewing document: {str(e)}', 'error')
+        return redirect(url_for('project.documents_index', project_id=document.project_id))
+
 @bp.route('/documents/<int:doc_id>/approve', methods=['POST'])
 @login_required
 @role_required(['super_hq'])
 def approve_document(doc_id):
     """Approve document."""
-    document = Document.query.get_or_404(doc_id)
+    document = ProjectDocument.query.get_or_404(doc_id)
     
     try:
         document.approval_state = 'approved'
@@ -1134,7 +1157,7 @@ def approve_document(doc_id):
 @role_required(['super_hq'])
 def reject_document(doc_id):
     """Reject document."""
-    document = Document.query.get_or_404(doc_id)
+    document = ProjectDocument.query.get_or_404(doc_id)
     data = request.get_json()
     
     try:

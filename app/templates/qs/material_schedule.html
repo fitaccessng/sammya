@@ -88,6 +88,35 @@
     </div>
     {% endif %}
 
+    <!-- Uploaded files -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="font-semibold text-gray-900"><i class="fas fa-folder-open mr-2 text-purple-600"></i>Uploaded Files</h2>
+        </div>
+        {% if uploaded_documents %}
+        <div class="divide-y divide-gray-100">
+            {% for document in uploaded_documents %}
+            <div class="px-6 py-4 flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="font-medium text-gray-900 truncate">{{ document.file_name or document.title }}</p>
+                    <p class="text-sm text-gray-500">{{ document.document_type or 'FILE' }} · {{ document.created_at.strftime('%d %b %Y') }}</p>
+                </div>
+                <div class="shrink-0 flex items-center gap-3">
+                    <a href="{{ url_for('project.view_document', doc_id=document.id) }}" target="_blank" rel="noopener" class="text-green-600 hover:text-green-800 font-medium text-sm">
+                        <i class="fas fa-eye mr-1"></i>View
+                    </a>
+                    <a href="{{ url_for('project.download_document', doc_id=document.id) }}" class="text-purple-600 hover:text-purple-800 font-medium text-sm">
+                        <i class="fas fa-download mr-1"></i>Download
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="px-6 py-5 text-sm text-gray-500">No files uploaded yet.</p>
+        {% endif %}
+    </div>
+
     <!-- Action Buttons -->
     <div class="flex gap-3 justify-end">
         <button onclick="openUploadMaterialModal()" class="flex items-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
@@ -127,7 +156,7 @@
             
             <!-- Required Columns Info -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                <p class="font-semibold text-blue-900 mb-2">Required Columns (Material and Labour Schedule):</p>
+                <p class="font-semibold text-blue-900 mb-2">Optional material and labour columns:</p>
                 <ul class="list-disc list-inside space-y-1 text-blue-800">
                     <li>Item ID</li><li>Description</li>
                     <li>Material: Qty, Unit, Rate, Totals</li>
@@ -146,7 +175,7 @@
                     Cancel
                 </button>
                 <button type="submit" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium">
-                    <i class="fas fa-check mr-2"></i>Upload & Import
+                    <i class="fas fa-check mr-2"></i>Upload File
                 </button>
             </div>
         </form>
@@ -226,7 +255,7 @@ function submitMaterialUploadForm(e) {
         button.disabled = false;
         
         if (data.success) {
-            alert(`✓ Successfully imported ${data.created} material(s)!`);
+            alert(`✓ ${data.message}`);
             closeMaterialUploadModal();
             // Reload the page to show new materials
             location.reload();
