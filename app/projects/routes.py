@@ -3,7 +3,7 @@ Project Management Module - Complete Routes
 Handles all project lifecycle, staff, materials, equipment, DPR, documents, BOQ, analytics.
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import current_user, login_required
 from app.models import (
     db, Project, User, BOQItem, PaymentRequest, PaymentRecord, Vendor,
@@ -25,20 +25,36 @@ import json
 bp = Blueprint('project', __name__, url_prefix='/projects')
 
 # Constants
-ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg'}
 UPLOAD_FOLDER = 'uploads/projects'
 
 # ======================== HELPER FUNCTIONS ========================
 
-def allowed_file(filename):
-    """Check if file extension is allowed."""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def allowed_file(filename, content_type=None):
+    """Allow any non-empty filename while keeping path security checks."""
+    if not filename:
+        return False
+
+    sanitized_name = filename.replace('\\', '/').strip()
+    if not sanitized_name or sanitized_name in {'.', '/', './'}:
+        return False
+
+    if sanitized_name != os.path.basename(sanitized_name):
+        return False
+
+    return True
 
 def secure_upload_filename(filename):
-    """Generate secure filename with timestamp."""
-    ext = filename.rsplit('.', 1)[1].lower()
-    name = secure_filename(filename.rsplit('.', 1)[0])
-    return f"{secrets.token_hex(8)}_{name}.{ext}"
+    """Generate a safe stored filename without restricting file type."""
+    original_name = filename.replace('\\', '/').strip()
+    if not original_name:
+        return f"{secrets.token_hex(8)}_upload.bin"
+
+    basename = os.path.basename(original_name)
+    stem, ext = os.path.splitext(basename)
+    safe_name = secure_filename(stem) or 'upload'
+    if ext:
+        return f"{secrets.token_hex(8)}_{safe_name}{ext.lower()}"
+    return f"{secrets.token_hex(8)}_{safe_name}"
 
 def check_project_access(user, project_id):
     """Check if user has access to a specific project."""
@@ -1052,29 +1068,36 @@ def documents_index(project_id):
 
 @bp.route('/<int:project_id>/documents/upload', methods=['POST'])
 @login_required
-@role_required(['super_hq', 'project_manager', 'project_staff'])
 def upload_document(project_id):
-    """Upload project document."""
+    """Upload a project document without role-based restrictions."""
     project = Project.query.get_or_404(project_id)
-    
+
+    if not check_project_access(current_user, project_id):
+        return jsonify({'error': 'Access denied to this project'}), 403
+
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
-    
+
     file = request.files['file']
-    
+
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
-    
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'File type not allowed'}), 400
-    
+
+    if not allowed_file(file.filename, file.mimetype):
+        return jsonify({'error': 'Invalid file name'}), 400
+
+    max_upload_size = current_app.config.get('MAX_CONTENT_LENGTH', 50 * 1024 * 1024)
     try:
-        filename = secure_upload_filename(file.filename)
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        file.save(filepath)
-        
+        file.stream.seek(0, os.SEEK_END)
+        file_size = file.stream.tell()
+        file.stream.seek(0)
+    except (AttributeError, OSError):
+        file_size = 0
+
+    if file_size and file_size > max_upload_size:
+        return jsonify({'error': 'File exceeds the configured upload size limit'}), 413
+
+    try:
         original_filename = file.filename
         filename = secure_upload_filename(original_filename)
         filepath = os.path.join(UPLOAD_FOLDER, filename)
@@ -1085,21 +1108,21 @@ def upload_document(project_id):
         document = ProjectDocument(
             project_id=project_id,
             title=(request.form.get('title') or '').strip() or original_filename,
-            document_type=request.form.get('document_type') or request.form.get('doc_type') or file.filename.rsplit('.', 1)[-1].upper(),
+            document_type=request.form.get('document_type') or request.form.get('doc_type') or (os.path.splitext(original_filename)[1][1:].upper() if os.path.splitext(original_filename)[1] else 'FILE'),
             description=request.form.get('description'),
             file_path=filepath,
             file_name=original_filename,
             uploaded_by_id=current_user.id
         )
-        
+
         db.session.add(document)
         db.session.commit()
-        
+
         flash('Document uploaded successfully', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error uploading document: {str(e)}', 'error')
-    
+
     return redirect(url_for('project.documents_index', project_id=project_id))
 
 @bp.route('/documents/<int:doc_id>/download')

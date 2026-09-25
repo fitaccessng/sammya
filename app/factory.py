@@ -70,6 +70,7 @@ def create_app(config_name='development'):
         'pool_pre_ping': True,
         'pool_recycle': 300,
     }
+    app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_UPLOAD_SIZE', 50 * 1024 * 1024))
     
     # Initialize extensions
     db.init_app(app)
