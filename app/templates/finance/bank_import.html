@@ -1,0 +1,94 @@
+{% extends "finance/base.html" %}
+{% block title %}Bank Statement Import{% endblock %}
+{% block page_title %}Bank Statement Import{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto p-6">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold text-slate-900">Bank Statement Import</h1>
+        <p class="text-slate-600">Guided workflow: select account, upload file, map columns, review, then import transactions.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 rounded-lg border px-4 py-3 text-sm {% if category == 'success' %}bg-green-50 text-green-700 border-green-200{% elif category == 'error' %}bg-red-50 text-red-700 border-red-200{% else %}bg-yellow-50 text-yellow-700 border-yellow-200{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-7 gap-3 mb-8">
+        {% for step in ['1. Select Account','2. Upload File','3. Header Row','4. Map Columns','5. Review Transactions','6. Duplicates','7. Import'] %}
+        <div class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium {% if loop.index == 2 or loop.index == 5 %}border-blue-200 bg-blue-50 text-blue-700{% else %}text-slate-600{% endif %}">{{ step }}</div>
+        {% endfor %}
+    </div>
+
+    {% if step == 'upload' %}
+    <form method="post" enctype="multipart/form-data" class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Which account are these transactions from?</label>
+            <select id="bank-import-account" name="account_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
+                {% for account in accounts %}
+                <option value="{{ account.id }}">{{ account.account_name }} - {{ account.account_number }} ({{ account.currency }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Upload statement</label>
+            <input type="file" name="statement_file" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2" accept=".csv,.txt,.ofx,.qfx,.qbo,.pdf,.jpg,.png,.heic" required>
+            <p class="mt-2 text-xs text-slate-500">Supported files: CSV, TXT, OFX, QFX, QBO, PDF, JPG, PNG, HEIC.</p>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Is the first row a header row?</label>
+            <div class="mt-2 space-x-4">
+                <label><input type="radio" name="has_header" value="yes" checked> Yes</label>
+                <label><input type="radio" name="has_header" value="no"> No</label>
+            </div>
+        </div>
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Preview Transactions</button>
+        <a id="guided-bank-import" href="{{ url_for('imports.new_import', module='finance', entity='bank_transaction', account_id=accounts[0].id) if accounts else '#' }}" class="ml-3 inline-flex rounded border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">Use guided mapping</a>
+    </form>
+    {% if accounts %}<script>
+    const bankSelect = document.getElementById('bank-import-account');
+    const guidedLink = document.getElementById('guided-bank-import');
+    function updateGuidedLink() { guidedLink.href = `/imports/new?module=finance&entity=bank_transaction&account_id=${encodeURIComponent(bankSelect.value)}`; }
+    bankSelect.addEventListener('change', updateGuidedLink);
+    updateGuidedLink();
+    </script>{% endif %}
+    {% else %}
+    <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-semibold text-slate-800">Transaction Preview</h2>
+            <span class="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">{{ preview|length }} transactions found</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200 text-sm">
+                <thead class="bg-slate-50">
+                    <tr>
+                        <th class="px-3 py-2 text-left">Date</th>
+                        <th class="px-3 py-2 text-left">Description</th>
+                        <th class="px-3 py-2 text-left">Reference</th>
+                        <th class="px-3 py-2 text-left">Type</th>
+                        <th class="px-3 py-2 text-left">Amount</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    {% for row in preview %}
+                    <tr>
+                        <td class="px-3 py-2">{{ row.date }}</td>
+                        <td class="px-3 py-2">{{ row.description }}</td>
+                        <td class="px-3 py-2">{{ row.reference_number }}</td>
+                        <td class="px-3 py-2">{{ row.transaction_type }}</td>
+                        <td class="px-3 py-2">₦{{ '%.2f'|format(row.amount or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <form method="post" action="{{ url_for('finance.bank_import_commit') }}" class="mt-6">
+            <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">Import Transactions</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

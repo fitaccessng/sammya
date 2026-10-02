@@ -15,10 +15,12 @@ from flask import Blueprint, render_template, current_app, flash, request, jsoni
 from flask_login import current_user, logout_user, login_required
 from app.utils import role_required, Roles
 from app.models import (
-    db, User, Project, PurchaseOrder, PaymentRequest, PaymentRecord, 
-    ApprovalState, QCInspection, Vendor, BOQItem, Expense, BankAccount, BankReconciliation, ChangeOrder, ProjectStaff,
-    ApprovalLog, Payroll, ChartOfAccount, LedgerEntry, RevenueSale, ProjectPaymentRequest
+    db, User, Project, PurchaseOrder, PurchaseOrderItem, PaymentRequest, PaymentRecord,
+    ApprovalState, QCInspection, Vendor, BOQItem, Expense, BankAccount, BankTransaction, BankReconciliation,
+    ChangeOrder, ProjectStaff, ApprovalLog, Payroll, ChartOfAccount, LedgerEntry, RevenueSale,
+    ProjectPaymentRequest, Bill, BillPayment, SupplierCredit, AuditLog, BankStatementImport
 )
+from app.finance.services import BankImportService
 from sqlalchemy import func, desc, or_, and_, case
 from werkzeug.utils import secure_filename
 import os
@@ -327,6 +329,21 @@ def dashboard():
 
 # ===== PAYMENT MANAGEMENT ROUTES =====
 
+def _log_financial_audit(entity_type, entity_id, action, actor_id, description, reference=None, old_value=None, new_value=None):
+    """Persist audit event in the existing finance log model."""
+    log = AuditLog(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action=action,
+        actor_id=actor_id,
+        reference=reference,
+        old_value=str(old_value) if old_value is not None else None,
+        new_value=str(new_value) if new_value is not None else None,
+        description=description,
+    )
+    db.session.add(log)
+
+
 @finance_bp.route('/payments')
 @role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
 def list_payments():
@@ -335,6 +352,258 @@ def list_payments():
     approved = PaymentRequest.query.filter_by(approval_state=ApprovalState.APPROVED).all()
     
     return render_template('finance/payments.html', pending=pending, approved=approved)
+
+
+@finance_bp.route('/bills')
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def finance_bills():
+    """List bills derived from approved purchase orders."""
+    bills = Bill.query.order_by(Bill.created_at.desc()).all()
+    for bill in bills:
+        bill.refresh_status()
+    db.session.commit()
+    return render_template('finance/bills.html', bills=bills)
+
+
+@finance_bp.route('/bills/<int:bill_id>')
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def bill_detail(bill_id):
+    """View bill and payment history."""
+    bill = Bill.query.get_or_404(bill_id)
+    bill.refresh_status()
+    return render_template('finance/bill_detail.html', bill=bill, payments=bill.payments)
+
+
+@finance_bp.route('/bills/<int:bill_id>/pay', methods=['POST'])
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def pay_bill(bill_id):
+    """Record a payment against an approved bill."""
+    bill = Bill.query.get_or_404(bill_id)
+    amount = request.form.get('amount', type=float) or 0
+    account_id = request.form.get('account_id', type=int)
+    reference = (request.form.get('reference') or '').strip() or f'PAY-{bill.id}-{datetime.utcnow().strftime("%Y%m%d%H%M%S")}'
+    notes = request.form.get('notes', '').strip()
+
+    if amount <= 0:
+        flash('Payment amount must be greater than zero.', 'error')
+        return redirect(url_for('finance.bill_detail', bill_id=bill.id))
+
+    try:
+        payment = BillPayment.create_payment(
+            bill_id=bill.id,
+            account_id=account_id,
+            amount=amount,
+            reference=reference,
+            created_by=current_user.id,
+            notes=notes,
+        )
+        _log_financial_audit(
+            'bill',
+            bill.id,
+            'bill_payment',
+            current_user.id,
+            f"Recorded bill payment of ₦{amount:,.2f} against {bill.bill_number}",
+            reference=reference,
+            old_value=str(float(bill.outstanding_amount or 0) + float(amount)),
+            new_value=str(float(bill.outstanding_amount or 0)),
+        )
+        db.session.commit()
+        flash(f'Payment recorded successfully. Outstanding balance: ₦{bill.outstanding_amount:,.2f}', 'success')
+    except ValueError as exc:
+        db.session.rollback()
+        flash(str(exc), 'error')
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.error(f"Bill payment error: {exc}")
+        flash('Unable to record the payment.', 'error')
+
+    return redirect(url_for('finance.bill_detail', bill_id=bill.id))
+
+
+@finance_bp.route('/supplier-credits', methods=['GET', 'POST'])
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def supplier_credits():
+    """List and create supplier credits."""
+    if request.method == 'POST':
+        vendor_id = request.form.get('vendor_id', type=int)
+        amount = request.form.get('amount', type=float) or 0
+        reason = request.form.get('reason', 'Other').strip() or 'Other'
+        po_id = request.form.get('po_id', type=int)
+        reference = (request.form.get('reference') or '').strip() or f"SC-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+
+        if not vendor_id or amount <= 0:
+            flash('Supplier and amount are required.', 'error')
+            return redirect(url_for('finance.supplier_credits'))
+
+        credit = SupplierCredit(
+            vendor_id=vendor_id,
+            po_id=po_id,
+            reference=reference,
+            reason=reason,
+            amount=amount,
+            created_by=current_user.id,
+            approval_state=ApprovalState.PENDING,
+            remaining_amount=amount,
+        )
+        db.session.add(credit)
+        db.session.commit()
+        flash('Supplier credit created and submitted for approval.', 'success')
+        return redirect(url_for('finance.supplier_credits'))
+
+    credits = SupplierCredit.query.order_by(SupplierCredit.credit_date.desc()).all()
+    vendors = Vendor.query.filter_by(is_active=True).all()
+    return render_template('finance/supplier_credits.html', credits=credits, vendors=vendors)
+
+
+@finance_bp.route('/supplier-credits/<int:credit_id>/approve', methods=['POST'])
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ADMIN])
+def approve_supplier_credit(credit_id):
+    """Approve a supplier credit."""
+    credit = SupplierCredit.query.get_or_404(credit_id)
+    credit.approve(current_user.id)
+    db.session.commit()
+    flash('Supplier credit approved.', 'success')
+    return redirect(url_for('finance.supplier_credits'))
+
+
+@finance_bp.route('/bank-transactions')
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def bank_transactions():
+    """List bank transactions and support search/filtering."""
+    account_id = request.args.get('account_id', type=int)
+    q = request.args.get('q', '').strip()
+    page = request.args.get('page', 1, type=int)
+    txs = BankTransaction.query.order_by(BankTransaction.transaction_date.desc())
+    if account_id:
+        txs = txs.filter(BankTransaction.account_id == account_id)
+    if q:
+        txs = txs.filter(
+            (BankTransaction.description.ilike(f'%{q}%')) |
+            (BankTransaction.reference_number.ilike(f'%{q}%'))
+        )
+    transactions = txs.paginate(page=page, per_page=25, error_out=False)
+    accounts = BankAccount.query.filter_by(is_active=True).all()
+    return render_template('finance/bank_transactions.html', transactions=transactions, accounts=accounts, account_id=account_id, q=q)
+
+
+@finance_bp.route('/bank-import/history')
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def bank_import_history():
+    """List persisted bank statement import records."""
+    return redirect(url_for('imports.history', module='finance'))
+
+
+@finance_bp.route('/bank-import', methods=['GET', 'POST'])
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def bank_import():
+    """Guided bank statement import wizard."""
+    accounts = BankAccount.query.filter_by(is_active=True).all()
+    if request.method == 'POST':
+        if 'statement_file' not in request.files:
+            flash('Please upload a bank statement file.', 'error')
+            return render_template('finance/bank_import.html', accounts=accounts, step='upload')
+        file = request.files['statement_file']
+        account_id = request.form.get('account_id', type=int)
+        if not file.filename:
+            flash('No file selected.', 'error')
+            return render_template('finance/bank_import.html', accounts=accounts, step='upload')
+        if not account_id:
+            flash('Please select the bank account for this statement.', 'error')
+            return render_template('finance/bank_import.html', accounts=accounts, step='upload')
+        try:
+            service = BankImportService()
+            parsed_rows = service.parse_uploaded_file(file, account_id=account_id, has_header=request.form.get('has_header') == 'yes')
+            import_record = service.build_import_record(
+                account_id=account_id,
+                uploaded_by=current_user.id,
+                file_name=secure_filename(file.filename),
+                file_type=(file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'csv'),
+                total_rows=len(parsed_rows),
+                status='parsed',
+                notes='Statement uploaded and parsed for review.'
+            )
+            db.session.commit()
+            session['bank_import_preview'] = parsed_rows
+            session['bank_import_account_id'] = account_id
+            session['bank_import_session_id'] = import_record.id
+            return render_template('finance/bank_import.html', accounts=accounts, step='review', preview=parsed_rows, account_id=account_id, import_record=import_record)
+        except ValueError as exc:
+            flash(str(exc), 'error')
+            return render_template('finance/bank_import.html', accounts=accounts, step='upload')
+
+    return render_template('finance/bank_import.html', accounts=accounts, step='upload', preview=[])
+
+
+@finance_bp.route('/bank-import/commit', methods=['POST'])
+@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE, Roles.ADMIN])
+def bank_import_commit():
+    """Persist previewed bank transactions after duplicate checks."""
+    preview = session.get('bank_import_preview') or []
+    account_id = session.get('bank_import_account_id')
+    import_id = session.get('bank_import_session_id')
+    if not preview or not account_id:
+        flash('No bank import preview is available.', 'error')
+        return redirect(url_for('finance.bank_import'))
+
+    account = BankAccount.query.get_or_404(account_id)
+    import_record = BankStatementImport.query.get(import_id) if import_id else None
+    if import_record is None:
+        import_record = BankStatementImport(
+            bank_account_id=account_id,
+            uploaded_by=current_user.id,
+            file_name='bank_statement.csv',
+            file_type='csv',
+            status='uploading',
+            notes='Imported from session preview.'
+        )
+        db.session.add(import_record)
+        db.session.flush()
+
+    import_record.status = 'importing'
+    import_record.total_rows = len(preview)
+    db.session.flush()
+
+    importer = BankImportService()
+    valid_rows = []
+    skipped_duplicates = 0
+    invalid_rows = 0
+    for row in preview:
+        amount = float(row.get('amount') or 0)
+        date_value = str(row.get('date') or '').strip()
+        description = str(row.get('description') or '').strip()
+        if not date_value or not description or amount <= 0:
+            invalid_rows += 1
+            continue
+        ref = str(row.get('reference_number') or '').strip() or f"BANK-{account_id}-{len(valid_rows)+1}"
+        duplicate = BankTransaction.query.filter_by(account_id=account_id, reference_number=ref).first()
+        if duplicate:
+            skipped_duplicates += 1
+            continue
+        valid_rows.append({
+            'date': date_value,
+            'description': description,
+            'reference_number': ref,
+            'amount': amount,
+            'transaction_type': str(row.get('transaction_type') or ('debit' if amount < 0 else 'credit')).lower(),
+        })
+
+    imported = importer.import_transactions(account_id=account_id, rows=valid_rows, import_record=import_record)
+    import_record.valid_rows = len(valid_rows)
+    import_record.imported_rows = len(imported)
+    import_record.invalid_rows = invalid_rows
+    import_record.duplicate_rows = skipped_duplicates
+    import_record.status = 'completed'
+    import_record.notes = f'Imported {len(imported)} transactions from the statement.'
+
+    for row in imported:
+        _log_financial_audit('bank_account', account_id, 'bank_statement_import', current_user.id, row['description'], reference=row.get('reference_number'))
+
+    db.session.commit()
+    flash(f'{len(imported)} transactions imported successfully.', 'success')
+    session.pop('bank_import_preview', None)
+    session.pop('bank_import_account_id', None)
+    session.pop('bank_import_session_id', None)
+    return redirect(url_for('finance.bank_transactions', account_id=account_id))
 
 
 @finance_bp.route('/payment/create/<int:po_id>', methods=['GET', 'POST'])
@@ -2426,6 +2695,10 @@ def approve_purchase_order(po_id):
         po.issued_at = datetime.utcnow()
         
         db.session.add(po)
+        db.session.flush()
+
+        bill = Bill.create_from_purchase_order(po, created_by=current_user.id)
+        db.session.add(bill)
         db.session.flush()
         
         # Log the approval

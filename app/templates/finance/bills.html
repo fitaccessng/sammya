@@ -1,0 +1,55 @@
+{% extends "finance/base.html" %}
+{% block title %}Bills{% endblock %}
+{% block page_title %}Bills{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Bills</h1>
+            <p class="text-slate-600">Approved purchase orders flow into finance bills and payment tracking.</p>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="mb-4 rounded-lg border px-4 py-3 text-sm {% if category == 'success' %}bg-green-50 text-green-700 border-green-200{% elif category == 'error' %}bg-red-50 text-red-700 border-red-200{% else %}bg-yellow-50 text-yellow-700 border-yellow-200{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Bill</th>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Supplier</th>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Amount</th>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Paid</th>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Status</th>
+                    <th class="px-4 py-3 text-left text-xs uppercase tracking-wide text-slate-600">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for bill in bills %}
+                <tr>
+                    <td class="px-4 py-3 text-sm text-slate-900">{{ bill.bill_number }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">{{ bill.vendor.name if bill.vendor else 'Unknown vendor' }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-900">₦{{ '%.2f'|format(bill.total_amount or 0) }}</td>
+                    <td class="px-4 py-3 text-sm text-slate-700">₦{{ '%.2f'|format(bill.amount_paid or 0) }}</td>
+                    <td class="px-4 py-3 text-sm"><span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {% if bill.status == 'Paid' %}bg-emerald-100 text-emerald-700{% elif bill.status == 'Overdue' %}bg-red-100 text-red-700{% elif bill.status == 'Partially Paid' %}bg-yellow-100 text-yellow-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ bill.status }}</span></td>
+                    <td class="px-4 py-3 text-sm"><a href="{{ url_for('finance.bill_detail', bill_id=bill.id) }}" class="text-blue-600 hover:underline">View</a></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-4 py-8 text-center text-slate-500">No bills found. Approved purchase orders will appear here.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "finance/base.html" %}
+{% block title %}Supplier Credits{% endblock %}
+{% block page_title %}Supplier Credits{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Supplier Credits</h1>
+            <p class="text-slate-600">Track adjustments that reduce supplier balances.</p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <h2 class="text-xl font-semibold text-slate-800 mb-4">Create Supplier Credit</h2>
+        <form method="post" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Supplier</label>
+                <select name="vendor_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
+                    {% for vendor in vendors %}
+                    <option value="{{ vendor.id }}">{{ vendor.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Reason</label>
+                <input name="reason" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" value="Returned Goods">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Amount</label>
+                <input name="amount" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Reference</label>
+                <input name="reference" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+            </div>
+            <div class="md:col-span-2 flex items-end">
+                <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Save Credit</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left">Reference</th>
+                    <th class="px-4 py-3 text-left">Supplier</th>
+                    <th class="px-4 py-3 text-left">Reason</th>
+                    <th class="px-4 py-3 text-left">Amount</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                    <th class="px-4 py-3 text-left">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for credit in credits %}
+                <tr>
+                    <td class="px-4 py-3">{{ credit.reference }}</td>
+                    <td class="px-4 py-3">{{ credit.vendor.name if credit.vendor else 'N/A' }}</td>
+                    <td class="px-4 py-3">{{ credit.reason }}</td>
+                    <td class="px-4 py-3">₦{{ '%.2f'|format(credit.amount or 0) }}</td>
+                    <td class="px-4 py-3">{{ credit.approval_state.value if credit.approval_state else 'Draft' }}</td>
+                    <td class="px-4 py-3">
+                        {% if credit.approval_state and credit.approval_state.value == 'pending' %}
+                        <form method="post" action="{{ url_for('finance.approve_supplier_credit', credit_id=credit.id) }}">
+                            <button type="submit" class="rounded bg-emerald-600 px-3 py-1 text-white text-xs">Approve</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No supplier credits found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

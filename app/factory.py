@@ -14,6 +14,8 @@ from app.models import (
     ensure_dpr_attachment_column,
     ensure_staff_import_item_columns,
     ensure_staff_profile_columns,
+    ensure_import_tables,
+    ensure_import_domain_columns,
 )
 
 DEFAULT_DATABASE_URL = 'sqlite:///fitaccess_dev.db'
@@ -125,6 +127,7 @@ def create_app(config_name='development'):
     from app.main import main_bp
     from app.payroll.payroll_routes import payroll_bp
     from app.employee_payroll_routes import employee_payroll_bp
+    from app.imports import bp as imports_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
@@ -139,6 +142,7 @@ def create_app(config_name='development'):
     app.register_blueprint(api_bp)
     app.register_blueprint(payroll_bp)  # Payroll management dashboard
     app.register_blueprint(employee_payroll_bp)  # Employee self-service
+    app.register_blueprint(imports_bp)
 
     # Register all model modules before create_all() so every table is created.
     from app import payroll_models  # noqa: F401
@@ -177,7 +181,9 @@ def create_app(config_name='development'):
         try:
             ensure_approval_message_table()
             ensure_dpr_attachment_column()
+            ensure_import_tables()
+            ensure_import_domain_columns()
         except Exception:
-            app.logger.exception('Approval message table initialization failed.')
+            app.logger.exception('Additive application table initialization failed.')
     
     return app

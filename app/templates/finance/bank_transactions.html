@@ -1,0 +1,66 @@
+{% extends "finance/base.html" %}
+{% block title %}Bank Transactions{% endblock %}
+{% block page_title %}Bank Transactions{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Bank Transactions</h1>
+            <p class="text-slate-600">Search and review transactions from configured bank accounts.</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{{ url_for('finance.bank_import_history') }}" class="rounded-lg bg-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-300">Import History</a>
+            <a href="{{ url_for('imports.new_import', module='finance', entity='bank_transaction', account_id=account_id) if account_id else url_for('imports.new_import', module='finance', entity='bank_transaction') }}" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Import Statement</a>
+        </div>
+    </div>
+
+    <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Account</label>
+            <select name="account_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option value="">All accounts</option>
+                {% for account in accounts %}
+                <option value="{{ account.id }}" {% if account_id == account.id %}selected{% endif %}>{{ account.account_name }} - {{ account.account_number }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-slate-700">Search</label>
+            <div class="mt-1 flex gap-2">
+                <input name="q" value="{{ q }}" class="w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Description or reference">
+                <button type="submit" class="rounded-lg bg-slate-800 px-4 py-2 text-white">Filter</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left">Date</th>
+                    <th class="px-4 py-3 text-left">Account</th>
+                    <th class="px-4 py-3 text-left">Description</th>
+                    <th class="px-4 py-3 text-left">Type</th>
+                    <th class="px-4 py-3 text-left">Amount</th>
+                    <th class="px-4 py-3 text-left">Reference</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for tx in transactions.items %}
+                <tr>
+                    <td class="px-4 py-3">{{ tx.transaction_date.strftime('%d %b %Y') if tx.transaction_date else 'N/A' }}</td>
+                    <td class="px-4 py-3">{{ tx.account.account_name if tx.account else 'N/A' }}</td>
+                    <td class="px-4 py-3">{{ tx.description }}</td>
+                    <td class="px-4 py-3"><span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {% if tx.transaction_type == 'credit' %}bg-emerald-100 text-emerald-700{% elif tx.transaction_type == 'debit' %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ tx.transaction_type }}</span></td>
+                    <td class="px-4 py-3">₦{{ '%.2f'|format(tx.amount or 0) }}</td>
+                    <td class="px-4 py-3">{{ tx.reference_number }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No bank transactions found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

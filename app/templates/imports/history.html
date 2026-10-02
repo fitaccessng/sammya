@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Import History{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-6xl">
+    <div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-300 pb-5">
+        <div>
+            <p class="text-sm font-semibold uppercase text-teal-700">Audit trail</p>
+            <h1 class="mt-1 text-3xl font-bold text-slate-900">Import History</h1>
+        </div>
+        <div class="flex gap-2"><a href="{{ url_for('imports.templates') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Templates</a><a href="{{ url_for('imports.index') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">New import</a></div>
+    </div>
+    <form method="get" class="mt-5 flex flex-wrap gap-3">
+        <label class="sr-only" for="module">Module</label>
+        <select id="module" name="module" class="rounded border border-slate-300 bg-white px-3 py-2 text-sm">
+            <option value="">All modules</option>
+            {% for option in ['finance','procurement','quantity_surveying','project_management','inventory'] %}
+            <option value="{{ option }}" {% if module == option %}selected{% endif %}>{{ option.replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <label class="sr-only" for="status">Status</label>
+        <select id="status" name="status" class="rounded border border-slate-300 bg-white px-3 py-2 text-sm">
+            <option value="">All statuses</option>
+            {% for option in ['awaiting_mapping','awaiting_review','importing','completed','completed_with_warnings','partially_imported','failed','cancelled'] %}
+            <option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option.replace('_', ' ')|title }}</option>
+            {% endfor %}
+        </select>
+        <button class="rounded bg-slate-800 px-4 py-2 text-sm font-semibold text-white">Filter</button>
+    </form>
+    <div class="mt-5 overflow-x-auto border-y border-slate-200">
+        <table class="w-full min-w-[850px] text-left text-sm">
+            <thead class="bg-slate-100 text-xs uppercase text-slate-600">
+                <tr><th class="px-3 py-3">Import ID</th><th class="px-3 py-3">Module / Entity</th><th class="px-3 py-3">File</th><th class="px-3 py-3">Uploaded by</th><th class="px-3 py-3">Date</th><th class="px-3 py-3">Records</th><th class="px-3 py-3">Status</th></tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for job in jobs.items %}
+                <tr class="hover:bg-slate-50">
+                    <td class="px-3 py-3"><a class="font-semibold text-teal-800 hover:underline" href="{{ url_for('imports.detail', job_id=job.id) }}">{{ job.import_code }}</a></td>
+                    <td class="px-3 py-3">{{ job.module|title }} / {{ job.entity.replace('_', ' ')|title }}</td>
+                    <td class="px-3 py-3">{{ job.file_name }}</td>
+                    <td class="px-3 py-3">{{ job.uploader.name if job.uploader else 'Unknown' }}</td>
+                    <td class="px-3 py-3">{{ job.created_at.strftime('%d %b %Y %H:%M') }}</td>
+                    <td class="px-3 py-3">{{ job.records_imported }} / {{ job.records_found }}</td>
+                    <td class="px-3 py-3"><span class="rounded border border-slate-300 px-2 py-1 text-xs">{{ job.status.replace('_', ' ')|title }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="px-3 py-8 text-center text-slate-500">No import jobs match these filters.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if legacy_imports %}
+    <div class="mt-10">
+        <h2 class="mb-3 text-lg font-semibold text-slate-900">Earlier Finance statement imports</h2>
+        <div class="overflow-x-auto border-y border-slate-200">
+            <table class="w-full min-w-[700px] text-left text-sm">
+                <thead class="bg-slate-100 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3">File</th><th class="px-3 py-3">Account</th><th class="px-3 py-3">Uploaded by</th><th class="px-3 py-3">Date</th><th class="px-3 py-3">Rows</th><th class="px-3 py-3">Status</th></tr></thead>
+                <tbody class="divide-y divide-slate-200">{% for item in legacy_imports %}<tr><td class="px-3 py-3">{{ item.file_name }}</td><td class="px-3 py-3">{{ item.account.account_name if item.account else 'Unknown' }}</td><td class="px-3 py-3">{{ item.uploader.name if item.uploader else 'Unknown' }}</td><td class="px-3 py-3">{{ item.uploaded_at.strftime('%d %b %Y %H:%M') }}</td><td class="px-3 py-3">{{ item.imported_rows }} / {{ item.total_rows }}</td><td class="px-3 py-3">{{ item.status.replace('_', ' ')|title }}</td></tr>{% endfor %}</tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    {% if jobs.pages > 1 %}
+    <nav class="mt-4 flex justify-between text-sm" aria-label="Import history pages">
+        {% if jobs.has_prev %}<a href="{{ url_for('imports.history', page=jobs.prev_num, module=module, status=status) }}" class="text-teal-800 hover:underline">Previous</a>{% else %}<span></span>{% endif %}
+        <span class="text-slate-600">Page {{ jobs.page }} of {{ jobs.pages }}</span>
+        {% if jobs.has_next %}<a href="{{ url_for('imports.history', page=jobs.next_num, module=module, status=status) }}" class="text-teal-800 hover:underline">Next</a>{% else %}<span></span>{% endif %}
+    </nav>
+    {% endif %}
+</section>
+{% endblock %}

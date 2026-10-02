@@ -14,6 +14,9 @@
                     <h2 class="text-2xl font-bold text-slate-900 mt-1">{{ po.po_number or ("PO-" ~ po.id) }}</h2>
                     <p class="text-sm text-slate-500 mt-2">Created {{ po.created_at.strftime('%d %b %Y, %H:%M') if po.created_at else 'N/A' }}</p>
                 </div>
+                {% if po_state == 'DRAFT' and current_user.role in ['super_hq', 'admin', 'hq_procurement', 'procurement_manager'] %}
+                <a href="{{ url_for('imports.new_import', module='procurement', entity='purchase_item', purchase_order_id=po.id) }}" class="rounded border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">Import line items</a>
+                {% endif %}
                 <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold
                     {% if po_state == 'APPROVED' %}bg-emerald-100 text-emerald-700
                     {% elif po_state == 'REJECTED' %}bg-red-100 text-red-700

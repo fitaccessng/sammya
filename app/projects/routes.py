@@ -11,12 +11,12 @@ from app.models import (
     ProjectDocument, ProjectBudgetRecord, ProjectPaymentRequest
 )
 from app.utils import role_required, Roles
+from app.imports import UniversalImportService, get_import_schema
 from datetime import datetime, timedelta
 from functools import wraps
 import os
 import secrets
 from werkzeug.utils import secure_filename
-import pandas as pd
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 import json
@@ -1420,39 +1420,46 @@ def import_boq(project_id):
         return redirect(url_for('project.boq_index', project_id=project_id))
     
     try:
-        df = pd.read_excel(file)
-        
-        columns = {''.join(ch for ch in str(column).lower() if ch.isalnum()): column for column in df.columns}
-        description_column = next((columns[key] for key in ('description', 'desc', 'itemdescription', 'item') if key in columns), None)
-        unit_column = next((columns[key] for key in ('unit', 'uom', 'unitofmeasurement') if key in columns), None)
-        quantity_column = next((columns[key] for key in ('quantity', 'qty', 'amount') if key in columns), None)
-        rate_column = next((columns[key] for key in ('unitrate', 'unitprice', 'rate', 'price') if key in columns), None)
+        schema = get_import_schema('quantity_surveying', 'boq')
+        analysis = UniversalImportService().analyze_file(file, schema)
+        if analysis['missing_required']:
+            labels = ', '.join(schema.field_map[name].label for name in analysis['missing_required'])
+            raise ValueError(f'Required BOQ columns were not detected: {labels}.')
+        if analysis['confirmation_required']:
+            uncertain = ', '.join(analysis['confirmation_required'])
+            raise ValueError(f'BOQ column mappings need confirmation before import: {uncertain}.')
+        invalid_rows = [row for row in analysis['rows'] if row['errors']]
+        if invalid_rows:
+            details = '; '.join(
+                f"Row {row['row_number']}: {row['errors'][0]['message']}"
+                for row in invalid_rows[:5]
+            )
+            raise ValueError(f'BOQ import stopped because rows need correction: {details}')
 
-        for idx, row in df.iterrows():
-            values = [value for value in row.tolist() if pd.notna(value) and str(value).strip()]
-            numeric_values = []
-            for value in values:
-                try:
-                    numeric_values.append(float(value))
-                except (TypeError, ValueError):
-                    continue
-            text_values = [str(value).strip() for value in values if not isinstance(value, (int, float))]
-            description = str(row[description_column]).strip() if description_column and pd.notna(row[description_column]) else next((value for value in text_values if not value.replace('.', '', 1).isdigit()), f'Imported row {idx + 1}')
-            quantity = float(row[quantity_column]) if quantity_column and pd.notna(row[quantity_column]) else (numeric_values[0] if numeric_values else 1)
-            unit_rate = float(row[rate_column]) if rate_column and pd.notna(row[rate_column]) else (numeric_values[1] if len(numeric_values) > 1 else 0)
+        for row in analysis['rows']:
+            values = row['data']
+            quantity = float(values['quantity'])
+            unit_rate = float(values['rate'])
+            uploaded_amount = values.get('amount')
+            calculated_amount = quantity * unit_rate
+            if uploaded_amount is not None and abs(float(uploaded_amount) - calculated_amount) > 0.01:
+                raise ValueError(
+                    f"Row {row['row_number']}: uploaded amount {uploaded_amount:,.2f} "
+                    f"does not match quantity x rate ({calculated_amount:,.2f})."
+                )
             item = BOQItem(
                 project_id=project_id,
-                description=description,
-                unit=str(row[unit_column]).strip() if unit_column and pd.notna(row[unit_column]) else 'item',
+                description=values['description'],
+                unit=values['unit'],
                 quantity=quantity,
                 unit_rate=unit_rate,
-                amount=quantity * unit_rate,
-                created_by=current_user.id
+                amount=calculated_amount,
+                created_by=current_user.id,
             )
             db.session.add(item)
-        
+
         db.session.commit()
-        flash(f'Imported {len(df)} BOQ items successfully', 'success')
+        flash(f"Imported {analysis['records_found']} BOQ items successfully", 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Error importing BOQ: {str(e)}', 'error')

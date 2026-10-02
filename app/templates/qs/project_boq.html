@@ -93,6 +93,7 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-end gap-3">
+        <a href="{{ url_for('imports.new_import', module='quantity_surveying', entity='boq', project_id=project.id) }}" class="rounded border border-teal-700 px-6 py-3 font-medium text-teal-800 hover:bg-teal-50">Guided column mapping</a>
         <button onclick="openUploadModal()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-green-700 transition flex items-center">
             <i class="fas fa-upload mr-2"></i>Upload BOQ File
         </button>

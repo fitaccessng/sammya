@@ -1,0 +1,44 @@
+{% extends "finance/base.html" %}
+{% block title %}Bank Import History{% endblock %}
+{% block page_title %}Bank Import History{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">Bank Import History</h1>
+            <p class="text-slate-600">Statement uploads and their import outcomes.</p>
+        </div>
+        <a href="{{ url_for('finance.bank_import') }}" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Import Statement</a>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-4 py-3 text-left">Date</th>
+                    <th class="px-4 py-3 text-left">Account</th>
+                    <th class="px-4 py-3 text-left">File</th>
+                    <th class="px-4 py-3 text-left">Imported</th>
+                    <th class="px-4 py-3 text-left">Duplicates</th>
+                    <th class="px-4 py-3 text-left">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for item in imports %}
+                <tr>
+                    <td class="px-4 py-3">{{ item.uploaded_at.strftime('%d %b %Y') if item.uploaded_at else 'N/A' }}</td>
+                    <td class="px-4 py-3">{{ item.account.account_name if item.account else 'N/A' }}</td>
+                    <td class="px-4 py-3">{{ item.file_name }}</td>
+                    <td class="px-4 py-3">{{ item.imported_rows or 0 }}</td>
+                    <td class="px-4 py-3">{{ item.duplicate_rows or 0 }}</td>
+                    <td class="px-4 py-3"><span class="inline-flex rounded-full px-2 py-1 text-xs font-medium {% if item.status == 'completed' %}bg-emerald-100 text-emerald-700{% elif item.status == 'failed' %}bg-red-100 text-red-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ item.status }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">No imports have been recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

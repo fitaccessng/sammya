@@ -3,7 +3,7 @@ Database models for FitAccess Construction-ERP system.
 Implements role-based approvals, workflows, and audit trails.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text, func
@@ -287,6 +287,7 @@ class Vendor(db.Model):
     name = db.Column(db.String(255), nullable=False)
     email = db.Column(db.String(255))
     phone = db.Column(db.String(20))
+    contact_person = db.Column(db.String(255))
     address = db.Column(db.Text)
     city = db.Column(db.String(100))
     registration_number = db.Column(db.String(100))
@@ -306,6 +307,7 @@ class BOQItem(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    item_no = db.Column(db.String(100))
     description = db.Column(db.String(500), nullable=False)
     unit = db.Column(db.String(50))  # e.g., 'm', 'kg', 'no'
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
@@ -407,6 +409,7 @@ class PurchaseOrderItem(db.Model):
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
     unit_rate = db.Column(db.Numeric(12, 2), nullable=False)
     amount = db.Column(db.Numeric(15, 2))
+    expected_delivery_date = db.Column(db.Date)
     
     def calculate_amount(self):
         if self.quantity and self.unit_rate:
@@ -474,8 +477,11 @@ class Inventory(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    sku = db.Column(db.String(100), index=True)
     item_description = db.Column(db.String(500), nullable=False)
     unit = db.Column(db.String(50))
+    unit_cost = db.Column(db.Numeric(12, 2))
+    warehouse_name = db.Column(db.String(255))
     quantity_on_hand = db.Column(db.Numeric(10, 2), default=0)
     reorder_level = db.Column(db.Numeric(10, 2))
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -887,6 +893,438 @@ class BankAccount(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    @property
+    def current_balance(self):
+        return float(self.balance or 0)
+
+    @current_balance.setter
+    def current_balance(self, value):
+        self.balance = float(value or 0)
+
+    @property
+    def book_balance(self):
+        return float(self.balance or 0)
+
+    @book_balance.setter
+    def book_balance(self, value):
+        self.balance = float(value or 0)
+
+
+class BankTransaction(db.Model):
+    """Persisted bank statement and ledger transaction entries."""
+    __tablename__ = 'bank_transaction'
+
+    id = db.Column(db.Integer, primary_key=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'), nullable=False, index=True)
+    bank_statement_import_id = db.Column(db.Integer, db.ForeignKey('bank_statement_import.id'))
+    transaction_type = db.Column(db.String(30), default='other', nullable=False)
+    amount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
+    description = db.Column(db.Text, nullable=False)
+    reference_number = db.Column(db.String(100), index=True)
+    transaction_date = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    balance_after = db.Column(db.Numeric(15, 2), default=0)
+    related_entity_type = db.Column(db.String(50))
+    related_entity_id = db.Column(db.Integer)
+    source = db.Column(db.String(50), default='manual')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    account = db.relationship('BankAccount', backref='transactions')
+    import_session = db.relationship('BankStatementImport', backref='transactions')
+    creator = db.relationship('User', backref='bank_transactions')
+
+
+class BankStatementImport(db.Model):
+    """Persistent bank statement upload and import session."""
+    __tablename__ = 'bank_statement_import'
+
+    id = db.Column(db.Integer, primary_key=True)
+    bank_account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'), nullable=False, index=True)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(50), default='csv')
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    status = db.Column(db.String(30), default='uploaded')
+    total_rows = db.Column(db.Integer, default=0)
+    valid_rows = db.Column(db.Integer, default=0)
+    invalid_rows = db.Column(db.Integer, default=0)
+    duplicate_rows = db.Column(db.Integer, default=0)
+    imported_rows = db.Column(db.Integer, default=0)
+    error_rows = db.Column(db.Integer, default=0)
+    notes = db.Column(db.Text)
+
+    account = db.relationship('BankAccount', backref='statement_imports')
+    uploader = db.relationship('User', foreign_keys=[uploaded_by], backref='bank_statement_imports')
+
+
+class ImportJob(db.Model):
+    """Shared persistent state and result for schema-driven imports."""
+    __tablename__ = 'import_job'
+
+    id = db.Column(db.Integer, primary_key=True)
+    import_code = db.Column(db.String(40), unique=True, nullable=False, index=True)
+    module = db.Column(db.String(50), nullable=False, index=True)
+    entity = db.Column(db.String(80), nullable=False, index=True)
+    schema_version = db.Column(db.String(30), nullable=False, default='1')
+    status = db.Column(db.String(40), nullable=False, default='analyzing', index=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False)
+    file_size = db.Column(db.Integer, default=0)
+    uploaded_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    bank_account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'))
+    purchase_order_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'))
+    template_id = db.Column(db.Integer, db.ForeignKey('import_template.id'))
+    import_mode = db.Column(db.String(30), nullable=False, default='create_only')
+    mapping_json = db.Column(db.Text)
+    date_format = db.Column(db.String(20))
+    analysis_json = db.Column(db.Text)
+    result_json = db.Column(db.Text)
+    records_found = db.Column(db.Integer, default=0)
+    records_imported = db.Column(db.Integer, default=0)
+    records_updated = db.Column(db.Integer, default=0)
+    records_skipped = db.Column(db.Integer, default=0)
+    duplicate_count = db.Column(db.Integer, default=0)
+    warning_count = db.Column(db.Integer, default=0)
+    error_count = db.Column(db.Integer, default=0)
+    unsupported_acknowledged = db.Column(db.Boolean, default=False)
+    ambiguous_dates_acknowledged = db.Column(db.Boolean, default=False)
+    failure_reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    completed_at = db.Column(db.DateTime)
+
+    uploader = db.relationship('User', foreign_keys=[uploaded_by], backref='import_jobs')
+    files = db.relationship('ImportJobFile', backref='job', cascade='all, delete-orphan', order_by='ImportJobFile.ordinal')
+    project = db.relationship('Project', backref='import_jobs')
+    bank_account = db.relationship('BankAccount', backref='import_jobs')
+    purchase_order = db.relationship('PurchaseOrder', backref='import_jobs')
+
+
+class ImportJobFile(db.Model):
+    """Private uploaded source and per-file analysis/result within an import job."""
+    __tablename__ = 'import_job_file'
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('import_job.id'), nullable=False, index=True)
+    ordinal = db.Column(db.Integer, nullable=False, default=0)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(20), nullable=False)
+    file_size = db.Column(db.Integer, default=0)
+    storage_path = db.Column(db.String(500), nullable=False)
+    analysis_json = db.Column(db.Text)
+    mapping_json = db.Column(db.Text)
+    status = db.Column(db.String(40), nullable=False, default='analyzed')
+    records_found = db.Column(db.Integer, default=0)
+    records_imported = db.Column(db.Integer, default=0)
+    records_skipped = db.Column(db.Integer, default=0)
+    duplicate_count = db.Column(db.Integer, default=0)
+    warning_count = db.Column(db.Integer, default=0)
+    error_count = db.Column(db.Integer, default=0)
+    result_json = db.Column(db.Text)
+    failure_reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+
+class ImportTemplate(db.Model):
+    """Context-scoped reusable mappings confirmed by an importer."""
+    __tablename__ = 'import_template'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    module = db.Column(db.String(50), nullable=False, index=True)
+    entity = db.Column(db.String(80), nullable=False, index=True)
+    schema_version = db.Column(db.String(30), nullable=False, default='1')
+    scope_key = db.Column(db.String(160), nullable=False, default='')
+    source_headers_json = db.Column(db.Text, nullable=False)
+    mapping_json = db.Column(db.Text, nullable=False)
+    date_format = db.Column(db.String(20))
+    use_count = db.Column(db.Integer, default=0)
+    last_used_at = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = db.relationship('User', backref='import_templates')
+
+
+class ImportMappingLearning(db.Model):
+    """User-confirmed column mappings scoped to schema and source context."""
+    __tablename__ = 'import_mapping_learning'
+
+    id = db.Column(db.Integer, primary_key=True)
+    module = db.Column(db.String(50), nullable=False, index=True)
+    entity = db.Column(db.String(80), nullable=False, index=True)
+    schema_version = db.Column(db.String(30), nullable=False, default='1')
+    scope_key = db.Column(db.String(160), nullable=False, default='')
+    source_header_key = db.Column(db.String(255), nullable=False)
+    source_header = db.Column(db.String(255), nullable=False)
+    target_field = db.Column(db.String(100), nullable=False)
+    confirmations = db.Column(db.Integer, nullable=False, default=1)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint(
+            'module', 'entity', 'schema_version', 'scope_key', 'source_header_key',
+            name='uq_import_mapping_learning_context',
+        ),
+    )
+    creator = db.relationship('User', backref='import_mapping_learnings')
+
+
+def ensure_import_tables():
+    """Create only the additive universal-import tables on existing databases."""
+    ImportTemplate.__table__.create(bind=db.engine, checkfirst=True)
+    ImportJob.__table__.create(bind=db.engine, checkfirst=True)
+    ImportJobFile.__table__.create(bind=db.engine, checkfirst=True)
+    ImportMappingLearning.__table__.create(bind=db.engine, checkfirst=True)
+
+
+def ensure_import_domain_columns():
+    """Add only the nullable domain fields required by existing import schemas."""
+    inspector = inspect(db.engine)
+    additions = {
+        'vendor': {
+            'contact_person': 'VARCHAR(255)',
+        },
+        'boq_item': {
+            'item_no': 'VARCHAR(100)',
+        },
+        'purchase_order_item': {
+            'expected_delivery_date': 'DATE',
+        },
+        'inventory': {
+            'sku': 'VARCHAR(100)',
+            'unit_cost': 'NUMERIC(12, 2)',
+            'warehouse_name': 'VARCHAR(255)',
+        },
+        'milestone': {
+            'task_code': 'VARCHAR(100)',
+            'assignee_name': 'VARCHAR(255)',
+        },
+        'import_template': {
+            'date_format': 'VARCHAR(20)',
+            'use_count': 'INTEGER DEFAULT 0',
+            'last_used_at': 'DATETIME',
+        },
+        'import_job': {
+            'date_format': 'VARCHAR(20)',
+        },
+    }
+    with db.engine.begin() as connection:
+        for table_name, columns in additions.items():
+            if not inspector.has_table(table_name):
+                continue
+            existing = {column['name'] for column in inspector.get_columns(table_name)}
+            for column_name, column_type in columns.items():
+                if column_name not in existing:
+                    connection.execute(text(
+                        f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}'
+                    ))
+
+
+class Bill(db.Model):
+    """Finance bill derived from an approved purchase order."""
+    __tablename__ = 'bill'
+
+    id = db.Column(db.Integer, primary_key=True)
+    po_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'), nullable=False, unique=True, index=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'), nullable=False, index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'))
+    bill_number = db.Column(db.String(50), unique=True, index=True)
+    po_number = db.Column(db.String(50))
+    total_amount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
+    amount_paid = db.Column(db.Numeric(15, 2), default=0)
+    outstanding_amount = db.Column(db.Numeric(15, 2), default=0)
+    status = db.Column(db.String(30), default='Unpaid')
+    payment_terms = db.Column(db.String(50), default='Net 30')
+    due_date = db.Column(db.DateTime)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    purchase_order = db.relationship('PurchaseOrder', backref='finance_bill')
+    vendor = db.relationship('Vendor', backref='bills')
+    project = db.relationship('Project', backref='bills')
+    creator = db.relationship('User', backref='created_bills')
+    payments = db.relationship('BillPayment', backref='bill', cascade='all, delete-orphan')
+
+    @staticmethod
+    def create_from_purchase_order(po, created_by=None):
+        if not po:
+            raise ValueError('Purchase order is required')
+        existing = Bill.query.filter_by(po_id=po.id).first()
+        if existing:
+            return existing
+        vendor = po.vendor
+        bill = Bill(
+            po_id=po.id,
+            vendor_id=po.vendor_id or (vendor.id if vendor else None),
+            project_id=po.project_id,
+            bill_number=f"BILL-{po.po_number or po.id}",
+            po_number=po.po_number,
+            total_amount=float(po.total_amount or 0),
+            amount_paid=0,
+            outstanding_amount=float(po.total_amount or 0),
+            status='Unpaid',
+            payment_terms='Net 30',
+            due_date=datetime.utcnow() + timedelta(days=30),
+            created_by=created_by,
+        )
+        if bill.vendor_id is None:
+            raise ValueError('A vendor is required to create a bill from a purchase order.')
+        bill.refresh_status()
+        return bill
+
+    def refresh_status(self):
+        paid_total = sum(float(payment.amount or 0) for payment in self.payments)
+        self.amount_paid = paid_total
+        self.outstanding_amount = max(float(self.total_amount or 0) - paid_total, 0)
+
+        if self.outstanding_amount <= 0:
+            self.status = 'Paid'
+        elif float(self.amount_paid or 0) > 0 and self.due_date and self.due_date.date() < datetime.utcnow().date():
+            self.status = 'Overdue'
+        elif float(self.amount_paid or 0) > 0:
+            self.status = 'Partially Paid'
+        else:
+            self.status = 'Unpaid'
+
+        if self.due_date and self.due_date.date() < datetime.utcnow().date() and self.outstanding_amount > 0 and self.status != 'Paid':
+            self.status = 'Overdue'
+        return self.status
+
+
+class BillPayment(db.Model):
+    """Payment against a bill."""
+    __tablename__ = 'bill_payment'
+
+    id = db.Column(db.Integer, primary_key=True)
+    bill_id = db.Column(db.Integer, db.ForeignKey('bill.id'), nullable=False, index=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('bank_account.id'), nullable=False, index=True)
+    amount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
+    payment_date = db.Column(db.DateTime, default=datetime.utcnow)
+    reference = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    notes = db.Column(db.Text)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    account = db.relationship('BankAccount', backref='bill_payments')
+    creator = db.relationship('User', backref='bill_payments')
+
+    @staticmethod
+    def create_payment(bill_id, account_id, amount, reference, created_by=None, notes=''):
+        if amount is None or float(amount) <= 0:
+            raise ValueError('Payment amount must be greater than zero.')
+
+        bill = Bill.query.get(bill_id)
+        if not bill:
+            raise ValueError('Bill not found.')
+        if bill.outstanding_amount <= 0:
+            raise ValueError('This bill has already been fully paid.')
+        if float(amount) > float(bill.outstanding_amount or 0):
+            raise ValueError('Payment exceeds the outstanding bill balance.')
+
+        account = BankAccount.query.get(account_id)
+        if not account:
+            raise ValueError('Payment account is invalid.')
+        if float(account.balance or 0) < float(amount):
+            raise ValueError('Selected account does not have enough available balance.')
+
+        if BillPayment.query.filter_by(reference=reference).first():
+            raise ValueError('Payment reference already exists.')
+
+        payment = BillPayment(
+            bill_id=bill.id,
+            account_id=account.id,
+            amount=float(amount),
+            payment_date=datetime.utcnow(),
+            reference=reference,
+            notes=notes,
+            created_by=created_by,
+        )
+        db.session.add(payment)
+        db.session.flush()
+
+        account.balance = float(account.balance or 0) - float(amount)
+        transaction = BankTransaction(
+            account_id=account.id,
+            transaction_type='supplier_payment',
+            amount=float(amount),
+            description=f"Bill payment against {bill.bill_number or bill.po_number}",
+            reference_number=reference,
+            transaction_date=datetime.utcnow(),
+            balance_after=float(account.balance or 0),
+            related_entity_type='bill',
+            related_entity_id=bill.id,
+            created_by=created_by,
+        )
+        db.session.add(transaction)
+        bill.refresh_status()
+        db.session.flush()
+        return payment
+
+
+class SupplierCredit(db.Model):
+    """Supplier credit or adjustment reducing the payable balance."""
+    __tablename__ = 'supplier_credit'
+
+    id = db.Column(db.Integer, primary_key=True)
+    vendor_id = db.Column(db.Integer, db.ForeignKey('vendor.id'), nullable=False, index=True)
+    po_id = db.Column(db.Integer, db.ForeignKey('purchase_order.id'))
+    bill_id = db.Column(db.Integer, db.ForeignKey('bill.id'))
+    reference = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    reason = db.Column(db.String(100), default='Other')
+    amount = db.Column(db.Numeric(15, 2), nullable=False, default=0)
+    credit_date = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    approved_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    approval_state = db.Column(db.Enum(ApprovalState), default=ApprovalState.DRAFT)
+    applied_amount = db.Column(db.Numeric(15, 2), default=0)
+    remaining_amount = db.Column(db.Numeric(15, 2), default=0)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    vendor = db.relationship('Vendor', backref='supplier_credits')
+    purchase_order = db.relationship('PurchaseOrder', backref='supplier_credits')
+    bill = db.relationship('Bill', backref='supplier_credits')
+    creator = db.relationship('User', foreign_keys=[created_by], backref='created_supplier_credits')
+    approver = db.relationship('User', foreign_keys=[approved_by], backref='approved_supplier_credits')
+
+    def refresh_remaining(self):
+        self.remaining_amount = max(float(self.amount or 0) - float(self.applied_amount or 0), 0)
+        return self.remaining_amount
+
+    def approve(self, actor_id):
+        self.approval_state = ApprovalState.APPROVED
+        self.approved_by = actor_id
+        self.refresh_remaining()
+        return self
+
+    def cancel(self):
+        self.approval_state = ApprovalState.CANCELLED
+        self.remaining_amount = 0
+        return self
+
+
+class AuditLog(db.Model):
+    """Compatibility audit table for financial events."""
+    __tablename__ = 'audit_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    entity_type = db.Column(db.String(80), nullable=False)
+    entity_id = db.Column(db.Integer, nullable=False, index=True)
+    action = db.Column(db.String(80), nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    reference = db.Column(db.String(100))
+    old_value = db.Column(db.Text)
+    new_value = db.Column(db.Text)
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    actor = db.relationship('User', backref='audit_logs')
+
 
 class BankReconciliation(db.Model):
     """Bank reconciliation records."""
@@ -914,6 +1352,8 @@ class Milestone(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    task_code = db.Column(db.String(100))
+    assignee_name = db.Column(db.String(255))
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     planned_start_date = db.Column(db.Date)

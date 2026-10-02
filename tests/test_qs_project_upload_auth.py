@@ -1,7 +1,9 @@
 from io import BytesIO
 
+from openpyxl import Workbook
+
 from app.factory import create_app
-from app.models import Project, ProjectStaff, User, db
+from app.models import BOQItem, Project, ProjectStaff, User, db
 
 
 def _create_app_and_db():
@@ -183,3 +185,45 @@ def test_unassigned_user_is_denied_for_any_extension():
         )
 
         assert response.status_code == 403
+
+
+def test_project_manager_imports_boq_with_external_headers_into_project_model():
+    app = _create_app_and_db()
+    with app.app_context():
+        project = Project(name='BOQ Import Project', budget=500000)
+        manager = User(name='Project Manager', email='boq-manager@example.com', role='project_manager')
+        manager.set_password('password')
+        db.session.add_all([project, manager])
+        db.session.commit()
+        project_id = project.id
+        manager_id = manager.id
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.append(['Item No', 'Work Description', 'UOM', 'Measured Qty', 'Unit Rate', 'Value'])
+    sheet.append(['A-01', 'Concrete works', 'm3', 10, 5000, 50000])
+    file_content = BytesIO()
+    workbook.save(file_content)
+    file_content.seek(0)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(manager_id)
+            session['_fresh'] = True
+
+        response = client.post(
+            f'/projects/{project_id}/boq/import',
+            data={'boq_file': (file_content, 'contractor-boq.xlsx')},
+            content_type='multipart/form-data',
+        )
+
+        assert response.status_code == 302
+        assert f'/projects/{project_id}' in response.headers['Location']
+
+    with app.app_context():
+        imported = BOQItem.query.filter_by(project_id=project_id).one()
+        assert imported.description == 'Concrete works'
+        assert imported.unit == 'm3'
+        assert float(imported.quantity) == 10
+        assert float(imported.unit_rate) == 5000
+        assert float(imported.amount) == 50000

@@ -6,6 +6,7 @@
 {% block top_actions %}
 <div class="mb-8 flex justify-between items-center">
     <h2 class="text-2xl font-bold text-slate-900">Assets & Inventory</h2>
+    <a href="{{ url_for('imports.new_import', module='inventory', entity='stock_item') }}" class="inline-flex items-center gap-2 rounded border border-teal-700 px-4 py-2.5 font-semibold text-teal-800 hover:bg-teal-50"><i class='bx bx-import'></i> Import stock</a>
     <a href="{{ url_for('procurement.add_asset') }}" class="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold px-4 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg">
         <i class='bx bx-package'></i> Add Asset
     </a>
@@ -95,6 +96,7 @@
 {% if pagination and pagination.pages > 1 %}
 <div class="mt-8 flex justify-between items-center">
     <div class="text-sm text-slate-600">
+    <a href="{{ url_for('imports.new_import', module='inventory', entity='stock_item') }}" class="inline-flex items-center gap-2 rounded border border-teal-700 px-4 py-2.5 font-semibold text-teal-800 hover:bg-teal-50"><i class='bx bx-import'></i> Import stock</a>
         Showing page <span class="font-bold">{{ pagination.page }}</span> of <span class="font-bold">{{ pagination.pages }}</span>
     </div>
     <div class="flex gap-2">

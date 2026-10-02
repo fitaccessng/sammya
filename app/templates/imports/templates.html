@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Import Templates{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-6xl">
+    <div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-300 pb-5">
+        <div><p class="text-sm font-semibold uppercase text-teal-700">Reusable mappings</p><h1 class="mt-1 text-3xl font-bold text-slate-900">Import Templates</h1></div>
+        <a href="{{ url_for('imports.index') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Import catalog</a>
+    </div>
+    <div class="mt-5 overflow-x-auto border-y border-slate-200">
+        <table class="w-full min-w-[900px] text-left text-sm">
+            <thead class="bg-slate-100 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3">Template</th><th class="px-3 py-3">Module / Entity</th><th class="px-3 py-3">Scope</th><th class="px-3 py-3">Created by</th><th class="px-3 py-3">Updated</th><th class="px-3 py-3">Last used</th><th class="px-3 py-3">Uses</th><th class="px-3 py-3">Actions</th></tr></thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for template in templates %}
+                <tr>
+                    <td class="px-3 py-3 font-semibold text-slate-900">{{ template.name }}</td>
+                    <td class="px-3 py-3">{{ template.module.replace('_', ' ')|title }} / {{ template.entity.replace('_', ' ')|title }}</td>
+                    <td class="px-3 py-3">{{ template.scope_key.split(':')[-1].replace('_', ' ')|title }}</td>
+                    <td class="px-3 py-3">{{ template.creator.name if template.creator else 'Unknown' }}</td>
+                    <td class="px-3 py-3">{{ template.updated_at.strftime('%d %b %Y') if template.updated_at else 'N/A' }}</td>
+                    <td class="px-3 py-3">{{ template.last_used_at.strftime('%d %b %Y') if template.last_used_at else 'Never' }}</td>
+                    <td class="px-3 py-3">{{ template.use_count or 0 }}</td>
+                    <td class="px-3 py-3"><div class="flex flex-wrap gap-2"><a href="{{ url_for('imports.edit_template', template_id=template.id) }}" class="text-teal-800 underline">View / Edit</a><a href="{{ url_for('imports.use_template', template_id=template.id) }}" class="text-teal-800 underline">Use</a><form method="post" action="{{ url_for('imports.delete_template', template_id=template.id) }}" onsubmit="return confirm('Delete this mapping template?')"><button class="text-rose-800 underline">Delete</button></form></div></td>
+                </tr>
+                {% else %}<tr><td colspan="8" class="px-3 py-8 text-center text-slate-500">No import templates are available in your contexts.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

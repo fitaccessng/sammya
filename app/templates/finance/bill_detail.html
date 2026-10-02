@@ -1,0 +1,110 @@
+{% extends "finance/base.html" %}
+{% block title %}Bill Detail{% endblock %}
+{% block page_title %}Bill Detail{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto p-6 space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-900">{{ bill.bill_number }}</h1>
+            <p class="text-slate-600">PO: {{ bill.po_number }}</p>
+        </div>
+        <span class="inline-flex rounded-full px-3 py-1 text-sm font-medium {% if bill.status == 'Paid' %}bg-emerald-100 text-emerald-700{% elif bill.status == 'Overdue' %}bg-red-100 text-red-700{% elif bill.status == 'Partially Paid' %}bg-yellow-100 text-yellow-700{% else %}bg-slate-100 text-slate-700{% endif %}">{{ bill.status }}</span>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="rounded-lg border px-4 py-3 text-sm {% if category == 'success' %}bg-green-50 text-green-700 border-green-200{% elif category == 'error' %}bg-red-50 text-red-700 border-red-200{% else %}bg-yellow-50 text-yellow-700 border-yellow-200{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm lg:col-span-2">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">Bill Summary</h2>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <p class="text-slate-500">Supplier</p>
+                    <p class="font-medium text-slate-900">{{ bill.vendor.name if bill.vendor else 'Unknown vendor' }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Due Date</p>
+                    <p class="font-medium text-slate-900">{{ bill.due_date.strftime('%d %b %Y') if bill.due_date else 'Not set' }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Original Amount</p>
+                    <p class="font-medium text-slate-900">₦{{ '%.2f'|format(bill.total_amount or 0) }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Amount Paid</p>
+                    <p class="font-medium text-slate-900">₦{{ '%.2f'|format(bill.amount_paid or 0) }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Outstanding</p>
+                    <p class="font-medium text-slate-900">₦{{ '%.2f'|format(bill.outstanding_amount or 0) }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Payment Terms</p>
+                    <p class="font-medium text-slate-900">{{ bill.payment_terms }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+            <h2 class="text-xl font-semibold text-slate-800 mb-4">Pay Bill</h2>
+            <form method="post" action="{{ url_for('finance.pay_bill', bill_id=bill.id) }}" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Payment Amount</label>
+                    <input name="amount" type="number" min="0" step="0.01" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="0.00" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Payment Account</label>
+                    <select name="account_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" required>
+                        {% for account in (accounts or []) %}
+                        <option value="{{ account.id }}">{{ account.account_name }} - {{ account.account_number }} ({{ account.currency }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Reference</label>
+                    <input name="reference" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="PAY-001">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700">Notes</label>
+                    <textarea name="notes" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
+                </div>
+                <button type="submit" class="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">Confirm Payment</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+        <h2 class="text-xl font-semibold text-slate-800 mb-4">Payment History</h2>
+        {% if bill.payments %}
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-3 py-2 text-left">Date</th>
+                    <th class="px-3 py-2 text-left">Amount</th>
+                    <th class="px-3 py-2 text-left">Account</th>
+                    <th class="px-3 py-2 text-left">Reference</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200">
+                {% for payment in bill.payments %}
+                <tr>
+                    <td class="px-3 py-2">{{ payment.payment_date.strftime('%d %b %Y') if payment.payment_date else 'N/A' }}</td>
+                    <td class="px-3 py-2">₦{{ '%.2f'|format(payment.amount or 0) }}</td>
+                    <td class="px-3 py-2">{{ payment.account.account_name if payment.account else 'N/A' }}</td>
+                    <td class="px-3 py-2">{{ payment.reference }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="text-slate-500">No payment history yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

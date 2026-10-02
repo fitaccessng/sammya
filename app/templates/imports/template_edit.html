@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Edit Import Template{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-5xl">
+    <div class="border-b border-slate-300 pb-5"><p class="text-sm font-semibold uppercase text-teal-700">{{ template.module.replace('_', ' ')|title }} / {{ template.entity.replace('_', ' ')|title }}</p><h1 class="mt-1 text-3xl font-bold text-slate-900">{{ template.name }}</h1><p class="mt-2 text-sm text-slate-600">Scope: {{ template.scope_key }} · {{ template.use_count or 0 }} uses</p></div>
+    <form method="post" class="mt-6">
+        <div class="mb-5 max-w-xl"><label for="template-name" class="mb-1 block text-sm font-semibold text-slate-800">Template name</label><input id="template-name" name="name" value="{{ template.name }}" required maxlength="120" class="w-full rounded border border-slate-300 px-3 py-2"></div>
+        <div class="mb-5 max-w-xl"><label for="date-format" class="mb-1 block text-sm font-semibold text-slate-800">Suggested date format</label><select id="date-format" name="date_format" class="w-full rounded border border-slate-300 bg-white px-3 py-2"><option value="">Ask when ambiguous</option><option value="DD/MM/YYYY" {% if template.date_format == 'DD/MM/YYYY' %}selected{% endif %}>DD/MM/YYYY</option><option value="MM/DD/YYYY" {% if template.date_format == 'MM/DD/YYYY' %}selected{% endif %}>MM/DD/YYYY</option></select></div>
+        <div class="overflow-x-auto border-y border-slate-200"><table class="w-full min-w-[650px] text-left text-sm"><thead class="bg-slate-100 text-xs uppercase text-slate-600"><tr><th class="px-3 py-3">Source column</th><th class="px-3 py-3">Application field</th></tr></thead><tbody class="divide-y divide-slate-200">{% for source in source_headers %}<tr><td class="px-3 py-3 font-medium">{{ source }}</td><td class="px-3 py-3"><label class="sr-only" for="template-map-{{ loop.index0 }}">Map {{ source }}</label><select id="template-map-{{ loop.index0 }}" name="mapping_{{ loop.index0 }}" class="w-full rounded border border-slate-300 bg-white px-3 py-2"><option value="__ignore__">Ignore this column</option>{% for field in schema.fields %}<option value="{{ field.name }}" {% if mappings.get(source) == field.name %}selected{% endif %}>{{ field.label }}</option>{% endfor %}</select></td></tr>{% endfor %}</tbody></table></div>
+        <div class="mt-5 flex gap-3"><button class="rounded bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white">Save template changes</button><a href="{{ url_for('imports.templates') }}" class="rounded border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">Cancel</a></div>
+    </form>
+</section>
+{% endblock %}
