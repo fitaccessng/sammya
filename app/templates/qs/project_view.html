@@ -49,6 +49,10 @@
                 <i class="fas fa-list text-blue-600 text-lg"></i>
                 <span class="font-medium text-gray-900">BOQ</span>
             </a>
+            <a href="{{ url_for('qs_boq.project_boq', project_id=project.id, upload=1) }}" class="flex items-center space-x-3 px-4 py-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition">
+                <i class="fas fa-upload text-green-700 text-lg"></i>
+                <span class="font-medium text-gray-900">Upload BOQ</span>
+            </a>
             <a href="{{ url_for('qs_boq.material_schedule', project_id=project.id) }}" class="flex items-center space-x-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
                 <i class="fas fa-calendar text-amber-600 text-lg"></i>
                 <span class="font-medium text-gray-900">Material Schedule</span>

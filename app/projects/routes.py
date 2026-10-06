@@ -5,6 +5,7 @@ Handles all project lifecycle, staff, materials, equipment, DPR, documents, BOQ,
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import current_user, login_required
+from io import BytesIO
 from app.models import (
     db, Project, User, BOQItem, PaymentRequest, PaymentRecord, Vendor,
     Milestone, DailyProductionReport, ProjectMaterial, ProjectEquipment,
@@ -1138,7 +1139,20 @@ def download_document(doc_id):
         return redirect(url_for('project.index'))
     
     try:
-        return send_file(document.file_path, as_attachment=True)
+        if document.file_path and os.path.isfile(document.file_path):
+            return send_file(
+                document.file_path,
+                as_attachment=True,
+                download_name=document.file_name or document.title,
+            )
+        if document.file_data:
+            return send_file(
+                BytesIO(document.file_data),
+                as_attachment=True,
+                download_name=document.file_name or document.title,
+            )
+        flash('This document file is no longer available. Please upload it again.', 'error')
+        return redirect(url_for('project.documents_index', project_id=document.project_id))
     except Exception as e:
         flash(f'Error downloading document: {str(e)}', 'error')
         return redirect(url_for('project.documents_index', project_id=document.project_id))
@@ -1155,7 +1169,20 @@ def view_document(doc_id):
         return redirect(url_for('project.index'))
 
     try:
-        return send_file(document.file_path, as_attachment=False, download_name=document.file_name or document.title)
+        if document.file_path and os.path.isfile(document.file_path):
+            return send_file(
+                document.file_path,
+                as_attachment=False,
+                download_name=document.file_name or document.title,
+            )
+        if document.file_data:
+            return send_file(
+                BytesIO(document.file_data),
+                as_attachment=False,
+                download_name=document.file_name or document.title,
+            )
+        flash('This document file is no longer available. Please upload it again.', 'error')
+        return redirect(url_for('project.documents_index', project_id=document.project_id))
     except Exception as e:
         flash(f'Error viewing document: {str(e)}', 'error')
         return redirect(url_for('project.documents_index', project_id=document.project_id))

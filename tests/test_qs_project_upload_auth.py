@@ -1,4 +1,5 @@
 from io import BytesIO
+import os
 
 from flask import url_for
 from openpyxl import Workbook
@@ -8,6 +9,7 @@ from app.models import (
     BOQImport,
     BOQItem,
     Project,
+    ProjectDocument,
     ProjectStaff,
     User,
     db,
@@ -116,6 +118,56 @@ def test_qs_boq_upload_preserves_custom_file_columns(tmp_path):
         ]
         assert imported_row.values == ['North', 'Concrete slab', 24.5, 18500, 'QS Team']
         assert BOQItem.query.count() == 0
+
+
+def test_qs_project_upload_link_and_document_survives_missing_local_file(tmp_path):
+    app = _create_app_and_db()
+    app.config['PROJECT_UPLOAD_FOLDER'] = str(tmp_path)
+    with app.app_context():
+        project = Project(name='Persistent BOQ Project', budget=1000)
+        qs_user = User(name='QS Manager', email='persistent-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+        with app.test_request_context():
+            upload_url = url_for('qs_boq.upload_boq', project_id=project_id)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+
+        project_page = client.get(f'/qs/project/{project_id}')
+        assert project_page.status_code == 200
+        assert b'Upload BOQ' in project_page.data
+
+        response = client.post(
+            upload_url,
+            data={'file': (BytesIO(b'Item,Description\n1,Test row\n'), 'boq.csv')},
+            content_type='multipart/form-data',
+        )
+        assert response.status_code == 200
+
+        with app.app_context():
+            document = ProjectDocument.query.filter_by(project_id=project_id).one()
+            document_id = document.id
+            local_path = document.file_path
+            assert document.file_data == b'Item,Description\n1,Test row\n'
+
+        os.remove(local_path)
+        viewed = client.get(f'/projects/documents/{document_id}/view')
+
+    assert viewed.status_code == 200
+    assert viewed.data == b'Item,Description\n1,Test row\n'
 
 
 def test_qs_boq_upload_preserves_all_excel_sheets(tmp_path):

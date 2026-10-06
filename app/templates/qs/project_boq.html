@@ -389,6 +389,9 @@ function updateFileName() {
         fileName.textContent = '✓ ' + fileInput.files[0].name;
     }
 }
+if (new URLSearchParams(window.location.search).get('upload') === '1') {
+    openUploadModal();
+}
 </script>
 {% endblock %}
 

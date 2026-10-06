@@ -331,6 +331,9 @@ def upload_boq(project_id):
             return jsonify({'success': False, 'message': 'This file type is not allowed'}), 400
 
         original_filename = file.filename
+        file.stream.seek(0)
+        original_file_data = file.read()
+        file.stream.seek(0)
         is_tabular = file_ext in {'xlsx', 'xls', 'xlsm', 'csv'}
         if is_tabular:
             try:
@@ -355,15 +358,17 @@ def upload_boq(project_id):
         file.stream.seek(0)
         file.save(filepath)
 
-        db.session.add(ProjectDocument(
+        uploaded_document = ProjectDocument(
             project_id=project_id,
             title=original_filename,
             description='Uploaded from the QS BOQ',
             document_type=file_ext.upper(),
             file_path=filepath,
+            file_data=original_file_data,
             file_name=original_filename,
             uploaded_by_id=current_user.id
-        ))
+        )
+        db.session.add(uploaded_document)
 
         if not is_tabular:
             db.session.commit()

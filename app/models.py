@@ -1482,6 +1482,7 @@ class ProjectDocument(db.Model):
     description = db.Column(db.Text)
     document_type = db.Column(db.String(100))
     file_path = db.Column(db.String(500))
+    file_data = db.Column(db.LargeBinary)
     file_name = db.Column(db.String(255))
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     version = db.Column(db.Integer, default=1)
@@ -1492,6 +1493,22 @@ class ProjectDocument(db.Model):
     
     def __repr__(self):
         return f'<Document {self.title}>'
+
+
+def ensure_project_document_file_data_column():
+    """Add nullable file bytes for uploads that must survive ephemeral disks."""
+    inspector = inspect(db.engine)
+    if not inspector.has_table('project_document'):
+        return
+    existing = {column['name'] for column in inspector.get_columns('project_document')}
+    if 'file_data' in existing:
+        return
+
+    binary_type = db.LargeBinary().compile(dialect=db.engine.dialect)
+    with db.engine.begin() as connection:
+        connection.execute(text(
+            f'ALTER TABLE project_document ADD COLUMN file_data {binary_type}'
+        ))
 
 
 class ProjectBudgetRecord(db.Model):
