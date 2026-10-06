@@ -1,9 +1,17 @@
 from io import BytesIO
 
+from flask import url_for
 from openpyxl import Workbook
 
 from app.factory import create_app
-from app.models import BOQItem, Project, ProjectStaff, User, db
+from app.models import (
+    BOQImport,
+    BOQItem,
+    Project,
+    ProjectStaff,
+    User,
+    db,
+)
 
 
 def _create_app_and_db():
@@ -53,6 +61,115 @@ def test_qs_manager_can_upload_to_assigned_project():
 
         assert response.status_code == 302
         assert f'/projects/{project_id}/documents' in response.headers['Location']
+
+
+def test_qs_boq_upload_preserves_custom_file_columns(tmp_path):
+    app = _create_app_and_db()
+    app.config['PROJECT_UPLOAD_FOLDER'] = str(tmp_path)
+    with app.app_context():
+        project = Project(name='Custom BOQ Project', budget=1000)
+        qs_user = User(name='QS Manager', email='custom-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+        with app.test_request_context():
+            upload_url = url_for('qs_boq.upload_boq', project_id=project_id)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+
+        response = client.post(
+            upload_url,
+            data={
+                'file': (BytesIO(
+                    b'Zone,Work Package,Measured Area,Rate NGN,Checked By\n'
+                    b'North,Concrete slab,24.5,18500,QS Team\n'
+                ), 'custom-layout.csv'),
+            },
+            content_type='multipart/form-data',
+        )
+        page_response = client.get(f'/qs/project/{project_id}/boq')
+
+    assert response.status_code == 200
+    assert response.get_json()['created'] == 1
+    assert page_response.status_code == 200
+    assert b'Imported BOQ Rows' in page_response.data
+    assert b'Measured Area' in page_response.data
+    assert b'24.5' in page_response.data
+    with app.app_context():
+        boq_import = BOQImport.query.one()
+        imported_sheet = boq_import.sheets[0]
+        imported_row = imported_sheet.rows[0]
+        assert imported_sheet.headers == [
+            'Zone', 'Work Package', 'Measured Area', 'Rate NGN', 'Checked By',
+        ]
+        assert imported_row.values == ['North', 'Concrete slab', 24.5, 18500, 'QS Team']
+        assert BOQItem.query.count() == 0
+
+
+def test_qs_boq_upload_preserves_all_excel_sheets(tmp_path):
+    app = _create_app_and_db()
+    app.config['PROJECT_UPLOAD_FOLDER'] = str(tmp_path)
+    with app.app_context():
+        project = Project(name='Workbook BOQ Project', budget=1000)
+        qs_user = User(name='QS Manager', email='workbook-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+        with app.test_request_context():
+            upload_url = url_for('qs_boq.upload_boq', project_id=project_id)
+
+    workbook = Workbook()
+    workbook.active.title = 'Measured Works'
+    workbook.active.append(['Location', 'Trade Description', 'Measured Area'])
+    workbook.active.append(['Block A', 'Floor screed', 75.5])
+    notes_sheet = workbook.create_sheet('Commercial Notes')
+    notes_sheet.append(['Clause Reference', 'Note'])
+    notes_sheet.append(['C-14', 'Rate subject to review'])
+    workbook_file = BytesIO()
+    workbook.save(workbook_file)
+    workbook_file.seek(0)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+        response = client.post(
+            upload_url,
+            data={'file': (workbook_file, 'multi-sheet-boq.xlsx')},
+            content_type='multipart/form-data',
+        )
+
+    assert response.status_code == 200
+    assert response.get_json()['created'] == 2
+    assert response.get_json()['sheets'] == 2
+    with app.app_context():
+        boq_import = BOQImport.query.one()
+        sheets = {sheet.sheet_name: sheet for sheet in boq_import.sheets}
+        assert set(sheets) == {'Measured Works', 'Commercial Notes'}
+        assert sheets['Measured Works'].headers == ['Location', 'Trade Description', 'Measured Area']
+        assert sheets['Measured Works'].rows[0].values == ['Block A', 'Floor screed', 75.5]
+        assert sheets['Commercial Notes'].rows[0].values == ['C-14', 'Rate subject to review']
 
 
 def test_qs_manager_cannot_upload_to_unassigned_project():

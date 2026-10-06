@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn server:app
+    startCommand: python migrate_dynamic_boq.py && gunicorn server:app
     autoDeploy: true
     envVars:
       - key: FLASK_ENV

@@ -264,6 +264,7 @@ class Project(db.Model):
     # Relationships
     project_manager = db.relationship('User', foreign_keys=[project_manager_id], backref='managed_projects')
     boq_items = db.relationship('BOQItem', backref='project', cascade='all, delete-orphan')
+    boq_imports = db.relationship('BOQImport', backref='project', cascade='all, delete-orphan')
     material_requests = db.relationship('MaterialRequest', backref='project', cascade='all, delete-orphan')
     purchase_orders = db.relationship('PurchaseOrder', backref='project', cascade='all, delete-orphan')
     change_orders = db.relationship('ChangeOrder', backref='project', cascade='all, delete-orphan')
@@ -330,6 +331,42 @@ class BOQItem(db.Model):
     
     def __repr__(self):
         return f'<BOQItem {self.description} ({self.quantity}{self.unit})>'
+
+
+class BOQImport(db.Model):
+    """Uploaded BOQ file retained independently from normalized BOQ items."""
+    __tablename__ = 'boq_import'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False, index=True)
+    file_name = db.Column(db.String(255), nullable=False)
+    uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    sheets = db.relationship('BOQImportSheet', backref='boq_import', cascade='all, delete-orphan')
+    uploaded_by = db.relationship('User')
+
+
+class BOQImportSheet(db.Model):
+    """One tabular sheet and its original column labels from an uploaded BOQ."""
+    __tablename__ = 'boq_import_sheet'
+
+    id = db.Column(db.Integer, primary_key=True)
+    import_id = db.Column(db.Integer, db.ForeignKey('boq_import.id'), nullable=False, index=True)
+    sheet_name = db.Column(db.String(255), nullable=False)
+    headers = db.Column(db.JSON, nullable=False)
+
+    rows = db.relationship('BOQImportRow', backref='sheet', cascade='all, delete-orphan')
+
+
+class BOQImportRow(db.Model):
+    """A source row stored as ordered cell values to preserve arbitrary columns."""
+    __tablename__ = 'boq_import_row'
+
+    id = db.Column(db.Integer, primary_key=True)
+    sheet_id = db.Column(db.Integer, db.ForeignKey('boq_import_sheet.id'), nullable=False, index=True)
+    row_number = db.Column(db.Integer, nullable=False)
+    values = db.Column(db.JSON, nullable=False)
 
 
 class MaterialRequest(db.Model):

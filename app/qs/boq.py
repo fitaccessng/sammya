@@ -3,7 +3,15 @@ QS Bill of Quantities (BOQ) endpoints
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
-from app.models import Project, BOQItem, ProjectDocument, db
+from app.models import (
+    BOQImport,
+    BOQImportRow,
+    BOQImportSheet,
+    BOQItem,
+    Project,
+    ProjectDocument,
+    db,
+)
 from app.utils import role_required, Roles
 from .utils import check_project_access, get_user_qs_projects
 import pandas as pd
@@ -43,6 +51,18 @@ def _mapped_column(df, names):
     return None
 
 
+def _json_cell(value):
+    if pd.isna(value):
+        return None
+    if hasattr(value, 'item'):
+        value = value.item()
+    if hasattr(value, 'isoformat') and not isinstance(value, str):
+        return value.isoformat()
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
 @boq_bp.route('/project/<int:project_id>/boq', methods=['GET'])
 @login_required
 @role_required([Roles.SUPER_HQ, Roles.QS_MANAGER, Roles.QS_STAFF])
@@ -55,6 +75,14 @@ def project_boq(project_id):
         
         # Get BOQ items
         boq_items = BOQItem.query.filter_by(project_id=project_id).all()
+        boq_imports = BOQImport.query.filter_by(project_id=project_id).order_by(
+            BOQImport.created_at.desc()
+        ).all()
+        imported_boq_row_count = sum(
+            len(sheet.rows)
+            for boq_import in boq_imports
+            for sheet in boq_import.sheets
+        )
         
         # Calculate totals
         total_boq_value = sum(float(item.amount or 0) for item in boq_items)
@@ -75,6 +103,8 @@ def project_boq(project_id):
             project=project,
             projects=projects,
             boq_items=boq_items,
+            boq_imports=boq_imports,
+            imported_boq_row_count=imported_boq_row_count,
             bill_summaries=bill_summaries,
             total_boq=total_boq_value,
             total_items=len(boq_items)
@@ -291,27 +321,41 @@ def upload_boq(project_id):
             return jsonify({'success': False, 'message': 'This file type is not allowed'}), 400
 
         original_filename = file.filename
+        is_tabular = file_ext in {'xlsx', 'xls', 'xlsm', 'csv'}
+        if is_tabular:
+            try:
+                file.stream.seek(0)
+                if file_ext == 'csv':
+                    sheets = {os.path.splitext(original_filename)[0]: pd.read_csv(file)}
+                else:
+                    sheets = pd.read_excel(file, sheet_name=None)
+            except Exception as e:
+                current_app.logger.error(f"Error parsing file: {str(e)}")
+                return jsonify({'success': False, 'message': 'Error parsing file. Please check the format.'}), 400
+
         stored_filename = secure_filename(original_filename)
         if not stored_filename:
             return jsonify({'success': False, 'message': 'Invalid file name'}), 400
-        upload_folder = os.path.join(current_app.root_path, 'uploads', 'projects')
+        upload_folder = current_app.config.get('PROJECT_UPLOAD_FOLDER') or os.path.join(
+            current_app.root_path, 'uploads', 'projects'
+        )
         os.makedirs(upload_folder, exist_ok=True)
         stored_filename = f"{os.urandom(8).hex()}_{stored_filename}"
         filepath = os.path.join(upload_folder, stored_filename)
+        file.stream.seek(0)
         file.save(filepath)
 
-        uploaded_document = ProjectDocument(
+        db.session.add(ProjectDocument(
             project_id=project_id,
             title=original_filename,
-            description='Uploaded from the QS material schedule',
+            description='Uploaded from the QS BOQ',
             document_type=file_ext.upper(),
             file_path=filepath,
             file_name=original_filename,
             uploaded_by_id=current_user.id
-        )
-        db.session.add(uploaded_document)
+        ))
 
-        if file_ext not in {'xlsx', 'xls', 'xlsm', 'csv'}:
+        if not is_tabular:
             db.session.commit()
             return jsonify({
                 'success': True,
@@ -319,83 +363,36 @@ def upload_boq(project_id):
                 'created': 0,
                 'file_name': original_filename
             })
-        
-        # Parse file
-        try:
-            file.stream.seek(0)
-            if file_ext == 'csv':
-                df = pd.read_csv(file)
-            else:
-                df = pd.read_excel(file)
-        except Exception as e:
-            current_app.logger.error(f"Error parsing file: {str(e)}")
-            return jsonify({'success': False, 'message': 'Error parsing file. Please check the format.'}), 400
-        
-        # Expected columns (flexible matching)
-        column_mapping = {
-            'bill_no': ['bill no', 'bill_no', 'bill no.', 'billno'],
-            'item_no': ['item no', 'item_no', 'item no.', 'itemno'],
-            'description': ['description', 'desc', 'item description'],
-            'quantity': ['quantity', 'qty', 'quantity (nos)', 'quantity (m)', 'quantity (sqm)'],
-            'unit': ['unit', 'unit of measurement', 'uom'],
-            'unit_rate': ['unit rate', 'rate', 'unit price', 'rate (₦)', 'unit rate (₦)'],
-            'amount': ['amount', 'line total', 'total amount', 'total'],
-            'category': ['category', 'type', 'category']
-        }
-        
-        mapped_columns = {
-            target_col: _mapped_column(df, possible_names)
-            for target_col, possible_names in column_mapping.items()
-        }
-        
-        # Extract and create BOQ items
-        created_count = 0
-        error_rows = []
-        
-        for idx, row in df.iterrows():
-            try:
-                # Get values with defaults
-                values, fallback_description, numeric_values = _row_values(row)
-                get_value = lambda key: row[mapped_columns[key]] if mapped_columns.get(key) else None
-                description = str(get_value('description') or fallback_description or f'Imported row {idx + 1}').strip()
-                quantity = float(get_value('quantity')) if get_value('quantity') is not None and pd.notna(get_value('quantity')) else (numeric_values[0] if numeric_values else 1)
-                unit = str(get_value('unit') or 'item').strip()
-                unit_rate = float(get_value('unit_rate')) if get_value('unit_rate') is not None and pd.notna(get_value('unit_rate')) else (numeric_values[1] if len(numeric_values) > 1 else 0)
-                amount = float(get_value('amount')) if get_value('amount') is not None and pd.notna(get_value('amount')) else (quantity * unit_rate)
-                bill_no = str(get_value('bill_no') or 'Imported BOQ').strip()
-                item_no = str(get_value('item_no') or idx + 1).strip()
-                category = str(get_value('category') or 'General').strip()
-                
-                # Create BOQ item
-                boq_item = BOQItem(
-                    project_id=project_id,
-                    bill_no=bill_no,
-                    item_no=item_no,
-                    description=description,
-                    quantity=quantity,
-                    unit=unit,
-                    unit_rate=unit_rate,
-                    amount=amount,
-                    category=category
-                )
-                db.session.add(boq_item)
-                created_count += 1
-            
-            except Exception as e:
-                current_app.logger.error(f"Error processing row {idx+1}: {str(e)}")
-                error_rows.append(f"Row {idx+1}: {str(e)}")
-        
+
+        boq_import = BOQImport(
+            project_id=project_id,
+            file_name=original_filename,
+            uploaded_by_id=current_user.id,
+        )
+        imported_rows = 0
+        for sheet_name, dataframe in sheets.items():
+            headers = [str(header) for header in dataframe.columns]
+            imported_sheet = BOQImportSheet(sheet_name=str(sheet_name), headers=headers)
+            boq_import.sheets.append(imported_sheet)
+            for index, row in dataframe.iterrows():
+                cell_values = [_json_cell(value) for value in row.tolist()]
+                if not any(value not in (None, '') for value in cell_values):
+                    continue
+                imported_sheet.rows.append(BOQImportRow(
+                    row_number=int(index) + 2,
+                    values=cell_values,
+                ))
+                imported_rows += 1
+
+        db.session.add(boq_import)
         db.session.commit()
-        
-        message = f"Successfully imported {created_count} BOQ items"
-        if error_rows:
-            message += f". {len(error_rows)} rows had errors"
-        
+
         return jsonify({
             'success': True,
-            'message': message,
-            'created': created_count,
-            'errors': error_rows if error_rows else None
+            'message': f'Imported {imported_rows} rows across {len(sheets)} sheet(s), preserving the uploaded columns.',
+            'created': imported_rows,
+            'sheets': len(sheets),
+            'import_id': boq_import.id,
         })
     
     except Exception as e:
