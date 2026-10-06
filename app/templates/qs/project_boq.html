@@ -115,20 +115,26 @@
             </header>
             {% for sheet in boq_import.sheets %}
             <div class="border-b border-gray-100 last:border-b-0">
-                <div class="px-5 py-3 text-sm font-semibold text-gray-800">{{ sheet.sheet_name }} <span class="font-normal text-gray-500">· {{ sheet.rows|length }} rows</span></div>
+                <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                    <div class="text-sm font-semibold text-gray-800">{{ sheet.sheet_name }} <span class="font-normal text-gray-500">· {{ sheet.rows|length }} rows</span></div>
+                    <button type="submit" form="edit-boq-sheet-{{ sheet.id }}" class="inline-flex items-center gap-2 rounded border border-teal-700 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">
+                        <i class="fas fa-save" aria-hidden="true"></i>Save sheet edits
+                    </button>
+                </div>
+                <form id="edit-boq-sheet-{{ sheet.id }}" method="post" action="{{ url_for('qs_boq.edit_boq_import_sheet', project_id=project.id, import_id=boq_import.id, sheet_id=sheet.id) }}">
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50 text-left text-gray-700">
                             <tr>
                                 <th class="whitespace-nowrap px-4 py-2 font-semibold">Source Row</th>
-                                {% for header in sheet.headers %}<th class="whitespace-nowrap px-4 py-2 font-semibold">{{ header }}</th>{% endfor %}
+                                {% for header in sheet.headers %}<th class="min-w-40 px-2 py-2"><label class="sr-only" for="header-{{ sheet.id }}-{{ loop.index0 }}">Column name</label><input id="header-{{ sheet.id }}-{{ loop.index0 }}" name="header_{{ loop.index0 }}" value="{{ header }}" required class="w-full rounded border border-slate-300 bg-white px-2 py-1 font-semibold text-gray-800"></th>{% endfor %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for row in sheet.rows %}
                             <tr class="border-t border-gray-100 align-top hover:bg-gray-50">
                                 <td class="whitespace-nowrap px-4 py-2 text-gray-500">{{ row.row_number }}</td>
-                                {% for value in row.values %}<td class="min-w-28 px-4 py-2 text-gray-900">{{ value if value is not none else '' }}</td>{% endfor %}
+                                {% for value in row.values %}<td class="min-w-40 px-2 py-1"><label class="sr-only" for="cell-{{ row.id }}-{{ loop.index0 }}">{{ sheet.headers[loop.index0] if loop.index0 < sheet.headers|length else 'Column ' ~ loop.index }}</label><input id="cell-{{ row.id }}-{{ loop.index0 }}" name="cell_{{ row.id }}_{{ loop.index0 }}" value="{{ value if value is not none else '' }}" class="w-full rounded border border-transparent bg-transparent px-2 py-1 text-gray-900 hover:border-slate-300 focus:border-teal-700 focus:bg-white"></td>{% endfor %}
                             </tr>
                             {% else %}
                             <tr><td colspan="{{ sheet.headers|length + 1 }}" class="px-4 py-5 text-center text-gray-500">No data rows in this sheet.</td></tr>
@@ -136,6 +142,7 @@
                         </tbody>
                     </table>
                 </div>
+                </form>
             </div>
             {% endfor %}
         </article>

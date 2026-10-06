@@ -125,6 +125,60 @@ def project_boq(project_id):
         return redirect(url_for('qs_dashboard.dashboard'))
 
 
+@boq_bp.route(
+    '/project/<int:project_id>/boq/import/<int:import_id>/sheet/<int:sheet_id>/edit',
+    methods=['POST'],
+)
+@login_required
+@role_required([Roles.SUPER_HQ, Roles.QS_MANAGER, Roles.QS_STAFF])
+def edit_boq_import_sheet(project_id, import_id, sheet_id):
+    """Edit the displayed tabular copy of an uploaded BOQ sheet."""
+    project = check_project_access(project_id)
+    if not project:
+        return jsonify({'success': False, 'message': 'Access denied'}), 403
+
+    imported_sheet = BOQImportSheet.query.filter_by(
+        id=sheet_id, import_id=import_id,
+    ).join(BOQImport).filter(BOQImport.project_id == project_id).first_or_404()
+
+    headers = [request.form.get(f'header_{index}', '').strip() for index in range(len(imported_sheet.headers))]
+    if not headers or any(not header for header in headers):
+        flash('Column names cannot be empty.', 'error')
+        return redirect(url_for('qs_boq.project_boq', project_id=project_id))
+
+    imported_sheet.headers = headers
+    for row in imported_sheet.rows:
+        updated_values = []
+        for column_index, old_value in enumerate(row.values):
+            submitted = request.form.get(f'cell_{row.id}_{column_index}', '')
+            if submitted == '':
+                updated_values.append(None)
+            elif isinstance(old_value, bool):
+                updated_values.append(submitted.strip().lower() in {'1', 'true', 'yes', 'on'})
+            elif isinstance(old_value, int) and not isinstance(old_value, bool):
+                try:
+                    updated_values.append(int(submitted))
+                except ValueError:
+                    updated_values.append(submitted)
+            elif isinstance(old_value, float):
+                try:
+                    updated_values.append(float(submitted))
+                except ValueError:
+                    updated_values.append(submitted)
+            else:
+                updated_values.append(submitted)
+        row.values = updated_values
+
+    try:
+        db.session.commit()
+        flash('Uploaded BOQ sheet changes saved. The original file remains unchanged.', 'success')
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Unable to save edited BOQ sheet %s', sheet_id)
+        flash(f'Unable to save BOQ sheet changes: {exc}', 'error')
+    return redirect(url_for('qs_boq.project_boq', project_id=project_id))
+
+
 @boq_bp.route('/project/<int:project_id>/boq/add', methods=['POST'])
 @login_required
 @role_required([Roles.SUPER_HQ, Roles.QS_MANAGER, Roles.QS_STAFF])

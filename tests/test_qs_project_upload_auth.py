@@ -500,3 +500,67 @@ def test_qs_boq_page_and_add_work_without_archive_tables():
         assert inspector.has_table('boq_import')
         assert inspector.has_table('boq_import_sheet')
         assert inspector.has_table('boq_import_row')
+
+
+def test_qs_manager_can_edit_uploaded_boq_headers_and_cells(tmp_path):
+    app = _create_app_and_db()
+    app.config['PROJECT_UPLOAD_FOLDER'] = str(tmp_path)
+    with app.app_context():
+        project = Project(name='Editable BOQ Project', budget=1000)
+        qs_user = User(name='QS Manager', email='edit-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+        with app.test_request_context():
+            upload_url = url_for('qs_boq.upload_boq', project_id=project_id)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+        uploaded = client.post(
+            upload_url,
+            data={'file': (BytesIO(
+                b'Zone,Work Package,Measured Area\nNorth,Concrete slab,24.5\n'
+            ), 'editable-boq.csv')},
+            content_type='multipart/form-data',
+        )
+        assert uploaded.status_code == 200
+
+        with app.app_context():
+            imported_sheet = BOQImport.query.one().sheets[0]
+            imported_row = imported_sheet.rows[0]
+            sheet_id = imported_sheet.id
+            import_id = imported_sheet.import_id
+            row_id = imported_row.id
+
+        edit_url = url_for(
+            'qs_boq.edit_boq_import_sheet', project_id=project_id,
+            import_id=import_id, sheet_id=sheet_id,
+        )
+        edited = client.post(edit_url, data={
+            'header_0': 'Area Zone',
+            'header_1': 'Scope',
+            'header_2': 'Updated Quantity',
+            f'cell_{row_id}_0': 'East',
+            f'cell_{row_id}_1': 'Road base',
+            f'cell_{row_id}_2': '31.75',
+        }, follow_redirects=True)
+
+    assert edited.status_code == 200
+    assert b'Area Zone' in edited.data
+    assert b'Road base' in edited.data
+    assert b'31.75' in edited.data
+    with app.app_context():
+        imported_sheet = db.session.get(type(imported_sheet), sheet_id)
+        assert imported_sheet.headers == ['Area Zone', 'Scope', 'Updated Quantity']
+        assert imported_sheet.rows[0].values == ['East', 'Road base', 31.75]
