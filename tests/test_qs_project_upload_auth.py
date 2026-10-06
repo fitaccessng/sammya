@@ -172,6 +172,56 @@ def test_qs_boq_upload_preserves_all_excel_sheets(tmp_path):
         assert sheets['Commercial Notes'].rows[0].values == ['C-14', 'Rate subject to review']
 
 
+def test_material_schedule_upload_uses_supported_boq_fields_and_renders(tmp_path):
+    app = _create_app_and_db()
+    app.config['PROJECT_UPLOAD_FOLDER'] = str(tmp_path)
+    with app.app_context():
+        project = Project(name='Material Schedule Project', budget=1000)
+        qs_user = User(name='QS Manager', email='schedule-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+        with app.test_request_context():
+            upload_url = url_for('qs_boq.upload_material_schedule', project_id=project_id)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+        response = client.post(
+            upload_url,
+            data={
+                'file': (BytesIO(
+                    b'Item ID,Description,Material Qty,Material Unit,Material Rate,Material Total,Labour Qty,Labour Unit,Labour Rate,Labour Total,Grand Total\n'
+                    b'P-01,Painting,5,L,20,100,2,HRS,15,30,130\n'
+                ), 'material-schedule.csv'),
+            },
+            content_type='multipart/form-data',
+        )
+        material_response = client.get(f'/qs/project/{project_id}/material-schedule')
+        project_response = client.get(f'/qs/project/{project_id}')
+
+    assert response.status_code == 200
+    assert response.get_json()['created'] == 2
+    assert material_response.status_code == 200
+    assert b'Materials' in material_response.data
+    assert b'Labour' in material_response.data
+    assert project_response.status_code == 200
+    with app.app_context():
+        items = BOQItem.query.filter_by(project_id=project_id).order_by(BOQItem.item_no).all()
+        assert [item.item_no for item in items] == ['P-01-L', 'P-01-M']
+        assert all(item.created_by == user_id for item in items)
+
+
 def test_qs_manager_cannot_upload_to_unassigned_project():
     app = _create_app_and_db()
     with app.app_context():

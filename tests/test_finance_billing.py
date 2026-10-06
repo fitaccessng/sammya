@@ -11,6 +11,7 @@ from app.models import (
     BillPayment,
     PurchaseOrder,
     PurchaseOrderItem,
+    PaymentRequest,
     User,
     Vendor,
     db,
@@ -116,6 +117,50 @@ def test_bank_transaction_model_tracks_debit_and_credit_balances():
         assert tx.transaction_type == 'debit'
         assert tx.amount == 25000
         assert BankTransaction.query.filter_by(reference_number='BT-001').count() == 1
+
+
+def test_finance_payments_page_lists_payment_requests():
+    app, user_id, _account_id, _bill_id = _build_app()
+    with app.app_context():
+        po_id = PurchaseOrder.query.one().id
+        db.session.add(PaymentRequest(
+            po_id=po_id,
+            counterparty_name='Nigerian Supplies',
+            invoice_number='INV-1001',
+            invoice_amount=125000,
+            approval_state=ApprovalState.PENDING,
+        ))
+        db.session.commit()
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+        response = client.get('/finance/payments')
+
+    assert response.status_code == 200
+    assert b'Pending requests' in response.data
+    assert b'INV-1001' in response.data
+    assert b'Nigerian Supplies' in response.data
+
+
+def test_bank_account_ledger_links_to_account_scoped_import():
+    app, user_id, account_id, _bill_id = _build_app()
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+
+        ledger = client.get(f'/finance/bank-reconciliation/account/{account_id}')
+        assert ledger.status_code == 200
+        assert b'Import Statement' in ledger.data
+        assert f'/imports/new?module=finance&amp;entity=bank_transaction&amp;account_id={account_id}'.encode() in ledger.data
+
+        wizard = client.get(
+            f'/imports/new?module=finance&entity=bank_transaction&account_id={account_id}'
+        )
+        assert wizard.status_code == 200
+        assert b'Test Bank' in wizard.data
 
 
 def test_bank_statement_upload_wizard_acceptance_flow():

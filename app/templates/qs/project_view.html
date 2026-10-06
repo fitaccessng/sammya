@@ -76,7 +76,6 @@
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50">
-                        <th class="text-left py-3 px-4 font-semibold text-gray-700">Bill No</th>
                         <th class="text-left py-3 px-4 font-semibold text-gray-700">Item No</th>
                         <th class="text-left py-3 px-4 font-semibold text-gray-700">Description</th>
                         <th class="text-right py-3 px-4 font-semibold text-gray-700">Qty</th>
@@ -86,9 +85,8 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in boq_items|slice(10) %}
+                    {% for item in boq_items[:10] %}
                     <tr class="border-b border-gray-100 hover:bg-gray-50 transition">
-                        <td class="py-3 px-4 text-gray-900">{{ item.bill_no or '-' }}</td>
                         <td class="py-3 px-4 text-gray-900">{{ item.item_no or '-' }}</td>
                         <td class="py-3 px-4 text-gray-900">{{ item.description }}</td>
                         <td class="py-3 px-4 text-right text-gray-900">{{ item.quantity }}</td>

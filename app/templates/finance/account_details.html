@@ -11,6 +11,10 @@
             <p class="text-gray-600">{{ account.bank_name }} - {{ account.account_number }}</p>
         </div>
         <div class="flex gap-2">
+            <a href="{{ url_for('imports.new_import', module='finance', entity='bank_transaction', account_id=account.id) }}"
+               class="inline-flex items-center gap-2 rounded bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700">
+                <i class="fas fa-upload" aria-hidden="true"></i>Import Statement
+            </a>
             <a href="{{ url_for('finance.reconcile_account_form', account_id=account.id) }}" 
                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">🔄 Reconcile Account</a>
             <a href="{{ url_for('finance.bank_reconciliation') }}" 

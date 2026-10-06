@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, current_
 from flask_login import login_required, current_user
 from app.models import Project, BOQItem, ProjectStaff, db, ChangeOrder
 from app.utils import role_required, Roles
-from .utils import check_project_access, get_user_qs_projects
+from .utils import boq_item_category, check_project_access, get_user_qs_projects
 from datetime import datetime
 from sqlalchemy import and_
 
@@ -43,7 +43,7 @@ def view_project(project_id):
         # Group BOQ by category
         boq_by_category = {}
         for item in boq_items:
-            category = item.category or 'General'
+            category = boq_item_category(item)
             if category not in boq_by_category:
                 boq_by_category[category] = {'items': [], 'total': 0, 'count': 0}
             boq_by_category[category]['items'].append(item)
@@ -94,7 +94,7 @@ def project_cost_summary(project_id):
         # Cost analysis by category
         cost_by_category = {}
         for item in boq_items:
-            category = item.category or 'General'
+            category = boq_item_category(item)
             if category not in cost_by_category:
                 cost_by_category[category] = {'allocated': 0, 'percentage': 0}
             cost_by_category[category]['allocated'] += float(item.amount or 0)

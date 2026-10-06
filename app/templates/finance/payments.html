@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Payments{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-7xl space-y-6">
+    <div class="flex flex-wrap items-end justify-between gap-4 border-b border-gray-200 pb-5">
+        <div>
+            <p class="text-sm font-semibold uppercase text-blue-700">Finance</p>
+            <h1 class="mt-1 text-3xl font-bold text-gray-900">Payments</h1>
+            <p class="mt-1 text-sm text-gray-600">Payment requests awaiting action and approved requests.</p>
+        </div>
+        <a href="{{ url_for('finance.dashboard') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Finance dashboard</a>
+    </div>
+
+    {% if pending is defined or approved is defined %}
+    <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-900">Pending requests</h2>
+        <div class="overflow-x-auto border-y border-gray-200">
+            <table class="w-full min-w-[720px] text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Payee</th><th class="px-4 py-3">Purchase order</th><th class="px-4 py-3">Requested</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for payment in pending|default([]) %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3"><a class="font-semibold text-blue-700 hover:underline" href="{{ url_for('finance.view_payment_request', payment_id=payment.id) }}">{{ payment.invoice_number or ('Request #' ~ payment.id) }}</a></td>
+                        <td class="px-4 py-3">{{ payment.counterparty_name or (payment.purchase_order.vendor.name if payment.purchase_order and payment.purchase_order.vendor else 'N/A') }}</td>
+                        <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
+                        <td class="px-4 py-3">{{ payment.created_at.strftime('%d %b %Y') if payment.created_at else 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }}</td>
+                        <td class="px-4 py-3">{{ payment.approval_state.value|replace('_', ' ')|title if payment.approval_state else 'Pending' }}</td>
+                    </tr>
+                    {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No pending payment requests.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-900">Approved requests</h2>
+        <div class="overflow-x-auto border-y border-gray-200">
+            <table class="w-full min-w-[720px] text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="px-4 py-3">Invoice</th><th class="px-4 py-3">Payee</th><th class="px-4 py-3">Purchase order</th><th class="px-4 py-3">Requested</th><th class="px-4 py-3">Amount</th><th class="px-4 py-3">Status</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for payment in approved|default([]) %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3"><a class="font-semibold text-blue-700 hover:underline" href="{{ url_for('finance.view_payment_request', payment_id=payment.id) }}">{{ payment.invoice_number or ('Request #' ~ payment.id) }}</a></td>
+                        <td class="px-4 py-3">{{ payment.counterparty_name or (payment.purchase_order.vendor.name if payment.purchase_order and payment.purchase_order.vendor else 'N/A') }}</td>
+                        <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
+                        <td class="px-4 py-3">{{ payment.created_at.strftime('%d %b %Y') if payment.created_at else 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }}</td>
+                        <td class="px-4 py-3">{{ payment.approval_state.value|replace('_', ' ')|title if payment.approval_state else 'Approved' }}</td>
+                    </tr>
+                    {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No approved payment requests.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    {% if payments is defined %}
+    <section class="space-y-3">
+        <h2 class="text-xl font-semibold text-gray-900">Payment register</h2>
+        <div class="overflow-x-auto border-y border-gray-200">
+            <table class="w-full min-w-[760px] text-left text-sm">
+                <thead class="bg-gray-50 text-xs uppercase text-gray-600"><tr><th class="px-4 py-3">Date</th><th class="px-4 py-3">Reference</th><th class="px-4 py-3">Payee</th><th class="px-4 py-3">Purchase order</th><th class="px-4 py-3">Method</th><th class="px-4 py-3">Amount paid</th></tr></thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for payment in payments.items|default(payments) %}
+                    {% set request_record = payment.payment_request %}
+                    {% set purchase_order = request_record.purchase_order if request_record and request_record.purchase_order else payment.purchase_order %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3">{{ payment.payment_date.strftime('%d %b %Y') if payment.payment_date else 'N/A' }}</td>
+                        <td class="px-4 py-3"><a class="font-semibold text-blue-700 hover:underline" href="{{ url_for('finance.view_payment_record', record_id=payment.id) }}">{{ payment.reference_number or ('Payment #' ~ payment.id) }}</a></td>
+                        <td class="px-4 py-3">{{ purchase_order.vendor.name if purchase_order and purchase_order.vendor else (request_record.counterparty_name if request_record else 'N/A') }}</td>
+                        <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
+                        <td class="px-4 py-3">{{ payment.payment_method or 'N/A' }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.amount_paid or 0) }}</td>
+                    </tr>
+                    {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No payment records found.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</section>
+{% endblock %}

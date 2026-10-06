@@ -13,7 +13,7 @@ from app.models import (
     db,
 )
 from app.utils import role_required, Roles
-from .utils import check_project_access, get_user_qs_projects
+from .utils import boq_item_category, check_project_access, get_user_qs_projects
 import pandas as pd
 from werkzeug.utils import secure_filename
 import os
@@ -217,7 +217,7 @@ def material_schedule(project_id):
         # Group materials by category
         materials_by_category = {}
         for item in boq_items:
-            category = item.category or 'General'
+            category = boq_item_category(item)
             if category not in materials_by_category:
                 materials_by_category[category] = []
             materials_by_category[category].append(item)
@@ -418,6 +418,7 @@ def upload_material_schedule(project_id):
         file = request.files['file']
         if file.filename == '':
             return jsonify({'success': False, 'message': 'No file selected'}), 400
+        original_filename = file.filename
         
         # Check file extension
         allowed_extensions = {'xlsx', 'xls', 'xlsm', 'csv'}
@@ -481,28 +482,26 @@ def upload_material_schedule(project_id):
                 if material_qty > 0:
                     db.session.add(BOQItem(
                         project_id=project_id,
-                        bill_no='Material Schedule',
                         item_no=f"{item_id}-M",
                         description=description,
                         quantity=material_qty,
                         unit=material_unit,
                         unit_rate=material_rate,
                         amount=material_total,
-                        category='Materials'
+                        created_by=current_user.id,
                     ))
                     created_count += 1
 
                 if labour_qty > 0:
                     db.session.add(BOQItem(
                         project_id=project_id,
-                        bill_no='Labour Schedule',
                         item_no=f"{item_id}-L",
                         description=description,
                         quantity=labour_qty,
                         unit=labour_unit,
                         unit_rate=labour_rate,
                         amount=labour_total,
-                        category='Labour'
+                        created_by=current_user.id,
                     ))
                     created_count += 1
 
@@ -510,14 +509,13 @@ def upload_material_schedule(project_id):
                 if diff != 0:
                     db.session.add(BOQItem(
                         project_id=project_id,
-                        bill_no='Material Schedule',
                         item_no=f"{item_id}-A",
                         description=f"{description} (Adjustment)",
                         quantity=1,
                         unit='sum',
                         unit_rate=diff,
                         amount=diff,
-                        category='Adjustment'
+                        created_by=current_user.id,
                     ))
                     created_count += 1
 

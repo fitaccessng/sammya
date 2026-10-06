@@ -7,6 +7,16 @@ from app.models import Project, ProjectStaff
 from app.utils import Roles
 
 
+def boq_item_category(item):
+    """Infer imported material-schedule grouping from its item-number suffix."""
+    suffix = (item.item_no or '').rsplit('-', 1)[-1].upper()
+    return {
+        'M': 'Materials',
+        'L': 'Labour',
+        'A': 'Adjustment',
+    }.get(suffix, 'General')
+
+
 def get_user_qs_projects():
     """Get projects where the current user is assigned (for QS staff)."""
     if current_user.has_role(Roles.SUPER_HQ):
