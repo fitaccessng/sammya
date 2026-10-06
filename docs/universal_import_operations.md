@@ -10,10 +10,13 @@ New shared tables:
 - `import_job_file`
 - `import_template`
 - `import_mapping_learning`
+- `boq_import`
+- `boq_import_sheet`
+- `boq_import_row`
 
 Existing domain tables receive nullable additions for supported imported attributes: `vendor.contact_person`, `boq_item.item_no`, `purchase_order_item.expected_delivery_date`, `inventory.sku`, `inventory.unit_cost`, `inventory.warehouse_name`, `milestone.task_code`, and `milestone.assignee_name`. Existing `import_template` and `import_job` tables receive the new template/date preference columns when absent.
 
-Deployments must use a database role with permission to `CREATE TABLE` and `ALTER TABLE` during application initialization. Back up production data and verify the DDL with the deployment database administrator before rollout. For production environments that disable startup table creation, run the additive initializer with a controlled maintenance command under a role with DDL permission before deploying the new application version.
+Deployments must use a database role with permission to `CREATE TABLE` and `ALTER TABLE` during application initialization. The BOQ archive tables are created individually with `checkfirst`; they do not modify the normalized BOQ schema. If those archive tables cannot be created, structured BOQ viewing and entry remain available, while preserving new uploaded workbook rows requires the tables to be initialized. Back up production data and verify the DDL with the deployment database administrator before rollout. For production environments that disable startup table creation, run the additive initializer with a controlled maintenance command under a role with DDL permission before deploying the new application version.
 
 ## Private Import Files
 

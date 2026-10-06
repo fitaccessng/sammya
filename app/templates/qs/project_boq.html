@@ -19,6 +19,12 @@
         </div>
     </div>
 
+    {% if not boq_import_storage_available %}
+    <div class="border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        Uploaded-file archive storage is not initialized yet. You can still view and add structured BOQ items.
+    </div>
+    {% endif %}
+
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

@@ -3,6 +3,7 @@ QS Bill of Quantities (BOQ) endpoints
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
+from sqlalchemy import inspect
 from app.models import (
     BOQImport,
     BOQImportRow,
@@ -75,9 +76,17 @@ def project_boq(project_id):
         
         # Get BOQ items
         boq_items = BOQItem.query.filter_by(project_id=project_id).all()
-        boq_imports = BOQImport.query.filter_by(project_id=project_id).order_by(
-            BOQImport.created_at.desc()
-        ).all()
+        inspector = inspect(db.engine)
+        boq_import_storage_available = all(
+            inspector.has_table(table_name)
+            for table_name in ('boq_import', 'boq_import_sheet', 'boq_import_row')
+        )
+        boq_imports = (
+            BOQImport.query.filter_by(project_id=project_id)
+            .order_by(BOQImport.created_at.desc())
+            .all()
+            if boq_import_storage_available else []
+        )
         imported_boq_row_count = sum(
             len(sheet.rows)
             for boq_import in boq_imports
@@ -104,6 +113,7 @@ def project_boq(project_id):
             projects=projects,
             boq_items=boq_items,
             boq_imports=boq_imports,
+            boq_import_storage_available=boq_import_storage_available,
             imported_boq_row_count=imported_boq_row_count,
             bill_summaries=bill_summaries,
             total_boq=total_boq_value,

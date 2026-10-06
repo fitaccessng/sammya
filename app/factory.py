@@ -16,6 +16,7 @@ from app.models import (
     ensure_staff_profile_columns,
     ensure_import_tables,
     ensure_import_domain_columns,
+    ensure_boq_import_tables,
 )
 
 DEFAULT_DATABASE_URL = 'sqlite:///fitaccess_dev.db'
@@ -183,6 +184,7 @@ def create_app(config_name='development'):
             ensure_dpr_attachment_column()
             ensure_import_tables()
             ensure_import_domain_columns()
+            ensure_boq_import_tables()
         except Exception:
             app.logger.exception('Additive application table initialization failed.')
     

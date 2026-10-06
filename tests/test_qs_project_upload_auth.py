@@ -394,3 +394,57 @@ def test_project_manager_imports_boq_with_external_headers_into_project_model():
         assert float(imported.quantity) == 10
         assert float(imported.unit_rate) == 5000
         assert float(imported.amount) == 50000
+
+
+def test_qs_boq_page_and_add_work_without_archive_tables():
+    app = _create_app_and_db()
+    with app.app_context():
+        project = Project(name='Legacy BOQ Project', budget=1000)
+        qs_user = User(name='QS Manager', email='legacy-boq@example.com', role='qs_manager')
+        qs_user.set_password('password')
+        db.session.add_all([project, qs_user])
+        db.session.flush()
+        db.session.add(ProjectStaff(
+            user_id=qs_user.id,
+            project_id=project.id,
+            role='QS Manager',
+            is_active=True,
+        ))
+        db.session.commit()
+        project_id = project.id
+        user_id = qs_user.id
+
+        from app.models import BOQImportRow, BOQImportSheet
+        BOQImportRow.__table__.drop(bind=db.engine, checkfirst=True)
+        BOQImportSheet.__table__.drop(bind=db.engine, checkfirst=True)
+        BOQImport.__table__.drop(bind=db.engine, checkfirst=True)
+
+    with app.test_client() as client:
+        with client.session_transaction() as session:
+            session['_user_id'] = str(user_id)
+            session['_fresh'] = True
+
+        page = client.get(f'/qs/project/{project_id}/boq')
+        assert page.status_code == 200
+        assert b'Uploaded-file archive storage is not initialized yet' in page.data
+
+        response = client.post(
+            f'/qs/project/{project_id}/boq/add',
+            json={'description': 'Concrete slab', 'quantity': 10, 'unit': 'm3', 'unit_rate': 250},
+        )
+        assert response.status_code == 200
+        assert response.get_json()['success'] is True
+
+    with app.app_context():
+        item = BOQItem.query.filter_by(project_id=project_id).one()
+        assert item.description == 'Concrete slab'
+        assert item.created_by == user_id
+
+        from app.models import BOQImportRow, BOQImportSheet, ensure_boq_import_tables
+        from sqlalchemy import inspect
+        ensure_boq_import_tables()
+        ensure_boq_import_tables()
+        inspector = inspect(db.engine)
+        assert inspector.has_table('boq_import')
+        assert inspector.has_table('boq_import_sheet')
+        assert inspector.has_table('boq_import_row')

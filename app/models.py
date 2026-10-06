@@ -1117,6 +1117,13 @@ def ensure_import_tables():
     ImportMappingLearning.__table__.create(bind=db.engine, checkfirst=True)
 
 
+def ensure_boq_import_tables():
+    """Create only the additive tables that preserve flexible uploaded BOQs."""
+    BOQImport.__table__.create(bind=db.engine, checkfirst=True)
+    BOQImportSheet.__table__.create(bind=db.engine, checkfirst=True)
+    BOQImportRow.__table__.create(bind=db.engine, checkfirst=True)
+
+
 def ensure_import_domain_columns():
     """Add only the nullable domain fields required by existing import schemas."""
     inspector = inspect(db.engine)
