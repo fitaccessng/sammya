@@ -38,6 +38,10 @@ def resolve_database_url(config_name='development'):
     if database_url:
         if database_url.startswith('postgres://'):
             database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        if database_url.startswith('postgresql://'):
+            database_url = database_url.replace(
+                'postgresql://', 'postgresql+psycopg://', 1,
+            )
         return database_url
 
     if config_name == 'production':
