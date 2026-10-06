@@ -3,8 +3,11 @@
 {% block content %}
 <section class="mx-auto max-w-6xl">
     <div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-300 pb-5">
-        <div><p class="text-sm font-semibold uppercase text-teal-700">Reusable mappings</p><h1 class="mt-1 text-3xl font-bold text-slate-900">Import Templates</h1></div>
-        <a href="{{ url_for('imports.index') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Import catalog</a>
+        <div><p class="text-sm font-semibold uppercase text-teal-700">Reusable mappings</p><h1 class="mt-1 text-3xl font-bold text-slate-900">Import Templates{% if project %} · {{ project.name }}{% endif %}</h1></div>
+        <div class="flex gap-2">
+            {% if project %}<a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Back to project</a><a href="{{ url_for('imports.history', project_id=project.id) }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Import history</a><a href="{{ url_for('imports.new_import', module='quantity_surveying', entity='boq', project_id=project.id) }}" class="rounded bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800">Import BOQ</a>
+            {% else %}<a href="{{ url_for('imports.index') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Import catalog</a>{% endif %}
+        </div>
     </div>
     <div class="mt-5 overflow-x-auto border-y border-slate-200">
         <table class="w-full min-w-[900px] text-left text-sm">

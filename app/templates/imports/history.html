@@ -5,11 +5,16 @@
     <div class="flex flex-wrap items-end justify-between gap-4 border-b border-slate-300 pb-5">
         <div>
             <p class="text-sm font-semibold uppercase text-teal-700">Audit trail</p>
-            <h1 class="mt-1 text-3xl font-bold text-slate-900">Import History</h1>
+            <h1 class="mt-1 text-3xl font-bold text-slate-900">Import History{% if project %} · {{ project.name }}{% endif %}</h1>
         </div>
-        <div class="flex gap-2"><a href="{{ url_for('imports.templates') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Templates</a><a href="{{ url_for('imports.index') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">New import</a></div>
+        <div class="flex gap-2">
+            {% if project %}<a href="{{ url_for('qs_projects.view_project', project_id=project.id) }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Back to project</a>{% endif %}
+            <a href="{{ url_for('imports.templates', project_id=project.id) if project else url_for('imports.templates') }}" class="rounded border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Templates</a>
+            <a href="{{ url_for('imports.new_import', module='quantity_surveying', entity='boq', project_id=project.id) if project else url_for('imports.index') }}" class="rounded border border-teal-700 px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-50">New import</a>
+        </div>
     </div>
     <form method="get" class="mt-5 flex flex-wrap gap-3">
+        {% if project_id %}<input type="hidden" name="project_id" value="{{ project_id }}">{% endif %}
         <label class="sr-only" for="module">Module</label>
         <select id="module" name="module" class="rounded border border-slate-300 bg-white px-3 py-2 text-sm">
             <option value="">All modules</option>
@@ -61,9 +66,9 @@
     {% endif %}
     {% if jobs.pages > 1 %}
     <nav class="mt-4 flex justify-between text-sm" aria-label="Import history pages">
-        {% if jobs.has_prev %}<a href="{{ url_for('imports.history', page=jobs.prev_num, module=module, status=status) }}" class="text-teal-800 hover:underline">Previous</a>{% else %}<span></span>{% endif %}
+        {% if jobs.has_prev %}<a href="{{ url_for('imports.history', page=jobs.prev_num, module=module, status=status, project_id=project_id) }}" class="text-teal-800 hover:underline">Previous</a>{% else %}<span></span>{% endif %}
         <span class="text-slate-600">Page {{ jobs.page }} of {{ jobs.pages }}</span>
-        {% if jobs.has_next %}<a href="{{ url_for('imports.history', page=jobs.next_num, module=module, status=status) }}" class="text-teal-800 hover:underline">Next</a>{% else %}<span></span>{% endif %}
+        {% if jobs.has_next %}<a href="{{ url_for('imports.history', page=jobs.next_num, module=module, status=status, project_id=project_id) }}" class="text-teal-800 hover:underline">Next</a>{% else %}<span></span>{% endif %}
     </nav>
     {% endif %}
 </section>

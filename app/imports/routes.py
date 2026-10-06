@@ -1176,15 +1176,27 @@ def _template_access(template):
 @login_required
 def templates():
     role = normalize_role(current_user.role)
+    project_id = request.args.get('project_id', type=int)
+    project = None
+    project_scope = None
+    if project_id:
+        schema = _schema_for('quantity_surveying', 'boq')
+        project, _account, _purchase_order = _validate_context(schema, project_id=project_id)
+        project_scope = _template_scope(schema.module, schema.entity, project_id=project_id)
     allowed_schemas = [schema for schema in __import__('app.imports.schemas', fromlist=['SCHEMAS']).SCHEMAS.values()
                        if role in schema.required_roles or role in {'admin', 'super_hq'}]
     allowed_keys = {(schema.module, schema.entity) for schema in allowed_schemas}
     query = ImportTemplate.query
+    if project_scope:
+        query = query.filter(ImportTemplate.scope_key == project_scope)
     if role not in {'admin', 'super_hq'}:
         query = query.filter(ImportTemplate.created_by == current_user.id)
     items = [item for item in query.order_by(ImportTemplate.module, ImportTemplate.entity, ImportTemplate.name).all()
              if (item.module, item.entity) in allowed_keys]
-    return render_template('imports/templates.html', templates=items)
+    return render_template(
+        'imports/templates.html', templates=items,
+        project=project, project_id=project_id,
+    )
 
 
 @bp.route('/templates/<int:template_id>/use')
@@ -1247,6 +1259,12 @@ def delete_template(template_id):
 def history():
     role = normalize_role(current_user.role)
     query = ImportJob.query
+    project_id = request.args.get('project_id', type=int)
+    project = None
+    if project_id:
+        schema = _schema_for('quantity_surveying', 'boq')
+        project, _account, _purchase_order = _validate_context(schema, project_id=project_id)
+        query = query.filter(ImportJob.project_id == project_id)
     if role not in {'admin', 'super_hq'}:
         allowed = [schema.module for schema in __import__('app.imports.schemas', fromlist=['SCHEMAS']).SCHEMAS.values()
                    if role in schema.required_roles]
@@ -1261,11 +1279,11 @@ def history():
         page=request.args.get('page', 1, type=int), per_page=25, error_out=False,
     )
     legacy_imports = []
-    if module in (None, '', 'finance') and (role in {'admin', 'super_hq'} or 'finance' in allowed):
+    if not project_id and module in (None, '', 'finance') and (role in {'admin', 'super_hq'} or 'finance' in allowed):
         legacy_imports = BankStatementImport.query.order_by(BankStatementImport.uploaded_at.desc()).limit(100).all()
     return render_template(
         'imports/history.html', jobs=jobs, module=module or '', status=status or '',
-        legacy_imports=legacy_imports,
+        legacy_imports=legacy_imports, project=project, project_id=project_id,
     )
 
 

@@ -409,6 +409,59 @@ def test_import_catalog_and_history_render_for_authorized_module_role():
         assert b'Import History' in history.data
 
 
+def test_qs_project_exposes_project_scoped_import_history_and_templates():
+    app, ids = _app_with_users()
+    with app.app_context():
+        other_project = Project(name='Other QS Project', budget=50000)
+        db.session.add(other_project)
+        db.session.flush()
+        other_project_id = other_project.id
+
+        db.session.add_all([
+            ImportJob(
+                import_code='IMP-PROJECT-A', module='quantity_surveying', entity='boq',
+                schema_version='1', status='completed', file_name='alpha-boq.csv',
+                file_type='csv', uploaded_by=ids['qs_manager'], project_id=ids['project'],
+            ),
+            ImportJob(
+                import_code='IMP-PROJECT-B', module='quantity_surveying', entity='boq',
+                schema_version='1', status='completed', file_name='other-boq.csv',
+                file_type='csv', uploaded_by=ids['qs_manager'], project_id=other_project_id,
+            ),
+            ImportTemplate(
+                name='Alpha BOQ format', module='quantity_surveying', entity='boq',
+                schema_version='1', scope_key=f'quantity_surveying.boq:project:{ids["project"]}',
+                source_headers_json='[]', mapping_json='{}', created_by=ids['qs_manager'],
+            ),
+            ImportTemplate(
+                name='Other BOQ format', module='quantity_surveying', entity='boq',
+                schema_version='1', scope_key=f'quantity_surveying.boq:project:{other_project_id}',
+                source_headers_json='[]', mapping_json='{}', created_by=ids['qs_manager'],
+            ),
+        ])
+        db.session.commit()
+
+    with app.test_client() as client:
+        _login(client, ids['qs_manager'])
+        project_page = client.get(f'/qs/project/{ids["project"]}')
+        assert project_page.status_code == 200
+        assert b'Import History' in project_page.data
+        assert b'Import Templates' in project_page.data
+        assert f'/imports/new?module=quantity_surveying&amp;entity=boq&amp;project_id={ids["project"]}'.encode() in project_page.data
+
+        history = client.get(f'/imports/history?project_id={ids["project"]}')
+        templates = client.get(f'/imports/templates?project_id={ids["project"]}')
+        forbidden_history = client.get(f'/imports/history?project_id={other_project_id}')
+
+    assert history.status_code == 200
+    assert b'alpha-boq.csv' in history.data
+    assert b'other-boq.csv' not in history.data
+    assert templates.status_code == 200
+    assert b'Alpha BOQ format' in templates.data
+    assert b'Other BOQ format' not in templates.data
+    assert forbidden_history.status_code == 403
+
+
 def test_qs_boq_import_persists_only_supported_existing_model_fields():
     app, ids = _app_with_users()
     with app.test_client() as client:

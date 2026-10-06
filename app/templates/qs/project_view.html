@@ -53,6 +53,18 @@
                 <i class="fas fa-upload text-green-700 text-lg"></i>
                 <span class="font-medium text-gray-900">Upload BOQ</span>
             </a>
+            <a href="{{ url_for('imports.new_import', module='quantity_surveying', entity='boq', project_id=project.id) }}" class="flex items-center space-x-3 px-4 py-3 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition">
+                <i class="fas fa-file-import text-teal-700 text-lg"></i>
+                <span class="font-medium text-gray-900">Import BOQ</span>
+            </a>
+            <a href="{{ url_for('imports.history', project_id=project.id) }}" class="flex items-center space-x-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg hover:bg-slate-100 transition">
+                <i class="fas fa-clock-rotate-left text-slate-700 text-lg"></i>
+                <span class="font-medium text-gray-900">Import History</span>
+            </a>
+            <a href="{{ url_for('imports.templates', project_id=project.id) }}" class="flex items-center space-x-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
+                <i class="fas fa-file-lines text-amber-700 text-lg"></i>
+                <span class="font-medium text-gray-900">Import Templates</span>
+            </a>
             <a href="{{ url_for('qs_boq.material_schedule', project_id=project.id) }}" class="flex items-center space-x-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition">
                 <i class="fas fa-calendar text-amber-600 text-lg"></i>
                 <span class="font-medium text-gray-900">Material Schedule</span>
