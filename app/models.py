@@ -309,6 +309,7 @@ class BOQItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
     item_no = db.Column(db.String(100))
+    bill_no = db.Column(db.String(100))
     description = db.Column(db.String(500), nullable=False)
     unit = db.Column(db.String(50))  # e.g., 'm', 'kg', 'no'
     quantity = db.Column(db.Numeric(10, 2), nullable=False)
@@ -1126,6 +1127,7 @@ def ensure_import_domain_columns():
         },
         'boq_item': {
             'item_no': 'VARCHAR(100)',
+            'bill_no': 'VARCHAR(100)',
         },
         'purchase_order_item': {
             'expected_delivery_date': 'DATE',
