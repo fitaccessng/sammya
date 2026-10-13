@@ -152,6 +152,7 @@
 
     <!-- Action Buttons -->
     <div class="flex justify-end gap-3">
+        <a href="{{ url_for('imports.new_import', module='quantity_surveying', entity='boq', project_id=project.id) }}" class="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-3 font-medium text-white hover:bg-teal-800">Use guided column mapping</a>
         <a href="{{ url_for('imports.history', project_id=project.id) }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-3 font-medium text-slate-700 hover:bg-slate-50">
             <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>Import History
         </a>

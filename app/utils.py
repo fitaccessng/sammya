@@ -41,7 +41,7 @@ ROLE_DEPARTMENT_DASHBOARD_ENDPOINTS = {
     ('cost_control_manager', 'Cost Control'): 'cost_control.dashboard',
     ('cost_control_staff', 'Cost Control'): 'cost_control.dashboard',
     ('project_manager', 'Projects'): 'project.dashboard',
-    ('project_staff', 'Projects'): 'project.staff_dashboard',
+    ('project_staff', 'Projects'): 'project.dashboard',
     ('qs_manager', 'QS'): 'qs_dashboard.dashboard',
     ('qs_staff', 'QS'): 'qs_dashboard.dashboard',
     ('admin', 'Admin'): 'admin.dashboard',
