@@ -10,6 +10,7 @@
 <a href="{{ url_for('cost_control.reports') }}" class="btn btn-outline-secondary">
     <i class='bx bxs-file-pdf'></i> Reports
 </a>
+<a href="{{ url_for('finance.view_uploads', source_module='cost_control', source_record_type='project_budget', open_upload=1) }}" class="btn btn-outline-primary">Upload Cost Supporting Document</a>
 <a href="{{ url_for('hr.leave_management') }}" class="btn btn-outline-success">
     <i class='bx bxs-calendar-check'></i> Leave Request
 </a>

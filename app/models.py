@@ -1477,7 +1477,7 @@ class ProjectDocument(db.Model):
     __tablename__ = 'project_document'
     
     id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('project.id'), nullable=True)
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text)
     document_type = db.Column(db.String(100))
@@ -1485,6 +1485,9 @@ class ProjectDocument(db.Model):
     file_data = db.Column(db.LargeBinary)
     file_name = db.Column(db.String(255))
     uploaded_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    source_module = db.Column(db.String(50))
+    source_record_type = db.Column(db.String(80))
+    source_record_id = db.Column(db.Integer)
     version = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -1508,6 +1511,57 @@ def ensure_project_document_file_data_column():
     with db.engine.begin() as connection:
         connection.execute(text(
             f'ALTER TABLE project_document ADD COLUMN file_data {binary_type}'
+        ))
+def ensure_project_document_record_fields():
+    """Add record-level ownership fields to the existing document table."""
+    from sqlalchemy import MetaData, insert, select
+
+    inspector = inspect(db.engine)
+    if not inspector.has_table('project_document'):
+        return
+
+    existing_columns = {column['name']: column for column in inspector.get_columns('project_document')}
+    missing_columns = {
+        'source_module': 'VARCHAR(50)',
+        'source_record_type': 'VARCHAR(80)',
+        'source_record_id': 'INTEGER',
+    }
+    with db.engine.begin() as connection:
+        for column_name, column_type in missing_columns.items():
+            if column_name not in existing_columns:
+                connection.execute(text(
+                    f'ALTER TABLE project_document ADD COLUMN {column_name} {column_type}'
+                ))
+
+    if db.engine.dialect.name != 'sqlite' or existing_columns['project_id']['nullable']:
+        if db.engine.dialect.name == 'postgresql' and not existing_columns['project_id']['nullable']:
+            with db.engine.begin() as connection:
+                connection.execute(text(
+                    'ALTER TABLE project_document ALTER COLUMN project_id DROP NOT NULL'
+                ))
+        return
+
+    document_table = ProjectDocument.__table__
+    migration_metadata = MetaData()
+    migration_metadata.reflect(bind=db.engine, only=('project', 'user'))
+    migration_table = document_table.to_metadata(
+        migration_metadata, name='project_document_migration',
+    )
+    migration_table.create(bind=db.engine, checkfirst=True)
+    common_columns = [
+        column.name for column in migration_table.columns
+        if column.name in existing_columns
+    ]
+    with db.engine.begin() as connection:
+        connection.execute(
+            insert(migration_table).from_select(
+                common_columns,
+                select(*(document_table.c[name] for name in common_columns)),
+            )
+        )
+        connection.execute(text('DROP TABLE project_document'))
+        connection.execute(text(
+            'ALTER TABLE project_document_migration RENAME TO project_document'
         ))
 
 

@@ -3,7 +3,7 @@
 {% block finance_content %}
 <div class="py-6 space-y-6">
     <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-bold mb-4">General Ledger</h2>
+        <div class="mb-4 flex items-center justify-between"><h2 class="text-xl font-bold">General Ledger</h2><a class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}">Upload Journal Evidence</a></div>
         <form method="POST" class="grid grid-cols-1 md:grid-cols-7 gap-3 mb-4">
             <select class="border rounded px-3 py-2" name="debit_account_id" required>
                 <option value="">Debit Account</option>
@@ -40,6 +40,7 @@
                             {% else %}
                             -
                             {% endif %}
+                            <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='ledger_entry', source_record_id=e.id, open_upload=1) }}">Upload Evidence</a>
                         </td>
                     </tr>
                     {% endfor %}

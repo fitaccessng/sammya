@@ -104,6 +104,12 @@
         </div>
     </div>
 
+    <section class="mb-6 rounded-lg bg-white p-6 shadow">
+        <h2 class="text-lg font-bold text-gray-800">Expense Documents</h2>
+        <a class="mt-3 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='expense', source_record_id=expense.id, open_upload=1) }}">Upload Expense Receipt / Document</a>
+        {% for document in invoice_docs %}<p class="mt-2 text-sm"><a class="text-blue-700 hover:underline" href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a> · <a href="{{ url_for('finance.download_uploaded_document', doc_id=document.id) }}">Download</a></p>{% endfor %}
+    </section>
+
     <!-- Actions -->
     <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow">
         <div class="text-sm text-gray-600">

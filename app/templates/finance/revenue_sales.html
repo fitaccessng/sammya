@@ -4,6 +4,7 @@
 <div class="py-6 space-y-6">
     <div class="bg-white rounded-lg shadow p-6">
         <h2 class="text-xl font-bold mb-2">Revenue / Sales</h2>
+        <a class="mb-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}">Upload Sales Document</a>
         <p class="text-sm text-gray-600 mb-4">
             Revenue is recognized when delivery/service is complete and invoice is issued.
         </p>
@@ -96,6 +97,7 @@
                         <td class="border px-3 py-2">{{ r.project.name if r.project else '-' }}</td>
                         <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(r.amount or 0) }}</td>
                         <td class="border px-3 py-2">
+                            <a class="mr-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='revenue_sale', source_record_id=r.id, open_upload=1) }}">Upload Sales Document</a>
                             {% if collection == 'paid_not_deposited' %}
                             <form method="POST" action="{{ url_for('finance.deposit_revenue_cheque', revenue_id=r.id) }}" class="grid grid-cols-1 gap-2">
                                 <select name="bank_account_id" class="border rounded px-2 py-1 text-xs" required>

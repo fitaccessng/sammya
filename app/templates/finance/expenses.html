@@ -6,7 +6,7 @@
 <div class="space-y-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Expense Management</h1>
-        <button onclick="showAddExpenseModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Add Expense</button>
+        <div class="flex gap-2"><a href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}" class="bg-blue-600 text-white px-4 py-2 rounded">Upload Expense Receipt / Document</a><button onclick="showAddExpenseModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Add Expense</button></div>
     </div>
 
     <div class="bg-white p-4 rounded-lg shadow">

@@ -74,6 +74,10 @@
             <p><strong>Status:</strong> {{ leave.status|title }}</p>
             <p><strong>Reason:</strong> {{ leave.reason or '-' }}</p>
             {% if leave.rejection_reason %}<p><strong>Rejection Reason:</strong> {{ leave.rejection_reason }}</p>{% endif %}
+            <hr class="my-3">
+            <h3 class="h6">Supporting Documents</h3>
+            <a class="btn btn-primary btn-sm" href="{{ url_for('finance.view_uploads', source_module='hr', source_record_type='leave_request', source_record_id=leave.id, open_upload=1) }}">Upload Supporting Document</a>
+            {% for document in documents %}<p class="mt-2 mb-0"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a> · <a href="{{ url_for('finance.download_uploaded_document', doc_id=document.id) }}">Download</a></p>{% endfor %}
         </div>
     </div>
     {% endif %}

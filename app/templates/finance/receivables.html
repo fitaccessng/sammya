@@ -4,9 +4,9 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Accounts Receivable</h1>
-        <a href="{{ url_for('finance.create_receivable') }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+        <div class="flex gap-2"><a href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">Upload Receivables Document</a><a href="{{ url_for('finance.create_receivable') }}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
             + Create Receivable
-        </a>
+        </a></div>
     </div>
 
     <div class="bg-blue-50 rounded-lg p-4 mb-6 border-l-4 border-blue-600">
@@ -32,7 +32,7 @@
                     {% if receivables.items %}
                         {% for item in receivables.items %}
                         <tr class="hover:bg-gray-50 border-b border-gray-300">
-                            <td class="border border-gray-300 px-4 py-3 font-mono font-semibold text-blue-600">{{ item.invoice_number }}</td>
+                            <td class="border border-gray-300 px-4 py-3 font-mono font-semibold text-blue-600">{{ item.invoice_number }} <a class="ml-2 text-xs hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=item.id, open_upload=1) }}">Upload</a>{% for document in item.documents %}<div class="mt-1 text-xs"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a></div>{% endfor %}</td>
                             <td class="border border-gray-300 px-4 py-3">{{ supplier_history[item.id].supplier_name if supplier_history and supplier_history[item.id] else '-' }}</td>
                             <td class="border border-gray-300 px-4 py-3">{{ supplier_history[item.id].history_count if supplier_history and supplier_history[item.id] else 0 }} records</td>
                             <td class="border border-gray-300 px-4 py-3 text-right font-semibold">&#8358;{{ "%.2f"|format(item.invoice_amount) }}</td>

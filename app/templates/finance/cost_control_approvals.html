@@ -16,6 +16,7 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Expense Approvals</h1>
         <p class="text-gray-600">Review and approve pending expense requests</p>
+        <a class="mt-3 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='cost_control', open_upload=1) }}">Upload Cost Supporting Document</a>
     </div>
 
     <!-- Summary Cards -->
@@ -83,6 +84,7 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
+                                <a class="mr-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='expense', source_record_id=expense.id, open_upload=1) }}">Upload Receipt</a>
                                 {% if expense.status == 'pending' %}
                                     <form method="POST" action="{{ url_for('finance.approve_expense', expense_id=expense.id) }}" style="display: inline;">
                                         <button type="submit" class="inline-block px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors">

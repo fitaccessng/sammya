@@ -10,7 +10,7 @@
             <h1 class="mt-1 text-3xl font-bold text-gray-900">Payments</h1>
             <p class="mt-1 text-sm text-gray-600">Payment requests awaiting action and approved requests.</p>
         </div>
-        <a href="{{ url_for('finance.dashboard') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Finance dashboard</a>
+        <div class="flex gap-2"><a href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}" class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Upload Payment Document</a><a href="{{ url_for('finance.dashboard') }}" class="rounded border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Finance dashboard</a></div>
     </div>
 
     {% if pending is defined or approved is defined %}
@@ -26,7 +26,7 @@
                         <td class="px-4 py-3">{{ payment.counterparty_name or (payment.purchase_order.vendor.name if payment.purchase_order and payment.purchase_order.vendor else 'N/A') }}</td>
                         <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
                         <td class="px-4 py-3">{{ payment.created_at.strftime('%d %b %Y') if payment.created_at else 'N/A' }}</td>
-                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }} <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=payment.id, open_upload=1) }}">Upload Payment Document</a>{% for document in payment.documents %}<div class="mt-1 text-xs"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a></div>{% endfor %}</td>
                         <td class="px-4 py-3">{{ payment.approval_state.value|replace('_', ' ')|title if payment.approval_state else 'Pending' }}</td>
                     </tr>
                     {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No pending payment requests.</td></tr>{% endfor %}
@@ -47,7 +47,7 @@
                         <td class="px-4 py-3">{{ payment.counterparty_name or (payment.purchase_order.vendor.name if payment.purchase_order and payment.purchase_order.vendor else 'N/A') }}</td>
                         <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
                         <td class="px-4 py-3">{{ payment.created_at.strftime('%d %b %Y') if payment.created_at else 'N/A' }}</td>
-                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.invoice_amount or 0) }} <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=payment.id, open_upload=1) }}">Upload Payment Document</a>{% for document in payment.documents %}<div class="mt-1 text-xs"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a></div>{% endfor %}</td>
                         <td class="px-4 py-3">{{ payment.approval_state.value|replace('_', ' ')|title if payment.approval_state else 'Approved' }}</td>
                     </tr>
                     {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No approved payment requests.</td></tr>{% endfor %}
@@ -73,7 +73,7 @@
                         <td class="px-4 py-3">{{ purchase_order.vendor.name if purchase_order and purchase_order.vendor else (request_record.counterparty_name if request_record else 'N/A') }}</td>
                         <td class="px-4 py-3">{{ payment.po_id or 'N/A' }}</td>
                         <td class="px-4 py-3">{{ payment.payment_method or 'N/A' }}</td>
-                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.amount_paid or 0) }}</td>
+                        <td class="px-4 py-3 font-semibold">₦{{ '{:,.2f}'.format(payment.amount_paid or 0) }} <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_record', source_record_id=payment.id, open_upload=1) }}">Upload</a></td>
                     </tr>
                     {% else %}<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No payment records found.</td></tr>{% endfor %}
                 </tbody>

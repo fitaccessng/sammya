@@ -66,12 +66,12 @@
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
-                    <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left font-semibold text-slate-700">Type</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Dates</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Days</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Reason</th></tr></thead>
+                    <thead class="bg-slate-50"><tr><th class="px-6 py-3 text-left font-semibold text-slate-700">Type</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Dates</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Days</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Status</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Reason</th><th class="px-6 py-3 text-left font-semibold text-slate-700">Documents</th></tr></thead>
                     <tbody class="divide-y divide-slate-200">
                     {% for leave in leave_requests.items %}
-                    <tr><td class="px-6 py-3">{{ leave.leave_type|title }}</td><td class="px-6 py-3">{{ leave.start_date }} to {{ leave.end_date }}</td><td class="px-6 py-3">{{ leave.days_requested }}</td><td class="px-6 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {% if leave.status == 'approved' %}bg-emerald-100 text-emerald-800{% elif leave.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">{{ leave.status|title }}</span></td><td class="px-6 py-3">{{ leave.reason or '-' }}</td></tr>
+                    <tr><td class="px-6 py-3">{{ leave.leave_type|title }}</td><td class="px-6 py-3">{{ leave.start_date }} to {{ leave.end_date }}</td><td class="px-6 py-3">{{ leave.days_requested }}</td><td class="px-6 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {% if leave.status == 'approved' %}bg-emerald-100 text-emerald-800{% elif leave.status == 'rejected' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">{{ leave.status|title }}</span></td><td class="px-6 py-3">{{ leave.reason or '-' }}</td><td class="px-6 py-3"><a href="{{ url_for('finance.view_uploads', source_module='hr', source_record_type='leave_request', source_record_id=leave.id, open_upload=1) }}" class="text-blue-700 hover:underline">Upload Supporting Document</a></td></tr>
                     {% else %}
-                    <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500">No leave requests yet.</td></tr>
+                    <tr><td colspan="6" class="px-6 py-8 text-center text-slate-500">No leave requests yet.</td></tr>
                     {% endfor %}
                     </tbody>
                 </table>

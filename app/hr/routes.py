@@ -2832,7 +2832,11 @@ def leave_detail(leave_id):
     if not is_hr and leave.user_id != current_user.id:
         flash("Access denied", "error")
         return redirect(url_for('hr.leave_management'))
-    return render_template('hr/leave/detail.html', leave=leave, is_hr=is_hr)
+    from app.models import ProjectDocument
+    documents = ProjectDocument.query.filter_by(
+        source_module='hr', source_record_type='leave_request', source_record_id=leave.id,
+    ).order_by(ProjectDocument.created_at.desc()).all()
+    return render_template('hr/leave/detail.html', leave=leave, is_hr=is_hr, documents=documents)
 
 
 @bp.route('/leave/<int:leave_id>/approve', methods=['POST'])

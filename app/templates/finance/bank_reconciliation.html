@@ -8,6 +8,7 @@
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">🏦 Bank Reconciliation</h1>
         <div class="flex gap-2">
+            <a href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='bank_account', open_upload=1) }}" class="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800">Upload Bank Statement / Document</a>
             <button onclick="showCreateAccountModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">+ Create Account</button>
             <button onclick="showReconciliationModal()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">🔄 Reconcile Account</button>
         </div>
@@ -41,6 +42,8 @@
                 </div>
 
                 <div class="flex gap-2">
+                    <a href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='bank_account', source_record_id=summary.id, open_upload=1) }}" class="text-slate-700 hover:underline text-sm px-2 py-1 bg-slate-50 rounded">Upload Supporting Document</a>
+                    {% for document in summary.documents %}<a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener" class="text-blue-700 hover:underline text-sm">{{ document.title }}</a>{% endfor %}
                     <a href="{{ url_for('finance.view_account_transactions', account_id=summary.id) }}" 
                        class="text-blue-600 hover:underline text-sm px-2 py-1 bg-blue-50 rounded">📋 View History</a>
                     <a href="{{ url_for('finance.reconcile_account_form', account_id=summary.id) }}" 

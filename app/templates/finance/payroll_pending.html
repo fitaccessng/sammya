@@ -16,6 +16,7 @@
     <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">Pending Payroll Records</h1>
         <p class="text-gray-600">View all payroll records awaiting approval</p>
+        <a class="mt-3 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='payroll', open_upload=1) }}">Upload Payroll Document</a>
     </div>
 
     <!-- Summary Cards -->
@@ -57,7 +58,7 @@
                         {% for payroll in payroll_records.items %}
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                <a href="#" class="text-blue-600 hover:text-blue-800">{{ payroll.payroll_number }}</a>
+                                <a href="#" class="text-blue-600 hover:text-blue-800">{{ payroll.payroll_number }}</a> <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='payroll', source_record_type='payroll', source_record_id=payroll.id, open_upload=1) }}">Upload</a>{% for document in payroll_documents[payroll.id] %}<a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}">{{ document.title }}</a>{% endfor %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                 {{ payroll.payroll_month }}

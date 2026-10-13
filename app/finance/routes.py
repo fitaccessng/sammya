@@ -18,8 +18,10 @@ from app.models import (
     db, User, Project, PurchaseOrder, PurchaseOrderItem, PaymentRequest, PaymentRecord,
     ApprovalState, QCInspection, Vendor, BOQItem, Expense, BankAccount, BankTransaction, BankReconciliation,
     ChangeOrder, ProjectStaff, ApprovalLog, Payroll, ChartOfAccount, LedgerEntry, RevenueSale,
-    ProjectPaymentRequest, Bill, BillPayment, SupplierCredit, AuditLog, BankStatementImport
+    ProjectPaymentRequest, ProjectBudgetRecord, LeaveRequest, ProjectDocument,
+    Bill, BillPayment, SupplierCredit, AuditLog, BankStatementImport
 )
+from app.utils import normalize_role
 from app.finance.services import BankImportService
 from sqlalchemy import func, desc, or_, and_, case
 from werkzeug.utils import secure_filename
@@ -28,6 +30,7 @@ import pandas as pd
 from io import BytesIO
 import json
 import csv
+from uuid import uuid4
 
 finance_bp = Blueprint('finance', __name__, url_prefix='/finance')
 bp = finance_bp  # Alias for backward compatibility
@@ -35,6 +38,14 @@ bp = finance_bp  # Alias for backward compatibility
 
 NOTE_TAGS_PREFIX = "[tags:"
 NOTE_META_PREFIX = "[meta:"
+
+
+def _finance_document_upload_directory():
+    upload_dir = current_app.config.get('FINANCE_DOCUMENT_UPLOAD_FOLDER')
+    if not upload_dir:
+        upload_dir = os.path.join(current_app.root_path, 'uploads', 'finance_documents')
+    os.makedirs(upload_dir, exist_ok=True)
+    return upload_dir
 
 
 def _as_float(value, default=0.0):
@@ -350,7 +361,10 @@ def list_payments():
     """List all payment requests and records."""
     pending = PaymentRequest.query.filter_by(approval_state=ApprovalState.PENDING).all()
     approved = PaymentRequest.query.filter_by(approval_state=ApprovalState.APPROVED).all()
-    
+    for payment_request in pending + approved:
+        payment_request.documents = ProjectDocument.query.filter_by(
+            source_module='finance', source_record_type='payment_request', source_record_id=payment_request.id,
+        ).all()
     return render_template('finance/payments.html', pending=pending, approved=approved)
 
 
@@ -645,7 +659,10 @@ def create_payment_request(po_id):
 def view_payment_request(payment_id):
     """View payment request details."""
     payment = PaymentRequest.query.get_or_404(payment_id)
-    return render_template('finance/view_payment_request.html', payment=payment)
+    documents = ProjectDocument.query.filter_by(
+        source_module='finance', source_record_type='payment_request', source_record_id=payment.id,
+    ).order_by(ProjectDocument.created_at.desc()).all()
+    return render_template('finance/view_payment_request.html', payment=payment, documents=documents)
 
 
 @finance_bp.route('/payment/<int:payment_id>/verify', methods=['POST'])
@@ -788,15 +805,34 @@ def payment_record_create():
             file = request.files['proof_document']
             if file and file.filename:
                 try:
-                    # Save file to uploads directory
-                    upload_dir = os.path.join('app', 'static', 'uploads', 'payments')
-                    os.makedirs(upload_dir, exist_ok=True)
-                    
-                    filename = secure_filename(f"{reference_number}_{file.filename}")
+                    upload_dir = _finance_document_upload_directory()
+                    filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
                     filepath = os.path.join(upload_dir, filename)
                     file.save(filepath)
-                    
-                    record.proof_document = f'/static/uploads/payments/{filename}'
+                    with open(filepath, 'rb') as stored_file:
+                        file_data = stored_file.read()
+                    project_id = payment_request.purchase_order.project_id if payment_request.purchase_order else None
+                    document = ProjectDocument(
+                        project_id=project_id,
+                        source_module='finance',
+                        source_record_type='payment_record',
+                        source_record_id=record.id,
+                        title=f'Payment evidence {reference_number}',
+                        description=payment_notes,
+                        file_name=secure_filename(file.filename),
+                        file_path=f'/uploads/finance_documents/{filename}',
+                        file_data=file_data,
+                        document_type=file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'file',
+                        uploaded_by_id=current_user.id,
+                    )
+                    db.session.add(document)
+                    record.proof_document = f'/uploads/finance_documents/{filename}'
+                    db.session.flush()
+                    db.session.add(AuditLog(
+                        entity_type='document', entity_id=document.id, action='UPLOADED',
+                        actor_id=current_user.id, reference=reference_number,
+                        description=f'Payment evidence attached to payment_record:{record.id}',
+                    ))
                 except Exception as e:
                     current_app.logger.error(f"File upload error: {str(e)}")
         
@@ -819,7 +855,10 @@ def payment_record_create():
 def view_payment_record(record_id):
     """View completed payment record."""
     record = PaymentRecord.query.get_or_404(record_id)
-    return render_template('finance/view_payment_record.html', record=record)
+    documents = ProjectDocument.query.filter_by(
+        source_module='finance', source_record_type='payment_record', source_record_id=record.id,
+    ).order_by(ProjectDocument.created_at.desc()).all()
+    return render_template('finance/view_payment_record.html', record=record, documents=documents)
 
 
 # ===== EXPENSE MANAGEMENT ROUTES =====
@@ -951,8 +990,7 @@ def add_expense():
                 allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}
                 if file_ext not in allowed_extensions:
                     return jsonify({'status': 'error', 'message': 'Invalid invoice file type'}), 400
-                upload_dir = os.path.join(current_app.root_path, 'uploads', 'finance_documents')
-                os.makedirs(upload_dir, exist_ok=True)
+                upload_dir = _finance_document_upload_directory()
                 filename = secure_filename(f"expense_{expense.id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
                 filepath = os.path.join(upload_dir, filename)
                 file.save(filepath)
@@ -1053,6 +1091,7 @@ def expense_details(expense_id):
         clean_description, tags, metadata = _split_note_fields(expense.description)
         invoice_docs = ProjectDocument.query.filter(
             or_(
+                and_(ProjectDocument.source_record_type == 'expense', ProjectDocument.source_record_id == expense.id),
                 ProjectDocument.title.ilike(f"%EXP-{expense.id}%"),
                 ProjectDocument.description.ilike(f"%expense_id={expense.id}%")
             )
@@ -1087,13 +1126,17 @@ def bank_reconciliation():
         # Prepare account summaries
         account_summaries = []
         for account in bank_accounts:
+            documents = ProjectDocument.query.filter_by(
+                source_module='finance', source_record_type='bank_account', source_record_id=account.id,
+            ).all()
             summary = {
                 'id': account.id,
                 'account_name': account.account_name,
                 'account_number': account.account_number,
                 'bank_name': account.bank_name,
                 'balance': float(account.balance or 0),
-                'currency': account.currency or 'NGN'
+                'currency': account.currency or 'NGN',
+                'documents': documents,
             }
             account_summaries.append(summary)
         
@@ -1412,6 +1455,7 @@ def account_transactions():
                 'status': 'Completed',
                 'account_id': None,
                 'id': payment.id,
+                'document_record_type': 'payment_record',
                 'detail_url': url_for('finance.view_payment_record', record_id=payment.id)
             })
 
@@ -1426,6 +1470,7 @@ def account_transactions():
                 'status': reconciliation.status,
                 'account_id': reconciliation.bank_account_id,
                 'id': reconciliation.id,
+                'document_record_type': 'bank_reconciliation',
                 'detail_url': url_for('finance.view_account_transactions', account_id=reconciliation.bank_account_id)
             })
 
@@ -1440,6 +1485,7 @@ def account_transactions():
                 'status': 'Posted',
                 'account_id': entry.account_id,
                 'id': entry.id,
+                'document_record_type': 'ledger_entry',
                 'detail_url': url_for('finance.ledger', account_id=entry.account_id)
             })
 
@@ -1502,6 +1548,12 @@ def transactions():
             query = query.filter(PaymentRecord.payment_date <= end)
         
         transactions = query.paginate(page=page, per_page=25)
+        for transaction in transactions.items:
+            transaction.documents = ProjectDocument.query.filter_by(
+                source_module='finance',
+                source_record_type='payment_record',
+                source_record_id=transaction.id,
+            ).all()
         total_amount = db.session.query(func.sum(PaymentRecord.amount_paid)).scalar() or 0
         
         return render_template(
@@ -1812,8 +1864,7 @@ def revenue_sales():
                 if file and file.filename and project_id:
                     file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
                     if file_ext in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'}:
-                        upload_dir = os.path.join(current_app.root_path, 'uploads', 'finance_documents')
-                        os.makedirs(upload_dir, exist_ok=True)
+                        upload_dir = _finance_document_upload_directory()
                         filename = secure_filename(f"revenue_{revenue.id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
                         filepath = os.path.join(upload_dir, filename)
                         file.save(filepath)
@@ -1946,7 +1997,16 @@ def deposit_revenue_cheque(revenue_id):
 def project_payment_requests():
     """Finance approval list for project-originated payment requests."""
     requests = ProjectPaymentRequest.query.order_by(ProjectPaymentRequest.request_date.desc()).all()
-    return render_template('finance/project_payment_requests.html', requests=requests)
+    request_documents = {
+        item.id: ProjectDocument.query.filter_by(
+            source_module='projects', source_record_type='project_payment_request', source_record_id=item.id,
+        ).order_by(ProjectDocument.created_at.desc()).all()
+        for item in requests
+    }
+    return render_template(
+        'finance/project_payment_requests.html', requests=requests,
+        request_documents=request_documents,
+    )
 
 
 @finance_bp.route('/project-payment-requests/<int:request_id>/approve', methods=['POST'])
@@ -2142,6 +2202,9 @@ def receivables():
 
         supplier_history = {}
         for item in receivables.items:
+            item.documents = ProjectDocument.query.filter_by(
+                source_module='finance', source_record_type='payment_request', source_record_id=item.id,
+            ).all()
             supplier_name = '-'
             if item.counterparty_name:
                 supplier_name = item.counterparty_name
@@ -2450,6 +2513,9 @@ def payroll_pending():
         return render_template(
             'finance/payroll_pending.html',
             payroll_records=payroll_records,
+            payroll_documents={record.id: ProjectDocument.query.filter_by(
+                source_module='payroll', source_record_type='payroll', source_record_id=record.id,
+            ).all() for record in payroll_records.items},
             total_net_salary=float(total_net_salary) if total_net_salary else 0.0,
             total_deductions=float(total_deductions) if total_deductions else 0.0,
             total_basic_salary=float(total_basic_salary) if total_basic_salary else 0.0
@@ -2890,6 +2956,10 @@ def invoice():
             query = query.filter_by(approval_state=status)
         
         invoices = query.paginate(page=page, per_page=20)
+        for invoice_record in invoices.items:
+            invoice_record.documents = ProjectDocument.query.filter_by(
+                source_module='finance', source_record_type='payment_request', source_record_id=invoice_record.id,
+            ).all()
         
         total_invoiced = db.session.query(func.sum(PaymentRequest.invoice_amount)).scalar() or 0
         
@@ -3075,6 +3145,10 @@ def payment():
             ))
         
         payments = query.paginate(page=page, per_page=20)
+        for payment_record in payments.items:
+            payment_record.documents = ProjectDocument.query.filter_by(
+                source_module='finance', source_record_type='payment_record', source_record_id=payment_record.id,
+            ).all()
         vendors = Vendor.query.all()
         
         # Get pending and approved payment requests for payment selection
@@ -3105,10 +3179,9 @@ def payment():
 
 @finance_bp.route('/documents', methods=['GET', 'POST'])
 @login_required
-@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ADMIN])
 def documents():
-    """Redirect to uploads page."""
-    return redirect(url_for('finance.view_uploads'))
+    """Open the shared document library with any upload context preserved."""
+    return redirect(url_for('finance.view_uploads', **request.args))
 
 
 @finance_bp.route('/audit-trail')
@@ -3137,14 +3210,292 @@ def audit_trail():
 
 # ===== PAYMENT EVIDENCE UPLOAD =====
 
+DOCUMENT_RECORDS = {
+    'project': (Project, 'projects'),
+    'project_budget': (Project, 'cost_control'),
+    'payment_record': (PaymentRecord, 'finance'),
+    'ledger_entry': (LedgerEntry, 'finance'),
+    'payment_request': (PaymentRequest, 'finance'),
+    'bill': (Bill, 'finance'),
+    'bank_account': (BankAccount, 'finance'),
+    'bank_reconciliation': (BankReconciliation, 'finance'),
+    'bank_statement_import': (BankStatementImport, 'finance'),
+    'revenue_sale': (RevenueSale, 'finance'),
+    'purchase_order': (PurchaseOrder, 'procurement'),
+    'payroll': (Payroll, 'payroll'),
+    'project_payment_request': (ProjectPaymentRequest, 'projects'),
+    'project_budget_record': (ProjectBudgetRecord, 'cost_control'),
+    'expense': (Expense, 'finance'),
+    'leave_request': (LeaveRequest, 'hr'),
+    'user': (User, 'account'),
+}
+
+FINANCE_DOCUMENT_ROLES = {
+    'super_hq', 'admin', 'hq_finance', 'finance_manager', 'accounts_payable',
+}
+HR_DOCUMENT_ROLES = {'super_hq', 'admin', 'hr_manager', 'hr_staff'}
+PROCUREMENT_DOCUMENT_ROLES = {
+    'super_hq', 'admin', 'hq_procurement', 'procurement_manager', 'procurement_staff',
+}
+COST_CONTROL_DOCUMENT_ROLES = {
+    'super_hq', 'admin', 'cost_control_manager', 'cost_control_staff',
+}
+
+
+def _resolve_document_record(record_type, record_id):
+    if record_type == 'company':
+        if record_id != 1:
+            return None, None
+        return 'company', 'account'
+    model_info = DOCUMENT_RECORDS.get(record_type)
+    if not model_info:
+        return None, None
+    model, module = model_info
+    record = model.query.get(record_id)
+    return record, module
+
+
+def _document_record_project_id(record_type, record):
+    if record_type in {'project', 'project_budget'}:
+        return record.id
+    project_id = getattr(record, 'project_id', None)
+    if project_id:
+        return project_id
+    if record_type == 'payment_record':
+        po = record.purchase_order or (record.payment_request.purchase_order if record.payment_request else None)
+        return po.project_id if po else None
+    if record_type == 'bill':
+        return record.project_id or (record.purchase_order.project_id if record.purchase_order else None)
+    if record_type == 'bank_statement_import':
+        return None
+    return None
+
+
+def _document_record_label(record_type, record):
+    if record_type == 'project_budget':
+        return f"{record.name} budget"
+    if record_type == 'payment_record':
+        return f"Payment {record.reference_number or record.id}"
+    if record_type == 'payment_request':
+        return f"Invoice {record.invoice_number or record.id}"
+    if record_type == 'bill':
+        return f"Bill {record.bill_number or record.id}"
+    if record_type == 'bank_account':
+        return f"{record.account_name} ({record.bank_name or 'Bank'})"
+    if record_type == 'bank_reconciliation':
+        return f"Reconciliation #{record.id}"
+    if record_type == 'bank_statement_import':
+        return f"Bank statement {record.file_name}"
+    if record_type == 'revenue_sale':
+        return f"Sale {record.customer_name} #{record.id}"
+    if record_type == 'purchase_order':
+        return f"PO {record.po_number or record.id}"
+    if record_type == 'payroll':
+        return f"Payroll {record.payroll_number or record.id}"
+    if record_type == 'project_payment_request':
+        return f"{record.project.name}: {record.title}"
+    if record_type == 'project_budget_record':
+        project = Project.query.get(record.project_id)
+        return f"{project.name if project else 'Project'}: {record.category or 'Budget'}"
+    if record_type == 'expense':
+        return f"Expense #{record.id}: {record.category}"
+    if record_type == 'leave_request':
+        return f"Leave #{record.id}: {record.requester.name}"
+    if record_type == 'user':
+        return record.name
+    return getattr(record, 'name', f"{record_type} #{record.id}")
+
+
+def _available_document_records(source_module, source_record_type=None):
+    role = normalize_role(current_user.role)
+    records = []
+    if source_module in {'', 'finance'} and role in FINANCE_DOCUMENT_ROLES:
+        for record_type, model in (
+            ('payment_record', PaymentRecord), ('payment_request', PaymentRequest),
+            ('bill', Bill), ('bank_account', BankAccount),
+            ('bank_reconciliation', BankReconciliation),
+            ('bank_statement_import', BankStatementImport),
+            ('ledger_entry', LedgerEntry), ('revenue_sale', RevenueSale),
+            ('expense', Expense),
+        ):
+            rows = model.query.order_by(model.id.desc()).limit(200).all()
+            records.extend(('finance', record_type, row, _document_record_label(record_type, row)) for row in rows)
+    if source_module in {'', 'finance', 'projects'} and role in FINANCE_DOCUMENT_ROLES:
+        rows = ProjectPaymentRequest.query.order_by(ProjectPaymentRequest.id.desc()).limit(200).all()
+        records.extend(('projects', 'project_payment_request', row, _document_record_label('project_payment_request', row)) for row in rows)
+    if source_module in {'', 'procurement'} and role in PROCUREMENT_DOCUMENT_ROLES | FINANCE_DOCUMENT_ROLES:
+        rows = PurchaseOrder.query.order_by(PurchaseOrder.id.desc()).limit(200).all()
+        records.extend(('procurement', 'purchase_order', row, _document_record_label('purchase_order', row)) for row in rows)
+    if source_module in {'', 'cost_control'} and role in COST_CONTROL_DOCUMENT_ROLES | FINANCE_DOCUMENT_ROLES:
+        rows = ProjectBudgetRecord.query.order_by(ProjectBudgetRecord.id.desc()).limit(200).all()
+        records.extend(('cost_control', 'project_budget_record', row, _document_record_label('project_budget_record', row)) for row in rows)
+        projects = get_user_finance_projects(current_user) if role in FINANCE_DOCUMENT_ROLES else []
+        if role in COST_CONTROL_DOCUMENT_ROLES:
+            from app.projects.routes import get_user_accessible_projects
+            projects = get_user_accessible_projects(current_user)
+        records.extend(('cost_control', 'project_budget', project, _document_record_label('project_budget', project)) for project in projects)
+    if source_module in {'', 'cost_control'} and role in COST_CONTROL_DOCUMENT_ROLES:
+        from app.cost_control.routes import get_user_cost_control_projects
+        records.extend(('cost_control', 'project_budget', project, _document_record_label('project_budget', project))
+                       for project in get_user_cost_control_projects(current_user))
+    if source_module in {'', 'payroll'} and role in FINANCE_DOCUMENT_ROLES | {'hr_manager'}:
+        rows = Payroll.query.order_by(Payroll.id.desc()).limit(200).all()
+        records.extend(('payroll', 'payroll', row, _document_record_label('payroll', row)) for row in rows)
+    if source_module in {'', 'hr'} and role in HR_DOCUMENT_ROLES:
+        rows = LeaveRequest.query.order_by(LeaveRequest.id.desc()).limit(200).all()
+        records.extend(('hr', 'leave_request', row, _document_record_label('leave_request', row)) for row in rows)
+    elif source_module in {'', 'hr'}:
+        rows = LeaveRequest.query.filter_by(user_id=current_user.id).order_by(LeaveRequest.id.desc()).limit(200).all()
+        records.extend(('hr', 'leave_request', row, _document_record_label('leave_request', row)) for row in rows)
+    if source_module in {'', 'projects'}:
+        if role in {'project_manager', 'project_staff'}:
+            from app.projects.routes import get_user_accessible_projects
+            rows = get_user_accessible_projects(current_user)
+            records.extend(('projects', 'project', row, row.name) for row in rows)
+        if role in FINANCE_DOCUMENT_ROLES | {'project_manager', 'project_staff'}:
+            rows = ProjectPaymentRequest.query.order_by(ProjectPaymentRequest.id.desc()).limit(200).all()
+            records.extend(('projects', 'project_payment_request', row, _document_record_label('project_payment_request', row)) for row in rows)
+    if source_module in {'', 'account'} and role in {'admin', 'super_hq'}:
+        records.append(('account', 'company', None, 'Company documents'))
+    if source_module in {'', 'account'} and role not in {'admin', 'super_hq'}:
+        records.append(('account', 'user', current_user, f'My profile: {current_user.name}'))
+    available = []
+    for module, record_type, record, label in records:
+        if source_record_type and record_type != source_record_type:
+            continue
+        if record_type == 'company':
+            if role in {'admin', 'super_hq'}:
+                available.append((module, record_type, record, label))
+        elif record is not None and _can_access_document_record(record_type, record):
+            available.append((module, record_type, record, label))
+    return available
+
+
+def _can_access_document_record(record_type, record):
+    role = normalize_role(current_user.role)
+    if role in {'admin', 'super_hq'}:
+        return True
+    if record_type in {'user', 'company'}:
+        if record_type == 'user':
+            return record.id == current_user.id or role in HR_DOCUMENT_ROLES
+        return role in {'admin', 'super_hq'}
+    if record_type == 'leave_request':
+        return record.user_id == current_user.id or role in HR_DOCUMENT_ROLES
+    if record_type == 'project':
+        from app.projects.routes import check_project_access
+        return check_project_access(current_user, record.id)
+    if record_type == 'project_budget':
+        if role in FINANCE_DOCUMENT_ROLES:
+            return True
+        if role in COST_CONTROL_DOCUMENT_ROLES:
+            from app.cost_control.routes import get_user_cost_control_projects
+            return record.id in {project.id for project in get_user_cost_control_projects(current_user)}
+        from app.projects.routes import check_project_access
+        return check_project_access(current_user, record.id)
+    if record_type == 'payroll':
+        return role in FINANCE_DOCUMENT_ROLES or role == 'hr_manager'
+    if record_type == 'purchase_order':
+        if role not in PROCUREMENT_DOCUMENT_ROLES | FINANCE_DOCUMENT_ROLES:
+            return False
+    elif record_type == 'project_budget_record':
+        if role in FINANCE_DOCUMENT_ROLES:
+            return True
+        if role not in COST_CONTROL_DOCUMENT_ROLES:
+            return False
+        from app.cost_control.routes import get_user_cost_control_projects
+        return record.project_id in {project.id for project in get_user_cost_control_projects(current_user)}
+    elif record_type == 'project_payment_request':
+        if role in FINANCE_DOCUMENT_ROLES:
+            return True
+        if role not in {'project_manager', 'project_staff'}:
+            return False
+        from app.projects.routes import check_project_access
+        return check_project_access(current_user, record.project_id)
+    elif record_type in {'payment_record', 'ledger_entry', 'payment_request', 'bill', 'bank_account', 'bank_reconciliation', 'bank_statement_import', 'revenue_sale', 'expense'}:
+        return role in FINANCE_DOCUMENT_ROLES
+    else:
+        return False
+
+    project_id = _document_record_project_id(record_type, record)
+    if project_id and role in {'project_manager', 'project_staff'}:
+        from app.projects.routes import check_project_access
+        return check_project_access(current_user, project_id)
+    return role in PROCUREMENT_DOCUMENT_ROLES | COST_CONTROL_DOCUMENT_ROLES | FINANCE_DOCUMENT_ROLES
+
+
+def _can_access_document(document):
+    if document.source_record_type:
+        record, _ = _resolve_document_record(
+            document.source_record_type, document.source_record_id,
+        )
+        if record is None:
+            return False
+        return _can_access_document_record(document.source_record_type, record)
+    if document.project_id:
+        role = normalize_role(current_user.role)
+        if role in FINANCE_DOCUMENT_ROLES:
+            return True
+        from app.projects.routes import check_project_access
+        return check_project_access(current_user, document.project_id)
+    return normalize_role(current_user.role) in {'admin', 'super_hq'}
+
+
+def _visible_document_query():
+    role = normalize_role(current_user.role)
+    if role in {'admin', 'super_hq'}:
+        return ProjectDocument.query
+
+    conditions = []
+    if role in FINANCE_DOCUMENT_ROLES:
+        conditions.extend([
+            ProjectDocument.source_module == 'finance',
+            ProjectDocument.source_module.in_(['procurement', 'cost_control', 'projects', 'payroll']),
+            and_(ProjectDocument.source_module.is_(None), ProjectDocument.project_id.isnot(None)),
+        ])
+    if role in PROCUREMENT_DOCUMENT_ROLES:
+        conditions.append(ProjectDocument.source_module == 'procurement')
+    if role in COST_CONTROL_DOCUMENT_ROLES:
+        conditions.append(ProjectDocument.source_module == 'cost_control')
+    if role in HR_DOCUMENT_ROLES:
+        conditions.append(ProjectDocument.source_module == 'hr')
+        if role in {'hr_manager', 'admin', 'super_hq'}:
+            conditions.append(ProjectDocument.source_module == 'payroll')
+    if role in {'project_manager', 'project_staff'}:
+        from app.projects.routes import get_user_accessible_projects
+        project_ids = [project.id for project in get_user_accessible_projects(current_user)]
+        if project_ids:
+            conditions.extend([
+                ProjectDocument.project_id.in_(project_ids),
+                ProjectDocument.source_module == 'projects',
+            ])
+    if current_user.is_authenticated:
+        conditions.append(and_(
+            ProjectDocument.source_record_type == 'user',
+            ProjectDocument.source_record_id == current_user.id,
+        ))
+    if role not in HR_DOCUMENT_ROLES:
+        own_leave_ids = db.session.query(LeaveRequest.id).filter_by(user_id=current_user.id)
+        conditions.append(and_(
+            ProjectDocument.source_record_type == 'leave_request',
+            ProjectDocument.source_record_id.in_(own_leave_ids),
+        ))
+    return ProjectDocument.query.filter(or_(*conditions)) if conditions else ProjectDocument.query.filter(db.false())
+
+
+def _document_record_is_locked(record_type, record):
+    if record_type in {'ledger_entry', 'payment_record', 'bank_reconciliation', 'bank_statement_import', 'revenue_sale'}:
+        return True
+    state = getattr(record, 'approval_state', None)
+    state = getattr(state, 'value', state)
+    status = str(getattr(record, 'status', '') or '').lower()
+    return str(state or '').lower() == 'approved' or status in {'approved', 'paid', 'posted', 'reconciled'}
+
 @finance_bp.route('/payment/<int:payment_id>/upload-evidence', methods=['POST'])
 @login_required
 @role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ACCOUNTS_PAYABLE])
-def upload_payment_evidence():
+def upload_payment_evidence(payment_id):
     """Upload payment evidence/proof document."""
     try:
-        payment_id = request.form.get('payment_id')
-        
         if 'proof_document' not in request.files:
             return jsonify({'status': 'error', 'message': 'No file provided'}), 400
         
@@ -3158,96 +3509,145 @@ def upload_payment_evidence():
         if not ('.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
             return jsonify({'status': 'error', 'message': 'Invalid file type'}), 400
         
-        # Create uploads directory if it doesn't exist
-        upload_dir = os.path.join(current_app.root_path, 'uploads', 'payment_evidence')
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # Save file with secure name
-        filename = secure_filename(f"payment_{payment_id}_{datetime.now().timestamp()}_{file.filename}")
+        payment = PaymentRecord.query.get_or_404(payment_id)
+        if not _can_access_document_record('payment_record', payment):
+            return jsonify({'status': 'error', 'message': 'Access denied.'}), 403
+
+        upload_dir = _finance_document_upload_directory()
+        filename = f"{uuid4().hex}_{secure_filename(file.filename)}"
         filepath = os.path.join(upload_dir, filename)
         file.save(filepath)
-        
-        # Update payment record with proof document path
-        payment = PaymentRecord.query.get(payment_id)
-        if payment:
-            payment.proof_document = f'/uploads/payment_evidence/{filename}'
-            db.session.commit()
-            current_app.logger.info(f"Payment evidence uploaded: {payment_id}")
-            return jsonify({'status': 'success', 'message': 'Evidence uploaded successfully'})
-        else:
-            return jsonify({'status': 'error', 'message': 'Payment not found'}), 404
+        with open(filepath, 'rb') as stored_file:
+            file_data = stored_file.read()
+        project_id = _document_record_project_id('payment_record', payment)
+        document = ProjectDocument(
+            project_id=project_id,
+            source_module='finance',
+            source_record_type='payment_record',
+            source_record_id=payment.id,
+            title=request.form.get('title', '').strip() or f'Payment evidence {payment.reference_number or payment.id}',
+            description=request.form.get('description', '').strip(),
+            file_name=secure_filename(file.filename),
+            file_path=f'/uploads/finance_documents/{filename}',
+            file_data=file_data,
+            document_type=file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'file',
+            uploaded_by_id=current_user.id,
+        )
+        db.session.add(document)
+        payment.proof_document = f'/uploads/finance_documents/{filename}'
+        db.session.flush()
+        db.session.add(AuditLog(
+            entity_type='document', entity_id=document.id, action='UPLOADED',
+            actor_id=current_user.id, reference=f'payment_record:{payment.id}',
+            description=f'Payment evidence attached to payment_record:{payment.id}',
+        ))
+        db.session.commit()
+        current_app.logger.info(f"Payment evidence uploaded: {payment_id}")
+        return jsonify({'status': 'success', 'message': 'Evidence uploaded successfully', 'document_id': document.id})
             
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Payment evidence upload error: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
 @finance_bp.route('/upload', methods=['POST'])
 @login_required
-@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ADMIN])
 def upload_document():
-    """Upload finance document with project linking."""
+    """Upload one or more files into the existing document library."""
     try:
-        from app.models import ProjectDocument
-        
-        if 'file' not in request.files:
+        files = [item for item in request.files.getlist('files') if item and item.filename]
+        if not files and request.files.get('file'):
+            files = [request.files['file']]
+        if not files:
             return jsonify({'status': 'error', 'message': 'No file provided'}), 400
-        
-        file = request.files['file']
-        title = request.form.get('title', 'Finance Document')
+
+        record_type = (request.form.get('source_record_type') or '').strip()
+        record_id = request.form.get('source_record_id', type=int)
+        if bool(record_type) != bool(record_id):
+            return jsonify({'status': 'error', 'message': 'Select a record before uploading its supporting documents.'}), 400
+
+        record = None
+        module = (request.form.get('source_module') or '').strip()
+        project_id = request.form.get('project_id', type=int)
+        if record_type:
+            record, expected_module = _resolve_document_record(record_type, record_id)
+            if record is None:
+                return jsonify({'status': 'error', 'message': 'The selected record could not be found.'}), 404
+            if module != expected_module:
+                return jsonify({'status': 'error', 'message': 'The document module does not match the selected record.'}), 400
+            if not _can_access_document_record(record_type, record):
+                return jsonify({'status': 'error', 'message': 'You do not have access to attach documents to this record.'}), 403
+            project_id = _document_record_project_id(record_type, record)
+        elif project_id:
+            project = Project.query.get(project_id)
+            if not project:
+                return jsonify({'status': 'error', 'message': 'Project not found.'}), 404
+            role = normalize_role(current_user.role)
+            if role not in FINANCE_DOCUMENT_ROLES:
+                from app.projects.routes import check_project_access
+                if not check_project_access(current_user, project_id):
+                    return jsonify({'status': 'error', 'message': 'You do not have access to this project.'}), 403
+            module = 'projects'
+        else:
+            return jsonify({'status': 'error', 'message': 'Choose a transaction or project before uploading a document.'}), 400
+
+        title = (request.form.get('title') or '').strip()
         description = request.form.get('description', '')
-        tags = [t.strip() for t in request.form.get('tags', '').split(',') if t.strip()]
-        project_id = request.form.get('project_id')
-        
-        if file.filename == '':
-            return jsonify({'status': 'error', 'message': 'No file selected'}), 400
-        
-        # Validate file type
+        category = request.form.get('document_type', '').strip()
+        if not title:
+            return jsonify({'status': 'error', 'message': 'Document title is required.'}), 400
+
         allowed_extensions = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'csv'}
-        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-        if file_ext not in allowed_extensions:
-            return jsonify({'status': 'error', 'message': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'}), 400
-        
-        # Require project for document upload
-        if not project_id:
-            return jsonify({'status': 'error', 'message': 'Project is required'}), 400
-        
-        # Verify project exists and user has access
-        project = Project.query.get(project_id)
-        if not project:
-            return jsonify({'status': 'error', 'message': 'Project not found'}), 404
-        
-        # Create uploads directory if it doesn't exist
-        upload_dir = os.path.join(current_app.root_path, 'uploads', 'finance_documents')
-        os.makedirs(upload_dir, exist_ok=True)
-        
-        # Save file with secure name
-        filename = secure_filename(f"{project_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
-        filepath = os.path.join(upload_dir, filename)
-        file.save(filepath)
-        
-        # Create record for uploaded file
-        uploaded_file = ProjectDocument(
-            project_id=int(project_id),
-            title=title,
-            description=_compose_note(description, tags=tags),
-            file_name=filename,
-            file_path=f'/uploads/finance_documents/{filename}',
-            document_type=file_ext,
-            uploaded_by_id=current_user.id,
-            created_at=datetime.utcnow()
-        )
-        db.session.add(uploaded_file)
+        upload_dir = _finance_document_upload_directory()
+
+        uploaded_files = []
+        for file in files:
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_ext not in allowed_extensions:
+                db.session.rollback()
+                return jsonify({'status': 'error', 'message': f'Invalid file type for {file.filename}.'}), 400
+            original_name = secure_filename(file.filename)
+            filename = f"{uuid4().hex}_{original_name}"
+            filepath = os.path.join(upload_dir, filename)
+            file.save(filepath)
+            with open(filepath, 'rb') as stored_file:
+                file_data = stored_file.read()
+            document = ProjectDocument(
+                project_id=project_id,
+                source_module=module,
+                source_record_type=record_type or None,
+                source_record_id=record_id,
+                title=title if len(files) == 1 else f"{title} - {os.path.splitext(original_name)[0]}",
+                description=description,
+                file_name=original_name,
+                file_path=f'/uploads/finance_documents/{filename}',
+                file_data=file_data,
+                document_type=category or file_ext,
+                uploaded_by_id=current_user.id,
+                created_at=datetime.utcnow(),
+            )
+            db.session.add(document)
+            db.session.flush()
+            db.session.add(AuditLog(
+                entity_type='document', entity_id=document.id, action='UPLOADED',
+                actor_id=current_user.id,
+                reference=f'{record_type}:{record_id}' if record_type else f'project:{project_id}',
+                description=f'{module} document uploaded: {document.title}',
+            ))
+            uploaded_files.append(document)
+
         db.session.commit()
-        
-        current_app.logger.info(f"Finance document uploaded: {filename} by {current_user.email} for project {project_id}")
-        
+
+        current_app.logger.info(
+            'Documents uploaded by %s: module=%s record=%s:%s count=%s',
+            current_user.email, module, record_type or 'project', record_id or project_id,
+            len(uploaded_files),
+        )
         return jsonify({
             'status': 'success',
-            'message': 'Document uploaded successfully',
-            'file_id': uploaded_file.id,
-            'file_name': filename,
-            'file_path': f'/uploads/finance_documents/{filename}'
+            'message': f'{len(uploaded_files)} document(s) uploaded successfully.',
+            'file_ids': [document.id for document in uploaded_files],
         }), 201
             
     except Exception as e:
@@ -3258,22 +3658,31 @@ def upload_document():
 
 @finance_bp.route('/uploads', methods=['GET'])
 @login_required
-@role_required([Roles.SUPER_HQ, Roles.HQ_FINANCE, Roles.FINANCE_MANAGER, Roles.ADMIN])
 def view_uploads():
-    """View all uploaded finance documents."""
+    """View documents visible to the signed-in user's module permissions."""
     try:
-        from app.models import ProjectDocument
-        
         page = request.args.get('page', 1, type=int)
         project_id = request.args.get('project_id')
+        source_module = request.args.get('source_module', '').strip()
+        source_record_type = request.args.get('source_record_type', '').strip()
+        source_record_id = request.args.get('source_record_id', type=int)
         q = request.args.get('q', '').strip()
         tag = request.args.get('tag', '').strip()
         document_type = request.args.get('document_type', '').strip()
 
-        query = ProjectDocument.query.order_by(ProjectDocument.created_at.desc())
+        query = _visible_document_query().order_by(ProjectDocument.created_at.desc())
 
         if project_id:
             query = query.filter_by(project_id=project_id)
+        if source_module:
+            query = query.filter_by(source_module=source_module)
+        if source_record_type and source_record_id:
+            query = query.filter_by(
+                source_record_type=source_record_type,
+                source_record_id=source_record_id,
+            )
+        elif source_record_type:
+            query = query.filter_by(source_record_type=source_record_type)
         if q:
             query = query.filter(or_(
                 ProjectDocument.title.ilike(f"%{q}%"),
@@ -3285,12 +3694,37 @@ def view_uploads():
         if document_type:
             query = query.filter(ProjectDocument.document_type == document_type)
 
-        uploads = query.paginate(page=page, per_page=20)
+        visible_documents = query.all()
+        visible_documents = [document for document in visible_documents if _can_access_document(document)]
+        start = (page - 1) * 20
+        total = len(visible_documents)
+        uploads = type('DocumentPage', (), {
+            'items': visible_documents[start:start + 20],
+            'page': page,
+            'pages': max((total + 19) // 20, 1),
+            'has_prev': page > 1,
+            'has_next': start + 20 < total,
+            'prev_num': page - 1,
+            'next_num': page + 1,
+        })()
         projects = get_user_finance_projects(current_user)
         for upload in uploads.items:
             _, parsed_tags, _ = _split_note_fields(upload.description)
             upload.parsed_tags = parsed_tags
-        doc_types = [row[0] for row in db.session.query(ProjectDocument.document_type).distinct().all() if row[0]]
+        doc_types = sorted({upload.document_type for upload in visible_documents if upload.document_type})
+        available_records = _available_document_records(source_module, source_record_type)
+        if source_record_type and source_record_id:
+            selected_record, expected_module = _resolve_document_record(source_record_type, source_record_id)
+            if selected_record is not None and _can_access_document_record(source_record_type, selected_record):
+                selected_key = (source_record_type, source_record_id)
+                if not any(
+                    record_type == selected_key[0] and getattr(record, 'id', 1) == selected_key[1]
+                    for _, record_type, record, _ in available_records
+                ):
+                    available_records.append((
+                        expected_module, source_record_type, selected_record,
+                        _document_record_label(source_record_type, selected_record),
+                    ))
 
         return render_template(
             'finance/uploads.html',
@@ -3300,12 +3734,115 @@ def view_uploads():
             selected_q=q,
             selected_tag=tag,
             selected_document_type=document_type,
-            document_types=sorted(doc_types)
+            document_types=doc_types,
+            selected_source_module=source_module,
+            selected_source_record_type=source_record_type,
+            selected_source_record_id=source_record_id,
+            available_records=available_records,
+            open_upload=request.args.get('open_upload') == '1',
         )
     except Exception as e:
         current_app.logger.error(f"View uploads error: {str(e)}")
         flash(f'Error loading documents: {str(e)}', 'error')
         return redirect(url_for('finance.dashboard'))
+
+
+@finance_bp.route('/uploads/<int:doc_id>/file')
+@login_required
+def download_uploaded_document(doc_id):
+    document = ProjectDocument.query.get_or_404(doc_id)
+    if not _can_access_document(document):
+        return jsonify({'status': 'error', 'message': 'Access denied.'}), 403
+    if document.file_data:
+        return send_file(BytesIO(document.file_data), as_attachment=True,
+                         download_name=document.file_name or document.title)
+    if document.file_path:
+        candidate = document.file_path
+        if not os.path.isabs(candidate):
+            candidate = os.path.abspath(os.path.join(current_app.root_path, candidate.lstrip('/')))
+        if os.path.isfile(candidate):
+            return send_file(candidate, as_attachment=True,
+                             download_name=document.file_name or document.title)
+    return jsonify({'status': 'error', 'message': 'Document file is unavailable.'}), 404
+
+
+@finance_bp.route('/uploads/<int:doc_id>/view')
+@login_required
+def view_uploaded_document(doc_id):
+    document = ProjectDocument.query.get_or_404(doc_id)
+    if not _can_access_document(document):
+        return jsonify({'status': 'error', 'message': 'Access denied.'}), 403
+    if document.file_data:
+        return send_file(BytesIO(document.file_data), as_attachment=False,
+                         download_name=document.file_name or document.title)
+    if document.file_path:
+        candidate = document.file_path
+        if not os.path.isabs(candidate):
+            candidate = os.path.abspath(os.path.join(current_app.root_path, candidate.lstrip('/')))
+        if os.path.isfile(candidate):
+            return send_file(candidate, as_attachment=False,
+                             download_name=document.file_name or document.title)
+    return jsonify({'status': 'error', 'message': 'Document file is unavailable.'}), 404
+
+
+@finance_bp.route('/uploads/<int:doc_id>/manage', methods=['POST'])
+@login_required
+def manage_uploaded_document(doc_id):
+    document = ProjectDocument.query.get_or_404(doc_id)
+    if not _can_access_document(document):
+        return jsonify({'status': 'error', 'message': 'Access denied.'}), 403
+    record = None
+    if document.source_record_type:
+        record, _ = _resolve_document_record(document.source_record_type, document.source_record_id)
+    if record and _document_record_is_locked(document.source_record_type, record):
+        return jsonify({'status': 'error', 'message': 'Attachments on posted or approved records are locked.'}), 409
+
+    action = request.form.get('action', '').strip()
+    if action == 'delete':
+        db.session.add(AuditLog(
+            entity_type='document', entity_id=document.id, action='REMOVED',
+            actor_id=current_user.id, reference=f'{document.source_record_type}:{document.source_record_id}',
+            description=f'Document removed: {document.title}',
+        ))
+        db.session.delete(document)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Document removed.'})
+    if action != 'update':
+        return jsonify({'status': 'error', 'message': 'Unsupported document action.'}), 400
+
+    title = request.form.get('title', '').strip()
+    description = request.form.get('description', '').strip()
+    category = request.form.get('document_type', '').strip()
+    if title:
+        document.title = title
+    document.description = description
+    if category:
+        document.document_type = category
+
+    replacement = request.files.get('file')
+    if replacement and replacement.filename:
+        extension = replacement.filename.rsplit('.', 1)[1].lower() if '.' in replacement.filename else ''
+        if extension not in {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx', 'csv'}:
+            return jsonify({'status': 'error', 'message': 'Unsupported file type.'}), 400
+        filename = f"{uuid4().hex}_{secure_filename(replacement.filename)}"
+        upload_dir = _finance_document_upload_directory()
+        path = os.path.join(upload_dir, filename)
+        replacement.save(path)
+        with open(path, 'rb') as stored_file:
+            document.file_data = stored_file.read()
+        document.file_path = f'/uploads/finance_documents/{filename}'
+        document.file_name = secure_filename(replacement.filename)
+        document.document_type = category or extension
+        document.version = (document.version or 1) + 1
+    db.session.add(AuditLog(
+        entity_type='document', entity_id=document.id,
+        action='REPLACED' if replacement and replacement.filename else 'METADATA_UPDATED',
+        actor_id=current_user.id,
+        reference=f'{document.source_record_type}:{document.source_record_id}',
+        description=f'Document updated: {document.title}',
+    ))
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': 'Document updated.'})
 
 
 # ===== BANK RECONCILIATION =====

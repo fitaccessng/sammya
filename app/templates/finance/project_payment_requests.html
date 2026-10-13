@@ -3,6 +3,7 @@
 {% block finance_content %}
 <div class="py-6 bg-white rounded-lg shadow p-6">
     <h2 class="text-xl font-bold mb-4">Project Payment Requests</h2>
+    <a class="mb-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='projects', open_upload=1) }}">Upload Project Payment Document</a>
     <div class="overflow-x-auto">
         <table class="min-w-full border border-gray-300">
             <thead class="bg-gray-100"><tr><th class="border px-3 py-2">Project</th><th class="border px-3 py-2">Title</th><th class="border px-3 py-2 text-right">Amount</th><th class="border px-3 py-2">Requested By</th><th class="border px-3 py-2">Status</th><th class="border px-3 py-2">Actions</th></tr></thead>
@@ -14,6 +15,7 @@
                     <td class="border px-3 py-2 text-right">&#8358;{{ "{:,.2f}".format(r.amount or 0) }}</td>
                     <td class="border px-3 py-2">{{ r.requester.name if r.requester else '-' }}</td>
                     <td class="border px-3 py-2">
+                        <a class="mr-2 text-blue-700 hover:underline text-xs" href="{{ url_for('finance.view_uploads', source_module='projects', source_record_type='project_payment_request', source_record_id=r.id, open_upload=1) }}">Upload Document</a>
                         {% if r.approval_state == 'approved' %}
                         <span class="px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Approved</span>
                         {% elif r.approval_state == 'rejected' %}
@@ -29,6 +31,7 @@
                         {% else %}
                         <span class="text-gray-400 text-xs">Processed</span>
                         {% endif %}
+                        {% for document in request_documents[r.id] %}<p class="mt-2 text-xs"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a> · <a href="{{ url_for('finance.download_uploaded_document', doc_id=document.id) }}">Download</a></p>{% endfor %}
                     </td>
                 </tr>
                 {% else %}

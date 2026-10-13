@@ -3,7 +3,7 @@
 {% block title %}Finance Dashboard - QuickBooks Style{% endblock %}
 
 {% block finance_content %}
-<h1 class="text-3xl font-bold mb-6">Finance - Payments</h1>
+<div class="mb-6 flex items-center justify-between"><h1 class="text-3xl font-bold">Finance - Payments</h1><a class="rounded bg-blue-600 px-4 py-2 text-sm font-semibold text-white" href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}">Upload Payment Document</a></div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
     <div class="bg-white rounded-lg shadow p-4">
@@ -38,7 +38,7 @@
                         <td class="py-3 px-4">{{ payment.invoice_number|default('N/A', true) }}</td>
                         <td class="py-3 px-4">₦{{ "{:.2f}".format(payment.invoice_amount|float) }}</td>
                         <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded-md bg-amber-100 text-amber-800">DRAFT</span></td>
-                        <td class="py-3 px-4"><a href="{{ url_for('finance.view_payment_request', payment_id=payment.id) }}" class="text-blue-600 hover:underline">View</a></td>
+                        <td class="py-3 px-4"><a href="{{ url_for('finance.view_payment_request', payment_id=payment.id) }}" class="text-blue-600 hover:underline">View</a> · <a href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=payment.id, open_upload=1) }}" class="text-blue-700 hover:underline">Upload Payment Document</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -66,7 +66,7 @@
                     <tr class="border-b border-slate-100">
                         <td class="py-3 px-4">{{ payment.invoice_number|default('N/A', true) }}</td>
                         <td class="py-3 px-4">₦{{ "{:.2f}".format(payment.invoice_amount|float) }}</td>
-                        <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded-md bg-green-100 text-green-800">APPROVED</span></td>
+                        <td class="py-3 px-4"><span class="px-2 py-1 text-xs rounded-md bg-green-100 text-green-800">APPROVED</span> · <a href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=payment.id, open_upload=1) }}" class="text-blue-700 hover:underline">Upload Payment Document</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>

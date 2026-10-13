@@ -3,13 +3,22 @@
 {% block finance_content %}
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Finance Documents</h1>
+        <h1 class="text-3xl font-bold text-gray-800">Documents</h1>
         <button onclick="showUploadModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">📤 Upload Document</button>
     </div>
 
     <!-- Filter by Project -->
     <div class="mb-6 bg-white rounded-lg shadow-sm p-4">
-        <form method="GET" class="flex gap-4 items-center">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[180px]">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Module</label>
+                <select name="source_module" onchange="this.form.submit()" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">All visible modules</option>
+                    {% for module, label in [('finance', 'Finance'), ('procurement', 'Procurement'), ('cost_control', 'Cost Control'), ('projects', 'Projects'), ('payroll', 'Payroll'), ('hr', 'HR'), ('account', 'Account') ] %}
+                    <option value="{{ module }}" {% if selected_source_module == module %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="flex-1">
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Filter by Project</label>
                 <select name="project_id" onchange="this.form.submit()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
@@ -34,6 +43,7 @@
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">File</th>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Project</th>
+                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Record</th>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Uploaded By</th>
                         <th class="px-6 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
                         <th class="px-6 py-3 text-center text-sm font-semibold text-gray-700">Action</th>
@@ -64,18 +74,35 @@
                                     <span class="text-gray-400">—</span>
                                 {% endif %}
                             </td>
+                            <td class="px-6 py-4 text-sm text-gray-600">{{ upload.source_module|replace('_', ' ')|title if upload.source_module else 'Project' }}{% if upload.source_record_type %} / {{ upload.source_record_type|replace('_', ' ')|title }} #{{ upload.source_record_id }}{% endif %}</td>
                             <td class="px-6 py-4 text-sm text-gray-600">
                                 {{ upload.uploaded_by.email if upload.uploaded_by else '—' }}
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-600">{{ upload.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td class="px-6 py-4 text-center">
-                                <a href="{{ upload.file_path }}" download class="text-blue-600 hover:text-blue-800 text-sm font-semibold">📥 Download</a>
+                            <td class="px-6 py-4 text-center space-x-2">
+                                <a href="{{ url_for('finance.view_uploaded_document', doc_id=upload.id) }}" target="_blank" rel="noopener" class="text-green-700 hover:underline text-sm">Preview</a>
+                                <a href="{{ url_for('finance.download_uploaded_document', doc_id=upload.id) }}" class="text-blue-600 hover:underline text-sm">Download</a>
+                                <details class="inline-block text-left">
+                                    <summary class="cursor-pointer text-slate-700 text-sm">Manage</summary>
+                                    <form method="post" enctype="multipart/form-data" action="{{ url_for('finance.manage_uploaded_document', doc_id=upload.id) }}" class="absolute z-10 mt-1 w-64 space-y-2 border bg-white p-3 shadow">
+                                        <input type="hidden" name="action" value="update">
+                                        <input name="title" value="{{ upload.title }}" aria-label="Document title" class="w-full border px-2 py-1 text-sm">
+                                        <input name="document_type" value="{{ upload.document_type or '' }}" aria-label="Document category" class="w-full border px-2 py-1 text-sm">
+                                        <textarea name="description" aria-label="Description" class="w-full border px-2 py-1 text-sm">{{ upload.description or '' }}</textarea>
+                                        <input type="file" name="file" aria-label="Replace file" class="w-full text-xs">
+                                        <button class="bg-blue-600 px-2 py-1 text-xs text-white">Save / Replace</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('finance.manage_uploaded_document', doc_id=upload.id) }}" class="inline">
+                                        <input type="hidden" name="action" value="delete">
+                                        <button class="text-red-700 text-sm" onclick="return confirm('Remove this document?')">Remove</button>
+                                    </form>
+                                </details>
                             </td>
                         </tr>
                         {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">
                             No documents found. 
                             <button onclick="showUploadModal()" class="text-blue-600 hover:underline">Upload one now</button>
                         </td>
@@ -108,32 +135,50 @@
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Upload Document</h2>
         <form id="uploadForm" class="space-y-4">
             <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Source Module *</label>
+                <select name="source_module" id="sourceModule" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
+                    <option value="">Select module</option>
+                    {% for module, label in [('finance', 'Finance'), ('procurement', 'Procurement'), ('cost_control', 'Cost Control'), ('projects', 'Projects'), ('payroll', 'Payroll'), ('hr', 'HR'), ('account', 'Account') ] %}
+                    <option value="{{ module }}" {% if selected_source_module == module %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Attach to Record *</label>
+                <select name="document_record" id="documentRecord" class="w-full px-3 py-2 border border-gray-300 rounded-lg" required>
+                    <option value="">Select a record</option>
+                    {% for module, record_type, record, label in available_records %}
+                    <option value="{{ module }}|{{ record_type }}|{{ record.id if record else 1 }}" {% if selected_source_record_type == record_type and selected_source_record_id == (record.id if record else 1) %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Choose the existing transaction or record first. Bank statement imports remain in Bank Reconciliation.</p>
+            </div>
+            <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Document Title *</label>
                 <input type="text" name="title" placeholder="E.g., Q1 Financial Report" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
             </div>
             <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Select File *</label>
-                <input type="file" name="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Document Category</label>
+                <select name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Category (use file type)</option>
+                    <option>Invoice</option><option>Receipt</option><option>Payment Evidence</option>
+                    <option>Contract</option><option>Bank Advice</option><option>Supporting Document</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Select File(s) *</label>
+                <input type="file" name="files" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
                 <p class="text-xs text-gray-500 mt-1">Allowed: PDF, Images, Documents (Max 20MB)</p>
             </div>
             <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Description</label>
                 <textarea name="description" placeholder="Add details about this document..." rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"></textarea>
             </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-700 mb-2">Link to Project *</label>
-                <select name="project_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500" required>
-                    <option value="">Select a Project</option>
-                    {% for project in projects %}
-                    <option value="{{ project.id }}">{{ project.name }}</option>
-                    {% endfor %}
-                </select>
-                <p class="text-xs text-gray-500 mt-1">Project is required for document organization</p>
-            </div>
             <div class="flex gap-2">
                 <button type="button" onclick="submitUpload()" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">📤 Upload</button>
                 <button type="button" onclick="closeUploadModal()" class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancel</button>
             </div>
+            <progress id="uploadProgress" class="hidden w-full" max="100" value="0"></progress>
         </form>
     </div>
 </div>
@@ -151,43 +196,79 @@ function closeUploadModal() {
 function submitUpload() {
     const form = document.getElementById('uploadForm');
     const fileInput = document.getElementById('fileInput');
-    const projectInput = form.querySelector('[name="project_id"]');
+    const recordInput = document.getElementById('documentRecord');
     
     if (!fileInput.files.length) {
         showNotification('Error', 'Please select a file');
         return;
     }
     
-    if (!projectInput.value) {
-        showNotification('Error', 'Please select a project');
+    if (!recordInput.value || !document.getElementById('sourceModule').value) {
+        showNotification('Error', 'Please select a module and a record');
         return;
     }
     
     const formData = new FormData(form);
+    const [module, recordType, recordId] = recordInput.value.split('|');
+    formData.set('source_module', module);
+    formData.set('source_record_type', recordType);
+    formData.set('source_record_id', recordId);
     
-    fetch('{{ url_for("finance.upload_document") }}', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+    const progress = document.getElementById('uploadProgress');
+    progress.classList.remove('hidden');
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '{{ url_for("finance.upload_document") }}');
+    xhr.upload.onprogress = event => {
+        if (event.lengthComputable) progress.value = Math.round(event.loaded / event.total * 100);
+    };
+    xhr.onload = () => {
+        let data = {};
+        try { data = JSON.parse(xhr.responseText); } catch (error) {}
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        if (!ok) {
+            showNotification('Error', data.message || 'Upload failed. Check the selected record and file type.');
+            return;
         }
-        return response.json();
-    })
-    .then(data => {
         if (data.status === 'success') {
-            showNotification('Success', 'Document uploaded successfully!');
+            showNotification('Success', data.message || 'Document uploaded successfully!');
             closeUploadModal();
             setTimeout(() => location.reload(), 1500);
         } else {
             showNotification('Error', data.message || 'Upload failed');
         }
-    })
-    .catch(error => {
-        console.error('Upload error:', error);
-        showNotification('Error', 'Upload failed: ' + error.message);
-    });
+    };
+    xhr.onerror = () => showNotification('Error', 'Upload failed. Check your connection and try again.');
+    xhr.send(formData);
 }
+
+document.querySelectorAll('form[action*="/uploads/"][action*="/manage"]').forEach(form => {
+    form.addEventListener('submit', event => {
+        event.preventDefault();
+        const button = form.querySelector('button[type="submit"], button:not([type])');
+        if (button) button.disabled = true;
+        fetch(form.action, {method: 'POST', body: new FormData(form)})
+            .then(async response => ({ok: response.ok, data: await response.json()}))
+            .then(({ok, data}) => {
+                if (!ok) {
+                    showNotification('Error', data.message || 'Document update failed.');
+                    return;
+                }
+                showNotification('Success', data.message || 'Document updated.');
+                location.reload();
+            })
+            .catch(() => showNotification('Error', 'Document update failed.'))
+            .finally(() => { if (button) button.disabled = false; });
+    });
+});
+
+document.getElementById('sourceModule').addEventListener('change', function() {
+    const selected = this.value;
+    document.querySelectorAll('#documentRecord option').forEach(option => {
+        option.hidden = Boolean(option.value) && option.value.split('|')[0] !== selected;
+    });
+    document.getElementById('documentRecord').value = '';
+});
+
+{% if open_upload %}showUploadModal();{% endif %}
 </script>
 {% endblock %}

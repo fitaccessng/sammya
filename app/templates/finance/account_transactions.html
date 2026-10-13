@@ -10,7 +10,7 @@
             <h1 class="text-3xl font-bold text-gray-800">📊 All Account Transactions</h1>
             <p class="text-gray-600 mt-1">View transactions across all bank accounts</p>
         </div>
-        <a href="{{ url_for('finance.dashboard') }}" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">← Back</a>
+        <div class="flex gap-2"><a class="rounded bg-blue-600 px-4 py-2 text-white" href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}">Upload Supporting Document</a><a href="{{ url_for('finance.dashboard') }}" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">← Back</a></div>
     </div>
 
     <!-- Summary Cards -->
@@ -68,6 +68,7 @@
                         <th class="px-6 py-3 text-left font-semibold text-gray-700">Method</th>
                         <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
                         <th class="px-6 py-3 text-right font-semibold text-gray-700">Amount</th>
+                        <th class="px-6 py-3 text-left font-semibold text-gray-700">Documents</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -95,11 +96,12 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 text-right font-bold text-gray-800">₦{{ "{:,.2f}".format(txn.amount) }}</td>
+                            <td class="px-6 py-4 text-sm"><a class="text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type=txn.document_record_type, source_record_id=txn.id, open_upload=1) }}">Upload Supporting Document</a></td>
                         </tr>
                         {% endfor %}
                     {% else %}
                     <tr>
-                        <td colspan="7" class="px-6 py-8 text-center text-gray-500">No transactions found</td>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500">No transactions found</td>
                     </tr>
                     {% endif %}
                 </tbody>

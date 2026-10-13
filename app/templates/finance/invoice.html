@@ -4,7 +4,7 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Invoice Management</h1>
-        <button onclick="showCreateInvoiceModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">+ Create Invoice</button>
+        <div class="flex gap-2"><a class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" href="{{ url_for('finance.view_uploads', source_module='finance', open_upload=1) }}">Upload Invoice Attachment</a><button onclick="showCreateInvoiceModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">+ Create Invoice</button></div>
     </div>
 
     <div class="mb-4">
@@ -57,6 +57,8 @@
                             <td class="border border-gray-300 px-4 py-2">{{ invoice.created_at.strftime('%Y-%m-%d') }}</td>
                             <td class="border border-gray-300 px-4 py-2 text-center">
                                 <button onclick="showSendInvoiceModal({{ invoice.id }})" class="px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Send</button>
+                                <a class="ml-2 text-blue-700 hover:underline" href="{{ url_for('finance.view_uploads', source_module='finance', source_record_type='payment_request', source_record_id=invoice.id, open_upload=1) }}">Upload Attachment</a>
+                                {% for document in invoice.documents %}<div class="mt-1 text-xs"><a href="{{ url_for('finance.view_uploaded_document', doc_id=document.id) }}" target="_blank" rel="noopener">{{ document.title }}</a></div>{% endfor %}
                             </td>
                         </tr>
                         {% endfor %}

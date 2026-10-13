@@ -4,7 +4,7 @@ Main application routes - Home, Login, Signup, Password reset, etc.
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user, login_required
-from app.models import User, PasswordResetRequest, db, ensure_password_reset_request_table
+from app.models import User, ProjectDocument, PasswordResetRequest, db, ensure_password_reset_request_table
 from app.utils import (
     Roles, ROLE_GROUPS, dashboard_url_for_role, normalize_role, valid_signup_roles
 )
@@ -251,4 +251,15 @@ def account_settings():
             flash('Could not update account settings.', 'error')
             return redirect(url_for('main.account_settings'))
 
-    return render_template('account/settings.html')
+    account_documents = ProjectDocument.query.filter_by(
+        source_module='account', source_record_type='user', source_record_id=current_user.id,
+    ).order_by(ProjectDocument.created_at.desc()).all()
+    company_documents = []
+    if normalize_role(current_user.role) in {'admin', 'super_hq'}:
+        company_documents = ProjectDocument.query.filter_by(
+            source_module='account', source_record_type='company', source_record_id=1,
+        ).order_by(ProjectDocument.created_at.desc()).all()
+    return render_template(
+        'account/settings.html', account_documents=account_documents,
+        company_documents=company_documents,
+    )

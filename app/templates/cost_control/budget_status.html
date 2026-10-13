@@ -4,6 +4,7 @@
 {% block page_subtitle %}Detailed budget utilization by project{% endblock %}
 
 {% block top_actions %}
+<a href="{{ url_for('finance.view_uploads', source_module='cost_control', source_record_type='project_budget', open_upload=1) }}" class="btn btn-primary">Upload Budget Document</a>
 <a href="{{ url_for('cost_control.reports') }}" class="btn btn-outline-secondary">
     <i class='bx bxs-download'></i> Export Report
 </a>
@@ -28,7 +29,7 @@
                 <tbody>
                     {% for project in projects %}
                     <tr>
-                        <td><strong>{{ project.project.name }}</strong></td>
+                        <td><strong>{{ project.project.name }}</strong> <a class="ms-2 text-primary" href="{{ url_for('finance.view_uploads', source_module='cost_control', source_record_type='project_budget', source_record_id=project.project.id, open_upload=1) }}">Upload</a></td>
                         <td class="text-end">₦{{ "{:,.2f}".format(project.budget) }}</td>
                         <td class="text-end" style="color: #fd7e14;">₦{{ "{:,.2f}".format(project.committed) }}</td>
                         <td class="text-end" style="color: #198754;">₦{{ "{:,.2f}".format(project.spent) }}</td>

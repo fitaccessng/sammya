@@ -4,7 +4,7 @@
 <div class="container mx-auto px-4 py-8">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Budget Tracking</h1>
-        <button onclick="showCreateBudgetModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">+ Create Budget</button>
+        <div class="flex gap-2"><a href="{{ url_for('finance.view_uploads', source_module='cost_control', open_upload=1) }}" class="px-4 py-2 bg-blue-600 text-white rounded-lg">Upload Budget Document</a><button onclick="showCreateBudgetModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">+ Create Budget</button></div>
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-6">
@@ -24,7 +24,7 @@
                     {% if budget_data %}
                         {% for item in budget_data %}
                         <tr class="hover:bg-gray-50">
-                            <td class="border border-gray-300 px-4 py-2 font-semibold">{{ item.project.name }}</td>
+                            <td class="border border-gray-300 px-4 py-2 font-semibold">{{ item.project.name }} <a class="ml-2 text-blue-700 hover:underline text-xs" href="{{ url_for('finance.view_uploads', source_module='cost_control', source_record_type='project_budget', source_record_id=item.project.id, open_upload=1) }}">Upload Document</a></td>
                             <td class="border border-gray-300 px-4 py-2 text-right">₦{{ "%.2f"|format(item.budget) }}</td>
                             <td class="border border-gray-300 px-4 py-2 text-right text-red-600 font-semibold">₦{{ "%.2f"|format(item.spent) }}</td>
                             <td class="border border-gray-300 px-4 py-2 text-right text-green-600 font-semibold">₦{{ "%.2f"|format(item.remaining) }}</td>
