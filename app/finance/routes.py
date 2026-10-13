@@ -23,7 +23,7 @@ from app.models import (
 )
 from app.utils import normalize_role
 from app.finance.services import BankImportService
-from sqlalchemy import func, desc, or_, and_, case
+from sqlalchemy import func, desc, or_, and_, case, inspect
 from werkzeug.utils import secure_filename
 import os
 import pandas as pd
@@ -3251,6 +3251,8 @@ def _resolve_document_record(record_type, record_id):
     if not model_info:
         return None, None
     model, module = model_info
+    if not inspect(db.engine).has_table(model.__table__.name):
+        return None, module
     record = model.query.get(record_id)
     return record, module
 
@@ -3309,6 +3311,7 @@ def _document_record_label(record_type, record):
 def _available_document_records(source_module, source_record_type=None):
     role = normalize_role(current_user.role)
     records = []
+    existing_tables = set(inspect(db.engine).get_table_names())
     if source_module in {'', 'finance'} and role in FINANCE_DOCUMENT_ROLES:
         for record_type, model in (
             ('payment_record', PaymentRecord), ('payment_request', PaymentRequest),
@@ -3318,6 +3321,8 @@ def _available_document_records(source_module, source_record_type=None):
             ('ledger_entry', LedgerEntry), ('revenue_sale', RevenueSale),
             ('expense', Expense),
         ):
+            if model.__table__.name not in existing_tables:
+                continue
             rows = model.query.order_by(model.id.desc()).limit(200).all()
             records.extend(('finance', record_type, row, _document_record_label(record_type, row)) for row in rows)
     if source_module in {'', 'finance', 'projects'} and role in FINANCE_DOCUMENT_ROLES:

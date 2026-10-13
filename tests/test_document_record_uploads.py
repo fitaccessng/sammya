@@ -4,7 +4,7 @@ import pytest
 
 from app.factory import create_app
 from app.models import (
-    AuditLog, Expense, PaymentRecord, Project, ProjectDocument, User, db,
+    AuditLog, Bill, Expense, PaymentRecord, Project, ProjectDocument, User, db,
     ensure_project_document_record_fields,
 )
 from sqlalchemy import inspect, text
@@ -192,6 +192,23 @@ def test_transaction_ledger_links_documents_to_payment_record(document_app):
     assert b'Ledger payment evidence' in response.data
     assert f"source_record_id={ids['payment']}".encode() in response.data
     assert b'source_record_type=payment_record' in response.data
+
+
+def test_documents_library_works_when_legacy_bill_table_is_missing(document_app):
+    app, ids = document_app
+    with app.app_context():
+        Bill.__table__.drop(bind=db.engine)
+
+    with app.test_client() as client:
+        _login(client, ids['finance'])
+        response = client.get('/finance/uploads?source_module=finance&open_upload=1')
+        stale_record_context = client.get(
+            '/finance/uploads?source_module=finance&source_record_type=bill&source_record_id=1&open_upload=1'
+        )
+
+    assert response.status_code == 200
+    assert b'Upload Document' in response.data
+    assert stale_record_context.status_code == 200
 
 
 def test_existing_project_documents_migrate_to_optional_typed_scope(tmp_path):
